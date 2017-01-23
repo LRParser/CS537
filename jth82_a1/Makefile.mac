@@ -2,10 +2,10 @@ GL_OPTIONS = -framework OpenGL -framework GLUT
 
 FNAME = red_triangle
 
-CXXINCS = -Wall -pedantic -I../include 
+CXXINCS = -Wall -pedantic -Iinclude 
 
-INIT_SHADER = ../common/InitShader.cpp
-INIT_SHADER_OBJ = ../common/InitShader.o
+INIT_SHADER = common/InitShader.cpp
+INIT_SHADER_OBJ = common/InitShader.o
 
 EXAMPLELIST = $(wildcard *.cpp)
 TARGETS = $(basename $(EXAMPLELIST))
@@ -29,3 +29,6 @@ clean:
 	
 cleanall:
 	rm *.o
+
+run:
+	./red_triangle

@@ -2,10 +2,10 @@ LDLIBS = -lglut -lGLEW -lGL -lGLU
 
 FNAME = red_triangle
 
-CXXINCS = -I../include
+CXXINCS = -I include
 
-INIT_SHADER = ../common/InitShader.cpp
-INIT_SHADER_OBJ = ../common/InitShader.o
+INIT_SHADER = common/InitShader.cpp
+INIT_SHADER_OBJ = common/InitShader.o
 
 EXAMPLELIST = $(wildcard *.cpp)
 TARGETS = $(basename $(EXAMPLELIST))

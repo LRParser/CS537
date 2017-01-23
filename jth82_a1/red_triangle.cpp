@@ -2,9 +2,8 @@
 // Just makes a red triangle
 
 #include "Angel.h"
-#define WINDOW_TITLE_PREFIX "Joe2"
 
-const int NumPoints = 3;
+const int NumPoints = 6;
 
 //--------------------------------------------------------------------------
 
@@ -13,7 +12,8 @@ init( void )
 {
     // Specify the vertices for a triangle
     vec2 vertices[NumPoints] = {
-        vec2( -0.75, -0.75 ), vec2( 0.0, 0.75 ), vec2( 0.75, -0.75 )
+        vec2(-.75,-.75), vec2(-.75,0),vec2(0,-.75),
+        vec2(-.75,0 ), vec2(0,-.75), vec2( 0, 0 )
     };
 
     // Create a vertex array object
@@ -39,7 +39,6 @@ init( void )
                            BUFFER_OFFSET(0) );
 
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); // white background
-
 }
 
 //----------------------------------------------------------------------------
@@ -77,7 +76,7 @@ main( int argc, char **argv )
 #endif     
     glutInitWindowSize( 512, 512 );
 
-    glutCreateWindow( "Joe2" );
+    glutCreateWindow( "Red Triangle" );
 
 #ifndef __APPLE__
     GLenum err = glewInit();
