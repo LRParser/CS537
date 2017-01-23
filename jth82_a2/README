@@ -1,0 +1,2 @@
+This program should be run on MacOS with make -f Makefile.mac 
+It creates a blue square consisting of 2 triangles. Run red_triangle to see it
