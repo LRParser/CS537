@@ -8,10 +8,6 @@ const int NumPoints = 100;
 
 //--------------------------------------------------------------------------
 
-typedef struct ColoredVertex {
-	double xy[2];
-	double rgb[3];
-};
 
 void
 init( void )
@@ -20,7 +16,6 @@ init( void )
 	// Specify the vertices for a circle
 	// Increment from 0 to 2*Pi
 	double twicePi = 2 * M_PI;
-	ColoredVertex coloredVerticies[100];
 
 	vec2 circleVertices[100];
 	double angle = 0;
@@ -28,10 +23,8 @@ init( void )
 	while(angle < twicePi && i < NumPoints) {
 		double x = cos(angle);
 		double y = sin(angle);
-		ColoredVertex cv = { {x,y},{i/100,0f,0f} };
 		printf("x is : %f, y is: %f \n",x,y);
 		circleVertices[i] = vec2(x,y);
-		coloredVerticies[i] = cv;
 		i++;
 		angle += 0.0628;
 	}
@@ -46,7 +39,7 @@ init( void )
     GLuint buffer;
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
-    glBufferData( GL_ARRAY_BUFFER, sizeof(coloredVerticies), coloredVerticies, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(circleVertices), circleVertices, GL_STATIC_DRAW );
 
 
 
