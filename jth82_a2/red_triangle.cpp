@@ -8,6 +8,8 @@ const int NumPoints = 100;
 
 //--------------------------------------------------------------------------
 
+vec3 circleVertices[NumPoints];
+vec3 colors[NumPoints];
 
 void
 init( void )
@@ -17,16 +19,16 @@ init( void )
 	// Increment from 0 to 2*Pi
 	double twicePi = 2 * M_PI;
 
-	vec2 circleVertices[100];
-	vec3 colors[100];
+
 	double angle = 0;
 	int i = 0;
 	while(angle < twicePi && i < NumPoints) {
 		float x = cos(angle) * .5;
 		float y = sin(angle) *.5;
 		printf("x is : %f, y is: %f \n",x,y);
-		circleVertices[i] = vec2(x,y);
-		colors[i] = vec3(1.0f,0.0f,0.0f);
+		circleVertices[i] = vec3(x,y,0.0);
+		colors[i] = vec3(angle / twicePi,0.0,0.0);
+		printf("angle is: %f, color1 is : %f\n",angle, colors[i].x);
 		i++;
 		angle += 0.0628;
 	}
@@ -57,13 +59,16 @@ init( void )
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
     glEnableVertexAttribArray( vPosition );
-    glVertexAttribPointer( vPosition, 2, GL_FLOAT, GL_FALSE, 0,
+    glVertexAttribPointer( vPosition, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(0) );
 
     GLuint vColor = glGetAttribLocation( program, "vColor" );
     glEnableVertexAttribArray( vColor );
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
-                           BUFFER_OFFSET(sizeof(colors)) );
+                           BUFFER_OFFSET(sizeof(circleVertices)) );
+
+    glEnable( GL_DEPTH_TEST );
+
 
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); // white background
 }

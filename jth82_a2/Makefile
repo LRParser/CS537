@@ -25,10 +25,10 @@ $(INIT_SHADER_OBJ): $(INIT_SHADER)
 	g++ -c -Wall $(INIT_SHADER) -o $(INIT_SHADER_OBJ) -O2 $(CXXINCS)
 
 clean:
-	rm *.o
+	@rm -f *.o common/*.o
 	
 cleanall:
 	rm *.o
 
-run:
+run: clean all
 	./red_triangle
