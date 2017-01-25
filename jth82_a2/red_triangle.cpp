@@ -4,34 +4,53 @@
 #include "Angel.h"
 #include <math.h>
 
-const int NumPoints = 100;
+const int NumPoints = 200;
+const double TwicePi = 2 * M_PI;
+
 
 //--------------------------------------------------------------------------
 
-vec3 circleVertices[NumPoints];
-vec3 colors[NumPoints];
+vec3 shadedCircleVertices[NumPoints];
+vec3 shadedCircleColors[NumPoints];
+
+vec3 ellipseVertices[NumPoints];
+vec3 ellipseColors[NumPoints];
+
+// Function can only be called twice
+void createCircle(vec3 buffer[], vec3 colors[], float scalingFactor, bool doShading, float xOffset) {
+	double angle = 0;
+	int i = 0;
+	while(angle < TwicePi && i < 100) {
+		float x = cos(angle) * .2 * scalingFactor - xOffset;
+		float y = sin(angle) *.2 * scalingFactor;
+		printf("x is : %f, y is: %f \n",x,y);
+		buffer[i] = vec3(x,y,0.0);
+		if(doShading) {
+			colors[i] = vec3(angle / TwicePi,0.0,0.0);
+			printf("angle is: %f, color1 is : %f\n",angle, colors[i].x);
+
+		}
+		else {
+			colors[i] = vec3(1.0,0.0,0.0);
+			printf("angle is: %f, color1 is : %f\n",angle, 1.0);
+
+		}
+		i++;
+		angle += 0.0628;
+	}
+}
 
 void
 init( void )
 {
+	createCircle(shadedCircleVertices,shadedCircleColors,1,true,0);
+
+	createCircle(ellipseVertices,ellipseColors,1,false,.3);
 
 	// Specify the vertices for a circle
 	// Increment from 0 to 2*Pi
-	double twicePi = 2 * M_PI;
 
-
-	double angle = 0;
-	int i = 0;
-	while(angle < twicePi && i < NumPoints) {
-		float x = cos(angle) * .5;
-		float y = sin(angle) *.5;
-		printf("x is : %f, y is: %f \n",x,y);
-		circleVertices[i] = vec3(x,y,0.0);
-		colors[i] = vec3(angle / twicePi,0.0,0.0);
-		printf("angle is: %f, color1 is : %f\n",angle, colors[i].x);
-		i++;
-		angle += 0.0628;
-	}
+	// createCircle(circleVertices,colors,1,true,0);
 
     // Create a vertex array object
     GLuint vao[1];
@@ -43,13 +62,16 @@ init( void )
     GLuint buffer;
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
-    glBufferData( GL_ARRAY_BUFFER, sizeof(circleVertices) + sizeof(colors), NULL, GL_STATIC_DRAW );
 
-    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(circleVertices), circleVertices );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(circleVertices), sizeof(colors), colors );
+    size_t totalSize = sizeof(shadedCircleVertices) + sizeof(shadedCircleColors)
+    		+ sizeof(ellipseVertices) + sizeof(ellipseColors);
 
+    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
 
-	// Set vertex color metadata
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(shadedCircleVertices), shadedCircleVertices );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(shadedCircleVertices), sizeof(shadedCircleColors), shadedCircleColors );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(shadedCircleVertices) + sizeof(shadedCircleColors), sizeof(ellipseVertices), ellipseVertices  );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(shadedCircleVertices) + sizeof(shadedCircleColors) + sizeof(ellipseVertices), sizeof(ellipseColors), ellipseColors  );
 
 
     // Load shaders and use the resulting shader program
@@ -65,7 +87,7 @@ init( void )
     GLuint vColor = glGetAttribLocation( program, "vColor" );
     glEnableVertexAttribArray( vColor );
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
-                           BUFFER_OFFSET(sizeof(circleVertices)) );
+                           BUFFER_OFFSET(sizeof(shadedCircleColors)) );
 
     glEnable( GL_DEPTH_TEST );
 
