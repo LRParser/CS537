@@ -18,13 +18,15 @@ init( void )
 	double twicePi = 2 * M_PI;
 
 	vec2 circleVertices[100];
+	vec3 colors[100];
 	double angle = 0;
 	int i = 0;
 	while(angle < twicePi && i < NumPoints) {
-		double x = cos(angle);
-		double y = sin(angle);
+		float x = cos(angle) * .5;
+		float y = sin(angle) *.5;
 		printf("x is : %f, y is: %f \n",x,y);
 		circleVertices[i] = vec2(x,y);
+		colors[i] = vec3(1.0f,0.0f,0.0f);
 		i++;
 		angle += 0.0628;
 	}
@@ -39,8 +41,10 @@ init( void )
     GLuint buffer;
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
-    glBufferData( GL_ARRAY_BUFFER, sizeof(circleVertices), circleVertices, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(circleVertices) + sizeof(colors), NULL, GL_STATIC_DRAW );
 
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(circleVertices), circleVertices );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(circleVertices), sizeof(colors), colors );
 
 
 	// Set vertex color metadata
@@ -51,10 +55,15 @@ init( void )
     //  glUseProgram( program );  // This is called in InitShader
 
     // Initialize the vertex position attribute from the vertex shader
-    GLuint loc = glGetAttribLocation( program, "vPosition" );
-    glEnableVertexAttribArray( loc );
-    glVertexAttribPointer( loc, 2, GL_FLOAT, GL_FALSE, 0,
+    GLuint vPosition = glGetAttribLocation( program, "vPosition" );
+    glEnableVertexAttribArray( vPosition );
+    glVertexAttribPointer( vPosition, 2, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(0) );
+
+    GLuint vColor = glGetAttribLocation( program, "vColor" );
+    glEnableVertexAttribArray( vColor );
+    glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
+                           BUFFER_OFFSET(sizeof(colors)) );
 
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); // white background
 }
