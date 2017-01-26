@@ -49,7 +49,7 @@ void createCircle(vec3 buffer[], vec3 colors[], float baseScaleFactor, int start
 void createSquare(int startVertex, float scaleFactor, float centroidX, float centroidY, float xScale, float yScale, bool isWhite, float zIndex) {
 
 	vec3 whiteColor = vec3(1.0,1.0,1.0);
-	vec3 blackColor = vec3(0.0,0.0,1.0);
+	vec3 blackColor = vec3(0.0,0.0,0.0);
 	vec3 color = isWhite ? whiteColor : blackColor;
 
 	int currentVertex = startVertex;
@@ -61,11 +61,14 @@ void createSquare(int startVertex, float scaleFactor, float centroidX, float cen
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
-	vertices[currentVertex] = vec3(centroidX - xScale,centroidY - yScale,zIndex);
+	float normalizedXScale = scaleFactor * xScale;
+	float normalizedYScale = scaleFactor * yScale;
+
+	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY - normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
-	vertices[currentVertex] = vec3(centroidX + xScale,centroidY - yScale,zIndex);
+	vertices[currentVertex] = vec3(centroidX + normalizedXScale,centroidY - normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
@@ -74,11 +77,11 @@ void createSquare(int startVertex, float scaleFactor, float centroidX, float cen
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
-	vertices[currentVertex] = vec3(centroidX + xScale,centroidY - yScale,zIndex);
+	vertices[currentVertex] = vec3(centroidX + normalizedXScale,centroidY - normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
-	vertices[currentVertex] = vec3(centroidX + xScale,centroidY + yScale,zIndex);
+	vertices[currentVertex] = vec3(centroidX + normalizedXScale,centroidY + normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
@@ -87,11 +90,11 @@ void createSquare(int startVertex, float scaleFactor, float centroidX, float cen
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
-	vertices[currentVertex] = vec3(centroidX - xScale,centroidY + yScale,zIndex);
+	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY + normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
-	vertices[currentVertex] = vec3(centroidX + xScale,centroidY + yScale,zIndex);
+	vertices[currentVertex] = vec3(centroidX + normalizedXScale,centroidY + normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
@@ -102,11 +105,11 @@ void createSquare(int startVertex, float scaleFactor, float centroidX, float cen
 	currentVertex++;
 
 
-	vertices[currentVertex] = vec3(centroidX - xScale,centroidY + yScale,zIndex);
+	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY + normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
-	vertices[currentVertex] = vec3(centroidX - xScale,centroidY - yScale,zIndex);
+	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY - normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 }
@@ -131,14 +134,28 @@ init( void )
 	colors[202] = vec3(0.0,0.0,1.0);
 
 	// Squares, draw white, black, white, black, white, black
-	createSquare(203,1,0,0,.4,.4,true,.8);
-	createSquare(203 + 1 * pointsPerSquare,1,0,0,.3,.3,false,0.9);
-	createSquare(203 + 2 * pointsPerSquare,1,0,0,.2,.2,true,-0.8);
-	createSquare(203 + 3 * pointsPerSquare,1,0,0,.1,.1,false,-0.8);
-	createSquare(203 + 4 * pointsPerSquare,1,0,0,.05,.05,true,-0.8);
-	createSquare(203 + 5 * pointsPerSquare,1,0,0,.025,.025,false,-0.8);
 
 
+	float overallScale = .5;
+	createSquare(203,overallScale,0,0,.7,.7,true,0.0);
+	createSquare(203 + 1 * pointsPerSquare,overallScale,0,0,.6,.6,false,0.1);
+	createSquare(203 + 2 * pointsPerSquare,overallScale,0,0,.5,.5,true,0.2);
+	createSquare(203 + 3 * pointsPerSquare,overallScale,0,0,.4,.4,false,0.3);
+	createSquare(203 + 4 * pointsPerSquare,overallScale,0,0,.3,.3,true,0.4);
+	createSquare(203 + 5 * pointsPerSquare,overallScale,0,0,.2,.2,false,0.5);
+
+
+	/*
+	// Squares, draw black, white, black, white, black, white
+	float overallScale = .5;
+		createSquare(203,overallScale,0,0,.2,.2,false,.9);
+
+		createSquare(203 + 1 * pointsPerSquare,overallScale,0,0,.3,.3,true,-.9);
+		createSquare(203 + 2 * pointsPerSquare,overallScale,0,0,.4,.4,false,0.8);
+		createSquare(203 + 3 * pointsPerSquare,overallScale,0,0,.5,.5,true,0.7);
+		createSquare(203 + 4 * pointsPerSquare,overallScale,0,0,.6,.6,false,0.6);
+		createSquare(203 + 5 * pointsPerSquare,overallScale,0,0,.7,.7,true,0.5);
+*/
 
 	// Now we need to make 3 squares, each smaller than the other
 
@@ -208,19 +225,26 @@ display( void )
     glDrawArrays(GL_TRIANGLES,200,3);
     glFlush();
 
-    glDrawArrays(GL_TRIANGLES,203,squarePoints);
+    glDrawArrays(GL_TRIANGLES,203,pointsPerSquare);
     glFlush();
 
-    /*
-    glDrawArrays(GL_TRIANGLES,215,12);
+    glDrawArrays(GL_TRIANGLES,203 + 1 * pointsPerSquare,pointsPerSquare);
     glFlush();
 
-    glDrawArrays(GL_TRIANGLES,227,12);
+    glDrawArrays(GL_TRIANGLES,203 + 2 * pointsPerSquare,pointsPerSquare);
     glFlush();
-    */
 
+    glDrawArrays(GL_TRIANGLES,203 + 3 * pointsPerSquare,pointsPerSquare);
+    glFlush();
 
+    glDrawArrays(GL_TRIANGLES,203 + 4 * pointsPerSquare,pointsPerSquare);
+    glFlush();
 
+    glDrawArrays(GL_TRIANGLES,203 + 5 * pointsPerSquare,pointsPerSquare);
+    glFlush();
+
+    glDrawArrays(GL_TRIANGLES,203 + 6 * pointsPerSquare,pointsPerSquare);
+    glFlush();
 
 }
 
