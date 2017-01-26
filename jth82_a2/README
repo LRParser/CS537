@@ -1,2 +1,3 @@
-This program should be run on MacOS with make -f Makefile.mac 
-It creates a blue square consisting of 2 triangles. Run red_triangle to see it
+This program should be run on MacOS with make -f Makefile.mac run
+The first window opens showing part 1, press 'q' to exit first window and display second
+Press 'q' again to close second part and exit the execution of make run 
