@@ -4,25 +4,31 @@
 #include "Angel.h"
 #include <math.h>
 
-const int NumPoints = 200;
+const int shadedCirclePoints = 100;
+const int ellipsePoints = 100;
+const int coloredTrianglePoints = 3;
+const int pointsPerSquare = 12;
+const int numSquares = 6;
+const int squarePoints = pointsPerSquare * numSquares;
+
+const int NumPoints = shadedCirclePoints + ellipsePoints + coloredTrianglePoints + squarePoints;
 const double TwicePi = 2 * M_PI;
 
 
 //--------------------------------------------------------------------------
 
-vec3 shadedCircleVertices[NumPoints];
-vec3 shadedCircleColors[NumPoints];
+vec3 vertices[NumPoints];
+vec3 colors[NumPoints];
 
-vec3 ellipseVertices[NumPoints];
-vec3 ellipseColors[NumPoints];
 
 // Function can only be called twice
-void createCircle(vec3 buffer[], vec3 colors[], float scalingFactor, bool doShading, float xOffset) {
+void createCircle(vec3 buffer[], vec3 colors[], float baseScaleFactor, int startIndex, int endIndex,
+		float scalingFactor, bool doShading, float xOffset, float yOffset) {
 	double angle = 0;
-	int i = 0;
-	while(angle < TwicePi && i < 100) {
-		float x = cos(angle) * .2 * scalingFactor - xOffset;
-		float y = sin(angle) *.2 * scalingFactor;
+	int i = startIndex;
+	while(angle < TwicePi && i < endIndex) {
+		float x = (cos(angle) * baseScaleFactor) - xOffset;
+		float y = (sin(angle) * baseScaleFactor * scalingFactor) - yOffset;
 		printf("x is : %f, y is: %f \n",x,y);
 		buffer[i] = vec3(x,y,0.0);
 		if(doShading) {
@@ -40,17 +46,107 @@ void createCircle(vec3 buffer[], vec3 colors[], float scalingFactor, bool doShad
 	}
 }
 
+void createSquare(int startVertex, float scaleFactor, float centroidX, float centroidY, float xScale, float yScale, bool isWhite, float zIndex) {
+
+	vec3 whiteColor = vec3(1.0,1.0,1.0);
+	vec3 blackColor = vec3(0.0,0.0,1.0);
+	vec3 color = isWhite ? whiteColor : blackColor;
+
+	int currentVertex = startVertex;
+
+	// Make square from 4 triangles all "pointing" towards center point
+
+	// Triangle 1
+	vertices[currentVertex] = vec3(centroidX,centroidY,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	vertices[currentVertex] = vec3(centroidX - xScale,centroidY - yScale,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	vertices[currentVertex] = vec3(centroidX + xScale,centroidY - yScale,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	// Triangle 2, center + 2 points
+	vertices[currentVertex] = vec3(centroidX,centroidY,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	vertices[currentVertex] = vec3(centroidX + xScale,centroidY - yScale,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	vertices[currentVertex] = vec3(centroidX + xScale,centroidY + yScale,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	// Triangle 3, center + 2 points
+	vertices[currentVertex] = vec3(centroidX,centroidY,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	vertices[currentVertex] = vec3(centroidX - xScale,centroidY + yScale,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	vertices[currentVertex] = vec3(centroidX + xScale,centroidY + yScale,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	// Triangle 4, center + 2 points
+
+	vertices[currentVertex] = vec3(centroidX,centroidY,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+
+	vertices[currentVertex] = vec3(centroidX - xScale,centroidY + yScale,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+
+	vertices[currentVertex] = vec3(centroidX - xScale,centroidY - yScale,zIndex);
+	colors[currentVertex] = vec3(color);
+	currentVertex++;
+}
+
 void
 init( void )
 {
-	createCircle(shadedCircleVertices,shadedCircleColors,1,true,0);
 
-	createCircle(ellipseVertices,ellipseColors,1,false,.3);
+	// Shaded circle
+	createCircle(vertices,colors,.3,0,100,1,true,-0.6,-0.7);
 
-	// Specify the vertices for a circle
-	// Increment from 0 to 2*Pi
+	// Ellipse
+	createCircle(vertices,colors,.3,100,200,0.6,false,0.6,-0.7);
 
-	// createCircle(circleVertices,colors,1,true,0);
+	// Colored triangle
+	float triangleXOffset = 0.6;
+	vertices[200] = vec3(0.35 - triangleXOffset,.6,0.0);
+	colors[200] = vec3(0.0,1.0,0.0);
+	vertices[201] = vec3(0.55 - triangleXOffset,1.0,0.0);
+	colors[201] = vec3(1.0,0.0,0.0);
+	vertices[202] = vec3(0.75 - triangleXOffset,.6,0.0);
+	colors[202] = vec3(0.0,0.0,1.0);
+
+	// Squares, draw white, black, white, black, white, black
+	createSquare(203,1,0,0,.4,.4,true,.8);
+	createSquare(203 + 1 * pointsPerSquare,1,0,0,.3,.3,false,0.9);
+	createSquare(203 + 2 * pointsPerSquare,1,0,0,.2,.2,true,-0.8);
+	createSquare(203 + 3 * pointsPerSquare,1,0,0,.1,.1,false,-0.8);
+	createSquare(203 + 4 * pointsPerSquare,1,0,0,.05,.05,true,-0.8);
+	createSquare(203 + 5 * pointsPerSquare,1,0,0,.025,.025,false,-0.8);
+
+
+
+	// Now we need to make 3 squares, each smaller than the other
+
+
+
+
+
+
 
     // Create a vertex array object
     GLuint vao[1];
@@ -63,15 +159,15 @@ init( void )
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
 
-    size_t totalSize = sizeof(shadedCircleVertices) + sizeof(shadedCircleColors)
-    		+ sizeof(ellipseVertices) + sizeof(ellipseColors);
+    size_t totalSize = sizeof(vertices) +
+    		sizeof(colors);
 
     glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
 
-    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(shadedCircleVertices), shadedCircleVertices );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(shadedCircleVertices), sizeof(shadedCircleColors), shadedCircleColors );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(shadedCircleVertices) + sizeof(shadedCircleColors), sizeof(ellipseVertices), ellipseVertices  );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(shadedCircleVertices) + sizeof(shadedCircleColors) + sizeof(ellipseVertices), sizeof(ellipseColors), ellipseColors  );
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vertices),
+    		vertices );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors),
+    		colors );
 
 
     // Load shaders and use the resulting shader program
@@ -87,12 +183,14 @@ init( void )
     GLuint vColor = glGetAttribLocation( program, "vColor" );
     glEnableVertexAttribArray( vColor );
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
-                           BUFFER_OFFSET(sizeof(shadedCircleColors)) );
+                           BUFFER_OFFSET(sizeof(vertices)) );
+
+    printf("vColor is set\n");
 
     glEnable( GL_DEPTH_TEST );
 
 
-    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // white background
+    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 }
 
 //----------------------------------------------------------------------------
@@ -100,9 +198,30 @@ init( void )
 void
 display( void )
 {
-    glClear( GL_COLOR_BUFFER_BIT );     // clear the window
-    glDrawArrays( GL_TRIANGLE_FAN, 0, NumPoints );    // draw the points
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+    glDrawArrays( GL_TRIANGLE_FAN, 0, 100 );    // draw the shaded circle
     glFlush();
+
+    glDrawArrays( GL_TRIANGLE_FAN, 100, 100 );    // draw the ellipse
+    glFlush();
+
+    glDrawArrays(GL_TRIANGLES,200,3);
+    glFlush();
+
+    glDrawArrays(GL_TRIANGLES,203,squarePoints);
+    glFlush();
+
+    /*
+    glDrawArrays(GL_TRIANGLES,215,12);
+    glFlush();
+
+    glDrawArrays(GL_TRIANGLES,227,12);
+    glFlush();
+    */
+
+
+
+
 }
 
 //----------------------------------------------------------------------------
@@ -128,9 +247,9 @@ main( int argc, char **argv )
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_SINGLE);
 #endif     
-    glutInitWindowSize( 512, 512 );
+    glutInitWindowSize( 500, 500 );
 
-    glutCreateWindow( "Red Triangle" );
+    glutCreateWindow( "Assignment 2" );
 
 #ifndef __APPLE__
     GLenum err = glewInit();
