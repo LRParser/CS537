@@ -174,6 +174,7 @@ void displaySubwindow(void) {
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
     glDrawArrays( GL_TRIANGLE_FAN, 0, 99 );    // draw the shaded circle
     glFlush();
+    glutSwapBuffers();
 }
 
 void
@@ -201,10 +202,16 @@ display( void )
     glDrawArrays(GL_TRIANGLES,squaresStartIdx + 5 * pointsPerSquare,pointsPerSquare);
     glFlush();
 
+    glutSwapBuffers();
+
 
 }
 
 //----------------------------------------------------------------------------
+
+void reshape(int width, int height) {
+
+}
 
 void
 keyboard( unsigned char key, int x, int y )
@@ -216,6 +223,10 @@ keyboard( unsigned char key, int x, int y )
     }
 }
 
+void renderSceneAll() {
+
+}
+
 //----------------------------------------------------------------------------
 
 int mainWindow, subWindow1;
@@ -225,50 +236,37 @@ main( int argc, char **argv )
 {
 
 
-	int w, h = 500;
-	int border = 10;
+int w = 500;
+int h = 500;
+int border = 400;
 
-    glutInit( &argc, argv );
-#ifdef __APPLE__
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE );
-#else
-    glutInitDisplayMode( GLUT_RGBA | GLUT_SINGLE);
-#endif     
-    glutInitWindowSize( w, h );
+	glutInit( &argc, argv );
+	#ifdef __APPLE__
+	    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE );
+	#else
+	    glutInitDisplayMode( GLUT_RGBA | GLUT_SINGLE);
+	#endif
+	    glutInitWindowSize( w, h );
 
-    glutCreateWindow( "Assignment 3 - Part 1" );
+	    int mainWindow = glutCreateWindow( "Assignment 3" );
 
-    // Create window and subwindow
-    glutInitWindowPosition(100,100);
-    glutInitWindowSize(w,h);
+	#ifndef __APPLE__
+	    GLenum err = glewInit();
+	    if (GLEW_OK != err)
+	      fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+	#endif
 
+	    init();
+	    glutDisplayFunc( display );
+	    glutReshapeFunc(reshape);
+	    glutIdleFunc(renderSceneAll);
+	    glutKeyboardFunc( keyboard );
 
+	    int subWindow1 = glutCreateSubWindow(mainWindow,
+	     border,border,w-2*border, h/2 - border*3/2);
+	     // Must register a display func for each window
+	     glutDisplayFunc(displaySubwindow);
 
-#ifndef __APPLE__
-    GLenum err = glewInit();
-    if (GLEW_OK != err)
-      fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-#endif
-
-    init();
-
-    mainWindow = glutCreateWindow("SnowMen from 3D-Tech");
-     //keyboard stuff
-     glutKeyboardFunc(keyboard);
-     // reshape function
-     glutReshapeFunc(changeSize);
-     // display and idle function
-     glutDisplayFunc(display);
-
-     subWindow1 = glutCreateSubWindow(mainWindow,border,border,w-2*border, h/2 - border*3/2);
-     // Must register a display func for each window
-     glutDisplayFunc(displaySubwindow);
-
-    //glutDisplayFunc( display );
-    //glutKeyboardFunc( keyboard );
-
-    std::cout << "Press q to exit first part and display second" << std::endl;
-
-    glutMainLoop();
-    return 0;
+	    glutMainLoop();
+	    return 0;
 }
