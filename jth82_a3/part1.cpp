@@ -40,11 +40,13 @@ int border = 50;
 
 GLint windowHeight, windowWidth;
 
+// Array of rotation angles (in degrees) for each coordinate axis
 enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
 int      Axis = Zaxis;
 GLfloat  Theta[NumAxes] = { 0.0, 0.0, 0.0 };
+GLuint  theta;  // The location of the "theta" shader uniform variable
 
-// Function can only be called twice
+
 void createCircle(vec3 buffer[], vec3 colors[], float baseScaleFactor, int startIndex, int endIndex,
 		float scalingFactor, bool doShading, float xOffset, float yOffset) {
 	double angle = 0;
@@ -184,6 +186,8 @@ initMainWindow( void )
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(vertices)) );
 
+
+    theta = glGetUniformLocation( program, "theta" );
     glEnable( GL_DEPTH_TEST );
 
 
@@ -197,26 +201,27 @@ displayMainWindow( void )
 {
 	glutSetWindow(mainWindow);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+    glUniform3fv( theta, 1, Theta );
+    int totalSquareIdxs = pointsPerSquare * 6;
+
 
     /*
     mat4  transform = ( RotateX( Theta[Xaxis] ) *
 			RotateY( Theta[Yaxis] ) *
 			RotateZ( Theta[Zaxis] ) );
 
+
+
     point4  transformed_points[NumPoints];
 
-    for ( int i = 0; i < NumPoints; ++i ) {
+    for ( int i = 0; i < totalSquareIdxs; ++i ) {
 	transformed_points[i] = transform * vertices[i];
     }
 
     glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(transformed_points),
 		     transformed_points );
-
-    glDrawArrays( GL_TRIANGLES, 0, NumPoints );
 */
-
-    int totalSquareIdxs = pointsPerSquare * 6;
-    glDrawArrays(GL_TRIANGLES,0 * pointsPerSquare,totalSquareIdxs);
+    glDrawArrays( GL_TRIANGLES, 0, totalSquareIdxs );
 
 
     glutSwapBuffers();
@@ -307,7 +312,7 @@ keyboard( unsigned char key, int x, int y )
 }
 
 void idle() {
-    Theta[Axis] += 0.001;
+    Theta[Axis] += 0.05;
 
     if ( Theta[Axis] > 360.0 ) {
 	Theta[Axis] -= 360.0;
