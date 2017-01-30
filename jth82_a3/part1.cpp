@@ -11,7 +11,7 @@ const int squarePoints = pointsPerSquare * numSquares;
 
 const int NumPoints = ellipsePoints + squarePoints;
 const double TwicePi = 2 * M_PI;
-const int squaresStartIdx = 0;
+const int squaresStartIdx = 100;
 
 typedef struct window_info window_info;
 struct window_info {
@@ -129,8 +129,14 @@ void
 initMainWindow( void )
 {
 
-	// Shaded circle
-	createCircle(vertices,colors,.3,0,100,1.2,true,-0.6,-0.7);
+	float overallScale = .5;
+
+	createSquare(squaresStartIdx,overallScale,0,0,.7,.7,true,0.0);
+	createSquare(squaresStartIdx + 1 * pointsPerSquare,overallScale,0,0,.6,.6,false,0.1);
+	createSquare(squaresStartIdx + 2 * pointsPerSquare,overallScale,0,0,.5,.5,true,0.2);
+	createSquare(squaresStartIdx + 3 * pointsPerSquare,overallScale,0,0,.4,.4,false,0.3);
+	createSquare(squaresStartIdx + 4 * pointsPerSquare,overallScale,0,0,.3,.3,true,0.4);
+	createSquare(squaresStartIdx + 5 * pointsPerSquare,overallScale,0,0,.2,.2,false,0.5);
 
 
     // Create a vertex array object
@@ -183,8 +189,23 @@ displayMainWindow( void )
 {
 	glutSetWindow(mainWindow);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    glDrawArrays( GL_TRIANGLE_FAN, 0, 100 );    // draw the shaded circle
-    glFlush();
+    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 0 * pointsPerSquare,pointsPerSquare);
+        glFlush();
+
+        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 1 * pointsPerSquare,pointsPerSquare);
+        glFlush();
+
+        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 2 * pointsPerSquare,pointsPerSquare);
+        glFlush();
+
+        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 3 * pointsPerSquare,pointsPerSquare);
+        glFlush();
+
+        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 4 * pointsPerSquare,pointsPerSquare);
+        glFlush();
+
+        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 5 * pointsPerSquare,pointsPerSquare);
+        glFlush();
     glutSwapBuffers();
 
 }
@@ -194,10 +215,9 @@ displayMainWindow( void )
 
 void initSubWindow(void) {
 
-	glutSetWindow(subWindow1);
 
 	// Shaded circle
-	createCircle(vertices,colors,.3,0,100,1.2,true,-0.6,-0.7);
+	createCircle(subVertices,subColors,.3,0,100,1.2,true,0,0);
 
 
     // Create a vertex array object
@@ -211,15 +231,15 @@ void initSubWindow(void) {
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
 
-    size_t totalSize = sizeof(vertices) +
-    		sizeof(colors);
+    size_t totalSize = sizeof(subVertices) +
+    		sizeof(subColors);
 
     glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
 
-    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vertices),
-    		vertices );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors),
-    		colors );
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(subVertices),
+    		subVertices );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(subVertices), sizeof(subColors),
+    		subColors );
 
 
     // Load shaders and use the resulting shader program
@@ -247,6 +267,8 @@ void displaySubWindow() {
 
 	glutSetWindow(subWindow1);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+    glClearColor( 0.0, 1.0, 0.0, 0.0 ); // green background
+
     glDrawArrays( GL_TRIANGLE_FAN, 0, 100 );    // draw the shaded circle
     glFlush();
     glutSwapBuffers();
@@ -310,7 +332,8 @@ main( int argc, char **argv )
 
 
 	    subWindow1 = glutCreateSubWindow(mainWindow,
-	     0,0,500, 100);
+	     0,0,200, 100);
+	    glutSetWindow(subWindow1);
 	    initSubWindow();
 	     // Must register a display func for each window
 	     glutDisplayFunc(displaySubWindow);
