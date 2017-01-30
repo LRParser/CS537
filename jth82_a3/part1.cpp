@@ -18,6 +18,10 @@ const int squaresStartIdx = 100;
 vec3 vertices[NumPoints];
 vec3 colors[NumPoints];
 
+vec3 subVertices[NumPoints];
+vec3 subColors[NumPoints];
+int mainWindow, subWindow1;
+
 
 // Function can only be called twice
 void createCircle(vec3 buffer[], vec3 colors[], float baseScaleFactor, int startIndex, int endIndex,
@@ -107,12 +111,16 @@ void createSquare(int startVertex, float scaleFactor, float centroidX, float cen
 	currentVertex++;
 }
 
+void initSubwindow(void) {
+	// Create ellipse - subwindow TBD
+	createCircle(subVertices,subColors,0,0,100,0.2,false,0.6,-0.7);
+
+}
+
 void
 init( void )
 {
 
-	// Create ellipse - subwindow TBD
-	createCircle(vertices,colors,.3,0,100,0.2,false,0.6,-0.7);
 
 	// Squares, draw white, black, white, black, white, black
 
@@ -162,27 +170,34 @@ init( void )
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(vertices)) );
 
+    glClearColor( 0.0, 1.0, 0.0, 0.0 ); // black background
+
     glEnable( GL_DEPTH_TEST );
 
 
-    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 }
 
 //----------------------------------------------------------------------------
 
-void displaySubwindow(void) {
+void renderSceneSubwindow(void) {
+	glutSetWindow(subWindow1);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+    glClearColor( 0.0, 0.0, 1.0, 0.0 ); // blue background
     glDrawArrays( GL_TRIANGLE_FAN, 0, 99 );    // draw the shaded circle
     glFlush();
     glutSwapBuffers();
 }
 
 void
-display( void )
+renderScene( void )
 {
+	glutSetWindow(mainWindow);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    glDrawArrays( GL_TRIANGLE_FAN, 0, 99 );    // draw the shaded circle
-    glFlush();
+    //glDrawArrays( GL_TRIANGLE_FAN, 0, 99 );    // draw the shaded circle
+    //glFlush();
+
+
+
 
     glDrawArrays(GL_TRIANGLES,squaresStartIdx + 0 * pointsPerSquare,pointsPerSquare);
     glFlush();
@@ -224,12 +239,12 @@ keyboard( unsigned char key, int x, int y )
 }
 
 void renderSceneAll() {
-
+	renderSceneSubwindow();
 }
 
 //----------------------------------------------------------------------------
 
-int mainWindow, subWindow1;
+
 
 int
 main( int argc, char **argv )
@@ -238,7 +253,7 @@ main( int argc, char **argv )
 
 int w = 500;
 int h = 500;
-int border = 400;
+int border = 50;
 
 	glutInit( &argc, argv );
 	#ifdef __APPLE__
@@ -248,7 +263,7 @@ int border = 400;
 	#endif
 	    glutInitWindowSize( w, h );
 
-	    int mainWindow = glutCreateWindow( "Assignment 3" );
+	    mainWindow = glutCreateWindow( "Assignment 3" );
 
 	#ifndef __APPLE__
 	    GLenum err = glewInit();
@@ -257,15 +272,16 @@ int border = 400;
 	#endif
 
 	    init();
-	    glutDisplayFunc( display );
+	    glutDisplayFunc( renderScene );
 	    glutReshapeFunc(reshape);
 	    glutIdleFunc(renderSceneAll);
 	    glutKeyboardFunc( keyboard );
 
-	    int subWindow1 = glutCreateSubWindow(mainWindow,
-	     border,border,w-2*border, h/2 - border*3/2);
+	    subWindow1 = glutCreateSubWindow(mainWindow,
+	     0,0,500, 500);
 	     // Must register a display func for each window
-	     glutDisplayFunc(displaySubwindow);
+	    glEnable(GL_DEPTH_TEST);
+	     glutDisplayFunc(renderSceneSubwindow);
 
 	    glutMainLoop();
 	    return 0;
