@@ -13,6 +13,14 @@ const int NumPoints = ellipsePoints + squarePoints;
 const double TwicePi = 2 * M_PI;
 const int squaresStartIdx = 100;
 
+typedef struct window_info window_info;
+struct window_info {
+	GLuint vao[1];
+	GLuint buffer;
+};
+
+window_info subWindowInfo;
+
 //--------------------------------------------------------------------------
 
 vec3 vertices[NumPoints];
@@ -21,6 +29,10 @@ vec3 colors[NumPoints];
 vec3 subVertices[NumPoints];
 vec3 subColors[NumPoints];
 int mainWindow, subWindow1;
+
+int w = 500;
+int h = 500;
+int border = 50;
 
 
 // Function can only be called twice
@@ -111,16 +123,10 @@ void createSquare(int startVertex, float scaleFactor, float centroidX, float cen
 	currentVertex++;
 }
 
-void initSubwindow(void) {
-	// Create ellipse - subwindow TBD
-	createCircle(subVertices,subColors,0,0,100,0.2,false,0.6,-0.7);
-
-}
 
 void
-init( void )
+initMainWindow( void )
 {
-
 
 	// Squares, draw white, black, white, black, white, black
 
@@ -157,7 +163,7 @@ init( void )
 
     // Load shaders and use the resulting shader program
     GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
-    //  glUseProgram( program );  // This is called in InitShader
+    glUseProgram( program );  // This is called in InitShader
 
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
@@ -170,57 +176,95 @@ init( void )
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(vertices)) );
 
-    glClearColor( 0.0, 1.0, 0.0, 0.0 ); // black background
+    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // black background
 
-    glEnable( GL_DEPTH_TEST );
+}
+
+void
+displayMainWindow( void )
+{
+	// glutSetWindow(mainWindow);
+    glClear( GL_COLOR_BUFFER_BIT);
+
+    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 0 * pointsPerSquare,pointsPerSquare);
+    //glFlush();
+
+    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 1 * pointsPerSquare,pointsPerSquare);
+    //glFlush();
+
+    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 2 * pointsPerSquare,pointsPerSquare);
+    //glFlush();
+
+    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 3 * pointsPerSquare,pointsPerSquare);
+    //glFlush();
+
+    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 4 * pointsPerSquare,pointsPerSquare);
+    //glFlush();
+
+    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 5 * pointsPerSquare,pointsPerSquare);
+    //glFlush();
+
+    glFlush();
+    glutSwapBuffers();
 
 
 }
 
+
 //----------------------------------------------------------------------------
 
-void renderSceneSubwindow(void) {
-	glutSetWindow(subWindow1);
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    glClearColor( 0.0, 0.0, 1.0, 0.0 ); // blue background
+void initSubWindow(void) {
+
+	createCircle(subVertices,subColors,0,0,100,0.2,false,0.6,-0.7);
+
+    glGenVertexArrays( 1, subWindowInfo.vao );
+    glBindVertexArray( subWindowInfo.vao[0] );
+
+    // Create and initialize a buffer object
+
+    glGenBuffers( 1, &subWindowInfo.buffer );
+    glBindBuffer( GL_ARRAY_BUFFER, subWindowInfo.buffer );
+
+    size_t totalSize = sizeof(subVertices) +
+    		sizeof(subColors);
+
+    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
+
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(subVertices),
+    		subVertices );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(subVertices), sizeof(subColors),
+    		subColors );
+
+
+    // Load shaders and use the resulting shader program
+    GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
+    glUseProgram( program );  // This is called in InitShader
+
+    // Initialize the vertex position attribute from the vertex shader
+    GLuint vPosition = glGetAttribLocation( program, "vPosition" );
+    glEnableVertexAttribArray( vPosition );
+    glVertexAttribPointer( vPosition, 3, GL_FLOAT, GL_FALSE, 0,
+                           BUFFER_OFFSET(0) );
+
+    GLuint vColor = glGetAttribLocation( program, "vColor" );
+    glEnableVertexAttribArray( vColor );
+    glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
+                           BUFFER_OFFSET(sizeof(vertices)) );
+
+    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // blue background
+}
+
+void displaySubWindow() {
+
+    //glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+    //glClearColor( 0.0, 0.0, 1.0, 0.0 ); // blue background
+
+	glClear( GL_COLOR_BUFFER_BIT );
     glDrawArrays( GL_TRIANGLE_FAN, 0, 99 );    // draw the shaded circle
     glFlush();
     glutSwapBuffers();
 }
 
-void
-renderScene( void )
-{
-	glutSetWindow(mainWindow);
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    //glDrawArrays( GL_TRIANGLE_FAN, 0, 99 );    // draw the shaded circle
-    //glFlush();
-
-
-
-
-    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 0 * pointsPerSquare,pointsPerSquare);
-    glFlush();
-
-    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 1 * pointsPerSquare,pointsPerSquare);
-    glFlush();
-
-    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 2 * pointsPerSquare,pointsPerSquare);
-    glFlush();
-
-    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 3 * pointsPerSquare,pointsPerSquare);
-    glFlush();
-
-    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 4 * pointsPerSquare,pointsPerSquare);
-    glFlush();
-
-    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 5 * pointsPerSquare,pointsPerSquare);
-    glFlush();
-
-    glutSwapBuffers();
-
-
-}
 
 //----------------------------------------------------------------------------
 
@@ -238,8 +282,12 @@ keyboard( unsigned char key, int x, int y )
     }
 }
 
-void renderSceneAll() {
-	renderSceneSubwindow();
+void idle() {
+	/*
+	glutSetWindow(mainWindow);
+    glutPostRedisplay();
+    glutSetWindow(subWindow1); */
+    glutPostRedisplay();
 }
 
 //----------------------------------------------------------------------------
@@ -251,9 +299,7 @@ main( int argc, char **argv )
 {
 
 
-int w = 500;
-int h = 500;
-int border = 50;
+
 
 	glutInit( &argc, argv );
 	#ifdef __APPLE__
@@ -261,28 +307,26 @@ int border = 50;
 	#else
 	    glutInitDisplayMode( GLUT_RGBA | GLUT_SINGLE);
 	#endif
-	    glutInitWindowSize( w, h );
-
-	    mainWindow = glutCreateWindow( "Assignment 3" );
-
 	#ifndef __APPLE__
 	    GLenum err = glewInit();
 	    if (GLEW_OK != err)
 	      fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
 	#endif
 
-	    init();
-	    glutDisplayFunc( renderScene );
-	    glutReshapeFunc(reshape);
-	    glutIdleFunc(renderSceneAll);
+	    glutInitWindowSize( w, h );
+
+	    mainWindow = glutCreateWindow( "Assignment 3" );
+	    initMainWindow();
+	    glutDisplayFunc( displayMainWindow );
 	    glutKeyboardFunc( keyboard );
 
+	    initSubWindow();
 	    subWindow1 = glutCreateSubWindow(mainWindow,
-	     0,0,500, 500);
+	     0,0,100, 100);
 	     // Must register a display func for each window
-	    glEnable(GL_DEPTH_TEST);
-	     glutDisplayFunc(renderSceneSubwindow);
+	     glutDisplayFunc(displaySubWindow);
 
+		glutIdleFunc(idle);
 	    glutMainLoop();
 	    return 0;
 }
