@@ -11,13 +11,17 @@ const int squarePoints = pointsPerSquare * numSquares;
 
 const int NumPoints = ellipsePoints + squarePoints;
 const double TwicePi = 2 * M_PI;
-const int squaresStartIdx = 100;
+const int squaresStartIdx = 0;
+const int squaresEndIdx = squaresStartIdx + 5 * pointsPerSquare;
 
 typedef struct window_info window_info;
 struct window_info {
 	GLuint vao[1];
 	GLuint buffer;
 };
+
+typedef Angel::vec4  color4;
+typedef Angel::vec4  point4;
 
 window_info subWindowInfo;
 
@@ -35,6 +39,10 @@ int h = 500;
 int border = 50;
 
 GLint windowHeight, windowWidth;
+
+enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
+int      Axis = Zaxis;
+GLfloat  Theta[NumAxes] = { 0.0, 0.0, 0.0 };
 
 // Function can only be called twice
 void createCircle(vec3 buffer[], vec3 colors[], float baseScaleFactor, int startIndex, int endIndex,
@@ -189,23 +197,28 @@ displayMainWindow( void )
 {
 	glutSetWindow(mainWindow);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    glDrawArrays(GL_TRIANGLES,squaresStartIdx + 0 * pointsPerSquare,pointsPerSquare);
-        glFlush();
 
-        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 1 * pointsPerSquare,pointsPerSquare);
-        glFlush();
+    /*
+    mat4  transform = ( RotateX( Theta[Xaxis] ) *
+			RotateY( Theta[Yaxis] ) *
+			RotateZ( Theta[Zaxis] ) );
 
-        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 2 * pointsPerSquare,pointsPerSquare);
-        glFlush();
+    point4  transformed_points[NumPoints];
 
-        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 3 * pointsPerSquare,pointsPerSquare);
-        glFlush();
+    for ( int i = 0; i < NumPoints; ++i ) {
+	transformed_points[i] = transform * vertices[i];
+    }
 
-        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 4 * pointsPerSquare,pointsPerSquare);
-        glFlush();
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(transformed_points),
+		     transformed_points );
 
-        glDrawArrays(GL_TRIANGLES,squaresStartIdx + 5 * pointsPerSquare,pointsPerSquare);
-        glFlush();
+    glDrawArrays( GL_TRIANGLES, 0, NumPoints );
+*/
+
+    int totalSquareIdxs = pointsPerSquare * 6;
+    glDrawArrays(GL_TRIANGLES,0 * pointsPerSquare,totalSquareIdxs);
+
+
     glutSwapBuffers();
 
 }
@@ -294,7 +307,11 @@ keyboard( unsigned char key, int x, int y )
 }
 
 void idle() {
+    Theta[Axis] += 0.001;
 
+    if ( Theta[Axis] > 360.0 ) {
+	Theta[Axis] -= 360.0;
+    }
 	glutPostRedisplay();
 }
 
@@ -339,6 +356,10 @@ main( int argc, char **argv )
 	     glutDisplayFunc(displaySubWindow);
 
 		glutIdleFunc(idle);
+
+		// Create a menu on the sub window only that allows the user to change the subwindow's background color.
+
+
 	    glutMainLoop();
 	    return 0;
 }
