@@ -23,6 +23,8 @@ struct window_info {
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
+float blueValue = 1.0f;
+
 window_info subWindowInfo;
 
 //--------------------------------------------------------------------------
@@ -204,23 +206,6 @@ displayMainWindow( void )
     glUniform3fv( theta, 1, Theta );
     int totalSquareIdxs = pointsPerSquare * 6;
 
-
-    /*
-    mat4  transform = ( RotateX( Theta[Xaxis] ) *
-			RotateY( Theta[Yaxis] ) *
-			RotateZ( Theta[Zaxis] ) );
-
-
-
-    point4  transformed_points[NumPoints];
-
-    for ( int i = 0; i < totalSquareIdxs; ++i ) {
-	transformed_points[i] = transform * vertices[i];
-    }
-
-    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(transformed_points),
-		     transformed_points );
-*/
     glDrawArrays( GL_TRIANGLES, 0, totalSquareIdxs );
 
 
@@ -278,14 +263,14 @@ void initSubWindow(void) {
     glEnable( GL_DEPTH_TEST );
 
 
-    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
+    glClearColor( 0.0, 1.0, blueValue, 0.0 ); // green background
 }
 
 void displaySubWindow() {
 
 	glutSetWindow(subWindow1);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    glClearColor( 0.0, 1.0, 0.0, 0.0 ); // green background
+    glClearColor( 0.0, 1.0, blueValue, 0.0 ); // green background
 
     glDrawArrays( GL_TRIANGLE_FAN, 0, 100 );    // draw the shaded circle
     glFlush();
@@ -322,7 +307,29 @@ void idle() {
 
 //----------------------------------------------------------------------------
 
+void menu_chooser(int id) {
+	switch(id)
+	{
+	case 1:
+		blueValue = 0.0f;
 
+	    glClearColor( 0.0,1.0,blueValue,0.0f ); // green background
+	    break;
+
+	case 2:
+		blueValue = 1.0f;
+
+	    glClearColor( 0.0,1.0,blueValue,0.0f ); // green background
+	    break;
+
+	default:
+		blueValue = 0.0f;
+	    glClearColor( 0.0,1.0,blueValue,0.0f ); // green background
+	    break;
+	}
+
+	glutPostRedisplay();
+}
 
 int
 main( int argc, char **argv )
@@ -362,8 +369,13 @@ main( int argc, char **argv )
 
 		glutIdleFunc(idle);
 
-		// Create a menu on the sub window only that allows the user to change the subwindow's background color.
+		// Create a menu on the sub window only that allows the user to change the subwindow's
+		// background color.
 
+		glutCreateMenu(menu_chooser);
+		glutAddMenuEntry("Green",1);
+		glutAddMenuEntry("Light Blue",2);
+		glutAttachMenu(GLUT_RIGHT_BUTTON);
 
 	    glutMainLoop();
 	    return 0;
