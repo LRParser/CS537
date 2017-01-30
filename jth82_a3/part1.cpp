@@ -24,6 +24,9 @@ typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
 float blueValue = 1.0f;
+float window2Red, window2Green, window2Blue = 0.0f;
+
+
 
 window_info subWindowInfo;
 
@@ -34,7 +37,11 @@ vec3 colors[NumPoints];
 
 vec3 subVertices[NumPoints];
 vec3 subColors[NumPoints];
-int mainWindow, subWindow1;
+
+vec3 windowTwoVertices[NumPoints];
+vec3 windowTwoColors[NumPoints];
+
+int mainWindow, subWindow1, window2;
 
 int w = 500;
 int h = 500;
@@ -277,6 +284,67 @@ void displaySubWindow() {
     glutSwapBuffers();
 }
 
+void initWindow2(void) {
+
+
+	// Shaded circle
+	createCircle(windowTwoVertices,windowTwoColors,.3,0,100,1.2,true,0,0);
+
+
+    // Create a vertex array object
+    GLuint vao[1];
+    glGenVertexArrays( 1, vao );
+    glBindVertexArray( vao[0] );
+
+
+    // Create and initialize a buffer object
+    GLuint buffer;
+    glGenBuffers( 1, &buffer );
+    glBindBuffer( GL_ARRAY_BUFFER, buffer );
+
+    size_t totalSize = sizeof(subVertices) +
+    		sizeof(subColors);
+
+    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
+
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(windowTwoVertices),
+    		windowTwoVertices );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(windowTwoVertices), sizeof(windowTwoColors),
+    		windowTwoColors );
+
+
+    // Load shaders and use the resulting shader program
+    GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
+    //  glUseProgram( program );  // This is called in InitShader
+
+    // Initialize the vertex position attribute from the vertex shader
+    GLuint vPosition = glGetAttribLocation( program, "vPosition" );
+    glEnableVertexAttribArray( vPosition );
+    glVertexAttribPointer( vPosition, 3, GL_FLOAT, GL_FALSE, 0,
+                           BUFFER_OFFSET(0) );
+
+    GLuint vColor = glGetAttribLocation( program, "vColor" );
+    glEnableVertexAttribArray( vColor );
+    glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
+                           BUFFER_OFFSET(sizeof(vertices)) );
+
+    glEnable( GL_DEPTH_TEST );
+
+
+    glClearColor( window2Red, window2Green, window2Blue, 0.0 ); // green background
+}
+
+void displayWindow2() {
+
+	glutSetWindow(window2);
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+    glClearColor( window2Red, window2Green, window2Blue, 0.0 ); // green background
+
+    glDrawArrays( GL_TRIANGLE_FAN, 0, 100 );    // draw the shaded circle
+    glFlush();
+    glutSwapBuffers();
+}
+
 
 //----------------------------------------------------------------------------
 
@@ -290,10 +358,44 @@ void
 keyboard( unsigned char key, int x, int y )
 {
     switch ( key ) {
-    case 'q':
-        exit( EXIT_SUCCESS );
-        break;
+		case 'q':
+			exit( EXIT_SUCCESS );
+			break;
     }
+
+
+}
+
+void
+keyboardWindow2( unsigned char key, int x, int y )
+{
+
+	bool pressed = false;
+    switch ( key ) {
+		case 'q':
+			exit( EXIT_SUCCESS );
+			break;
+		case 'r':
+			pressed = true;
+			window2Red = 1.0;
+			break;
+		case 'g':
+			pressed = true;
+			window2Green = 1.0;
+			break;
+		case 'b':
+			pressed = true;
+			window2Blue = 1.0;
+			break;
+    }
+    if(pressed) {
+        glutSetWindow(window2);
+        glutPostRedisplay();
+        glutSetWindow(mainWindow);
+        glutPostRedisplay();
+    }
+
+
 }
 
 void idle() {
@@ -303,6 +405,16 @@ void idle() {
 	Theta[Axis] -= 360.0;
     }
 	glutPostRedisplay();
+}
+
+void idle2() {
+    Theta[Axis] += 0.05;
+
+    if ( Theta[Axis] > 360.0 ) {
+	Theta[Axis] -= 360.0;
+    }
+	glutPostRedisplay();
+
 }
 
 //----------------------------------------------------------------------------
@@ -328,7 +440,6 @@ void menu_chooser(int id) {
 	    break;
 	}
 
-	glutPostRedisplay();
 }
 
 int
@@ -376,6 +487,20 @@ main( int argc, char **argv )
 		glutAddMenuEntry("Green",1);
 		glutAddMenuEntry("Light Blue",2);
 		glutAttachMenu(GLUT_RIGHT_BUTTON);
+
+		// Draw a circle and triangle, which have the same color, in a separate window entitled “window 2”. Allow the user to change the color of these objects by typing a key, 'r' - red, 'g' - green, 'b' - blue, 'y' - yellow, 'o' - orange, 'p' - purple, 'w' - white.
+		window2 = glutCreateWindow( "Window 2" );
+	    glutInitWindowSize( w, h );
+
+	    initWindow2();
+
+	    glutDisplayFunc( displayWindow2 );
+	    glutKeyboardFunc( keyboardWindow2 );
+		glutIdleFunc(idle2);
+
+
+		std::cout << "Right click on subwindow to select from menu allowing color change" << std::endl;
+		std::cout << "Change window 2 object colors by typing objects by typing a key, 'r' - red, 'g' - green, 'b' - blue, 'y' - yellow, 'o' - orange, 'p' - purple, 'w' - white." << std::endl;
 
 	    glutMainLoop();
 	    return 0;
