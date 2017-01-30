@@ -15,7 +15,10 @@ DEPS = part1.o
 part1: $(INIT_SHADER_OBJ)
 	g++ $(INIT_SHADER_OBJ) part1.cpp $(GL_OPTIONS) -O2 $(CXXINCS) -o part1
 	
-all: part1
+part2: $(INIT_SHADER_OBJ)
+	g++ $(INIT_SHADER_OBJ) part2.cpp $(GL_OPTIONS) -O2 $(CXXINCS) -o part2
+	
+all: part1 part2
 
 $(INIT_SHADER_OBJ): $(INIT_SHADER)
 	g++ -c -Wall $(INIT_SHADER) -o $(INIT_SHADER_OBJ) -O2 $(CXXINCS)
@@ -28,3 +31,6 @@ cleanall:
 
 run: clean all
 	./part1
+	
+run2: clean all
+	./part2

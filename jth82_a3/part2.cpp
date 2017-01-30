@@ -118,6 +118,7 @@ init( void )
 	// Shaded circle
 	createCircle(vertices,colors,.3,0,100,1.2,true,-0.6,-0.7);
 
+	/*
 	// Ellipse
 	createCircle(vertices,colors,.3,100,200,0.2,false,0.6,-0.7);
 
@@ -142,7 +143,7 @@ init( void )
 	createSquare(204 + 3 * pointsPerSquare,overallScale,0,0,.4,.4,false,0.3);
 	createSquare(204 + 4 * pointsPerSquare,overallScale,0,0,.3,.3,true,0.4);
 	createSquare(204 + 5 * pointsPerSquare,overallScale,0,0,.2,.2,false,0.5);
-
+*/
 
     // Create a vertex array object
     GLuint vao[1];
@@ -196,11 +197,12 @@ display( void )
     glDrawArrays( GL_TRIANGLE_FAN, 0, 100 );    // draw the shaded circle
     glFlush();
 
+    /*
     glDrawArrays( GL_TRIANGLE_FAN, 100, 100 );    // draw the ellipse
     glFlush();
 
     glDrawArrays(GL_TRIANGLE_STRIP,200,pointsPerSquare);
-    glFlush();
+    glFlush(); */
 
 }
 
