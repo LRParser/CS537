@@ -163,7 +163,7 @@ initMainWindow( void )
 
     // Load shaders and use the resulting shader program
     GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
-    glUseProgram( program );  // This is called in InitShader
+    // glUseProgram( program );  // This is called in InitShader
 
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
@@ -238,7 +238,7 @@ void initSubWindow(void) {
 
     // Load shaders and use the resulting shader program
     GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
-    glUseProgram( program );  // This is called in InitShader
+    //glUseProgram( program );  // This is called in InitShader
 
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
