@@ -24,7 +24,9 @@ typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
 float blueValue = 1.0f;
-float window2Red, window2Green, window2Blue = 0.0f;
+float window2Red = 1.0f;
+float window2Green= 0.0f;
+float window2Blue = 0.0f;
 
 
 
@@ -38,8 +40,10 @@ vec3 colors[NumPoints];
 vec3 subVertices[NumPoints];
 vec3 subColors[NumPoints];
 
-vec3 windowTwoVertices[NumPoints];
-vec3 windowTwoColors[NumPoints];
+const int windowTwoPoints = 103;
+
+vec3 windowTwoVertices[windowTwoPoints];
+vec3 windowTwoColors[windowTwoPoints];
 
 int mainWindow, subWindow1, window2;
 
@@ -288,8 +292,20 @@ void initWindow2(void) {
 
 
 	// Shaded circle
-	createCircle(windowTwoVertices,windowTwoColors,.3,0,100,1.2,true,0,0);
+	createCircle(windowTwoVertices,windowTwoColors,.3,0,100,1.2,false,0,0);
 
+
+    windowTwoVertices[100] =  vec3(-.75,-.75,0);
+    windowTwoVertices[101] = vec3(-.75,1,0);
+    windowTwoVertices[102] = vec3(0,-.75,0);
+
+
+    windowTwoColors[100] = vec3(.1,.1,.1);
+    windowTwoColors[101] = vec3(.1,.1,.1);
+    windowTwoColors[102] = vec3(.1,.1,.1);
+
+    for(int i = 0; i < 3; i++) {
+    }
 
     // Create a vertex array object
     GLuint vao[1];
@@ -302,10 +318,10 @@ void initWindow2(void) {
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
 
-    size_t totalSize = sizeof(subVertices) +
-    		sizeof(subColors);
+    size_t totalSize = sizeof(windowTwoVertices) +
+    		sizeof(windowTwoColors);
 
-    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_DYNAMIC_DRAW );
 
     glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(windowTwoVertices),
     		windowTwoVertices );
@@ -326,21 +342,37 @@ void initWindow2(void) {
     GLuint vColor = glGetAttribLocation( program, "vColor" );
     glEnableVertexAttribArray( vColor );
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
-                           BUFFER_OFFSET(sizeof(vertices)) );
+                           BUFFER_OFFSET(sizeof(windowTwoVertices)) );
 
     glEnable( GL_DEPTH_TEST );
 
 
-    glClearColor( window2Red, window2Green, window2Blue, 0.0 ); // green background
+    glClearColor( 1.0, 1.0, .5, 0.0 ); // green background
 }
 
 void displayWindow2() {
 
+	printf("Display 2\n");
+
+    size_t totalSize = sizeof(windowTwoVertices) +
+    		sizeof(windowTwoColors);
+
+    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_DYNAMIC_DRAW );
+
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(windowTwoVertices),
+    		windowTwoVertices );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(windowTwoVertices), sizeof(windowTwoColors),
+    		windowTwoColors );
+
 	glutSetWindow(window2);
+
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    glClearColor( window2Red, window2Green, window2Blue, 0.0 ); // green background
+    glClearColor( 1.0, 1.0, .5, 0.0 ); // green background
 
     glDrawArrays( GL_TRIANGLE_FAN, 0, 100 );    // draw the shaded circle
+    glFlush();
+    glDrawArrays( GL_TRIANGLES, 100, 3 );    // draw the shaded circle
+
     glFlush();
     glutSwapBuffers();
 }
@@ -377,18 +409,53 @@ keyboardWindow2( unsigned char key, int x, int y )
 			break;
 		case 'r':
 			pressed = true;
-			window2Red = 1.0;
+			window2Red = 1;
+			window2Green = 0;
+			window2Blue = 0;
 			break;
 		case 'g':
 			pressed = true;
-			window2Green = 1.0;
+			window2Red = 0;
+			window2Green = 1;
+			window2Blue = 0;
 			break;
 		case 'b':
 			pressed = true;
-			window2Blue = 1.0;
+			window2Red = 0;
+			window2Green = 0;
+			window2Blue = 1;
+			break;
+		case 'y':
+			pressed = true;
+			window2Red = 1;
+			window2Green = 1;
+			window2Blue = 0;
+			break;
+		case 'o':
+			pressed = true;
+			window2Red = 0;
+			window2Green = 1;
+			window2Blue = 1;
+			break;
+		case 'p':
+			pressed = true;
+			window2Red = 0;
+			window2Green = 0;
+			window2Blue = 1;
+			break;
+		case 'w':
+			pressed = true;
+			window2Red = 1;
+			window2Green = 1;
+			window2Blue = 1;
 			break;
     }
     if(pressed) {
+    	printf("Set colors to %f, %f, %f \n",window2Red,window2Green,window2Blue);
+
+    	for(int i = 0; i < 103; i++) {
+    		windowTwoColors[i] = vec3(window2Red,window2Green,window2Blue);
+    	}
         glutSetWindow(window2);
         glutPostRedisplay();
         glutSetWindow(mainWindow);
