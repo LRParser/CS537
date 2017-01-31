@@ -72,7 +72,7 @@ void createCircle(vec3 buffer[], vec3 colors[], float baseScaleFactor, int start
 			colors[i] = vec3(angle / TwicePi,0.0,0.0);
 		}
 		else {
-			colors[i] = vec3(1.0,0.0,0.0);
+			colors[i] = vec3(window2Red,window2Green,window2Blue);
 		}
 		i++;
 		angle += 0.0628;
@@ -294,15 +294,14 @@ void initWindow2(void) {
 	// Shaded circle
 	createCircle(windowTwoVertices,windowTwoColors,.3,0,100,1.2,false,0,0);
 
-
     windowTwoVertices[100] =  vec3(-.75,-.75,0);
     windowTwoVertices[101] = vec3(-.75,1,0);
     windowTwoVertices[102] = vec3(0,-.75,0);
 
+	for(int i = 0; i < 103; i++) {
+		windowTwoColors[i] = vec3(window2Red,window2Green,window2Blue);
+	}
 
-    windowTwoColors[100] = vec3(.1,.1,.1);
-    windowTwoColors[101] = vec3(.1,.1,.1);
-    windowTwoColors[102] = vec3(.1,.1,.1);
 
     for(int i = 0; i < 3; i++) {
     }
