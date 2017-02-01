@@ -30,6 +30,9 @@ float window2Red = 1.0f;
 float window2Green= 0.0f;
 float window2Blue = 0.0f;
 
+float window2TriangleX[3];
+float window2TriangleY[3];
+
 
 
 window_info subWindowInfo;
@@ -298,17 +301,21 @@ void initWindow2(void) {
 	createCircle(windowTwoVertices,windowTwoColors,.3,0,100,1.2,false,.5,.5);
 
 	// Triangle
-    windowTwoVertices[100] =  vec3(0,0,0);
-    windowTwoVertices[101] = vec3(.75,0,0);
-    windowTwoVertices[102] = vec3(0,.75,0);
+    window2TriangleX[0] = 0;
+	window2TriangleX[1] = .75;
+	window2TriangleX[2] = 0;
+    window2TriangleY[0] = 0;
+	window2TriangleY[1] = 0;
+	window2TriangleY[2] = .75;
+
+    windowTwoVertices[100] =  vec3(window2TriangleX[0],window2TriangleY[0],0);
+    windowTwoVertices[101] = vec3(window2TriangleX[1],window2TriangleY[1],0);
+    windowTwoVertices[102] = vec3(window2TriangleX[2],window2TriangleY[2],0);
 
 	for(int i = 0; i < 103; i++) {
 		windowTwoColors[i] = vec3(window2Red,window2Green,window2Blue);
 	}
 
-
-    for(int i = 0; i < 3; i++) {
-    }
 
     // Create a vertex array object
     GLuint vao[1];
@@ -360,18 +367,16 @@ void displayWindow2() {
     size_t totalSize = sizeof(windowTwoVertices) +
     		sizeof(windowTwoColors);
     // Rotate counter-clockwise
-    windowTwoVertices[100] =  vec3(0,0,0);
-    windowTwoVertices[101] = vec3(.75,0,0);
-    windowTwoVertices[102] = vec3(0,.75,0);
 
-    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_DYNAMIC_DRAW );
+
+    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
 
     glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(windowTwoVertices),
     		windowTwoVertices );
     glBufferSubData( GL_ARRAY_BUFFER, sizeof(windowTwoVertices), sizeof(windowTwoColors),
     		windowTwoColors );
 
-	glutSetWindow(window2);
+
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
     glClearColor( 1.0, 1.0, .5, 0.0 ); // green background
@@ -479,17 +484,13 @@ void idle() {
     	Theta[Axis] -= 360.0;
     }
 
-    	glutPostRedisplay();
+    glutPostRedisplay();
 
 
 }
 
 void idle2() {
-    Theta[Axis] += 0.05;
-
-    if ( Theta[Axis] > 360.0 ) {
-	Theta[Axis] -= 360.0;
-    }
+	glutSetWindow(window2);
 	glutPostRedisplay();
 
 }
@@ -516,6 +517,34 @@ void menu_chooser(int id) {
 		glutPostRedisplay();
 	}
 
+}
+
+void timer( int value )
+{
+	printf("Called timer\n");
+    Theta[Axis] += 0.01;
+
+    if ( Theta[Axis] > 360.0 ) {
+	Theta[Axis] -= 360.0;
+    }
+
+    float sin_t = sin(Theta[Axis]);
+    float cos_t = cos(Theta[Axis]);
+	for(int i = 0; i < 3; i++) {
+        float x = window2TriangleX[i];
+        float y = window2TriangleY[i];
+        window2TriangleX[i] = x * cos_t - y * sin_t;
+        window2TriangleY[i] = y * cos_t + x * sin_t;
+	}
+
+    windowTwoVertices[100] =  vec3(window2TriangleX[0],window2TriangleY[0],0);
+    windowTwoVertices[101] = vec3(window2TriangleX[1],window2TriangleY[1],0);
+    windowTwoVertices[102] = vec3(window2TriangleX[2],window2TriangleY[2],0);
+
+
+    glutSetWindow(window2);
+    glutPostRedisplay();
+    glutTimerFunc( 1000, timer, 0 );
 }
 
 int
@@ -573,7 +602,8 @@ main( int argc, char **argv )
 
 	    glutDisplayFunc( displayWindow2 );
 	    glutKeyboardFunc( keyboardWindow2 );
-		glutIdleFunc(idle2);
+		// glutIdleFunc(idle2);
+		// glutTimerFunc( 0, timer, 0 );
 
 
 		std::cout << "Right click on subwindow to select from menu allowing color change" << std::endl;
