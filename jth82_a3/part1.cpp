@@ -33,6 +33,7 @@ float window2Blue = 0.0f;
 float window2TriangleX[3];
 float window2TriangleY[3];
 
+GLint64 window1LastTime = 0;
 GLint64 window2LastTime = 0;
 
 
@@ -182,15 +183,7 @@ initMainWindow( void )
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
 
-    size_t totalSize = sizeof(vertices) +
-    		sizeof(colors);
 
-    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
-
-    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vertices),
-    		vertices );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors),
-    		colors );
 
 
     // Load shaders and use the resulting shader program
@@ -222,7 +215,16 @@ initMainWindow( void )
 void
 displayMainWindow( void )
 {
-	glutSetWindow(mainWindow);
+    size_t totalSize = sizeof(vertices) +
+    		sizeof(colors);
+
+    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
+
+    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vertices),
+    		vertices );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors),
+    		colors );
+
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
     glUniform3fv( theta, 1, Theta );
     glDrawArrays( GL_TRIANGLES, 0, squarePoints );
@@ -479,36 +481,15 @@ keyboardWindow2( unsigned char key, int x, int y )
 }
 
 void idle() {
-    Theta[Axis] += 0.05;
-
-    if ( Theta[Axis] > 360.0 ) {
-    	Theta[Axis] -= 360.0;
-    }
-
-    glutPostRedisplay();
-
-
-}
-
-void timer( int value )
-{
-	printf("Called timer\n");
-
-    glutTimerFunc( 1000, timer, 0 );
-}
-
-
-void idle2() {
-
 	// Measure time and then update based on this
 	GLint64 currentTime;
 	glGetInteger64v(GL_TIMESTAMP, &currentTime);
-	long int elapsedTime = (currentTime - window2LastTime) / 1000;
-	//printf("Elapsed: %li\n",elapsedTime);
+	long int elapsedTime = (currentTime - window1LastTime) / 1000;
+
 	if(elapsedTime > 500000) {
 
-		printf("Update display\n");
-		printf("Elapsed inner: %li\n",elapsedTime);
+		printf("Update display1\n");
+		printf("Elapsed inner1: %li\n",elapsedTime);
 
 		Theta[Axis] += 0.01;
 
@@ -519,6 +500,21 @@ void idle2() {
 		    // Trig ref online = http://petercollingridge.appspot.com/3D-tutorial/rotating-objects
 		    float sin_t = sin(Theta[Axis]);
 		    float cos_t = cos(Theta[Axis]);
+
+
+			for(int i = 0; i < squarePoints;i++ ) {
+
+		        float x = vertices[i].x;
+		        float y = vertices[i].y;
+		        vertices[i].x = x * cos_t - y * sin_t;
+		        vertices[i].y = y * cos_t + x * sin_t;
+			}
+
+			// Clockwise
+
+		    sin_t = sin(-1 * Theta[Axis]);
+		    cos_t = cos(-1 * Theta[Axis]);
+
 			for(int i = 0; i < 3; i++) {
 		        float x = window2TriangleX[i];
 		        float y = window2TriangleY[i];
@@ -532,15 +528,17 @@ void idle2() {
 		    window2LastTime = currentTime;
 		    glutSetWindow(window2);
 		    glutPostRedisplay();
+		    glutSetWindow(mainWindow);
+		    glutPostRedisplay();
+
+		    window1LastTime = currentTime;
 
 
 	}
 
 
-
-
-
 }
+
 
 //----------------------------------------------------------------------------
 
@@ -593,6 +591,7 @@ main( int argc, char **argv )
 	    initMainWindow();
 	    glutDisplayFunc( displayMainWindow );
 	    glutKeyboardFunc( keyboard );
+		glutIdleFunc(idle);
 
 
 
@@ -603,7 +602,6 @@ main( int argc, char **argv )
 	     // Must register a display func for each window
 	     glutDisplayFunc(displaySubWindow);
 
-		glutIdleFunc(idle);
 
 		// Create a menu on the sub window only that allows the user to change the subwindow's
 		// background color.
@@ -622,9 +620,6 @@ main( int argc, char **argv )
 
 	    glutDisplayFunc( displayWindow2 );
 	    glutKeyboardFunc( keyboardWindow2 );
-		glutIdleFunc(idle2);
-		// glutTimerFunc( 0, timer, 0 );
-
 
 		std::cout << "Right click on subwindow to select from menu allowing color change" << std::endl;
 		std::cout << "Change window 2 object colors by typing objects by typing a key, 'r' - red, 'g' - green, 'b' - blue, 'y' - yellow, 'o' - orange, 'p' - purple, 'w' - white." << std::endl;

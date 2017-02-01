@@ -8,6 +8,7 @@ uniform vec3 theta;
 void main()
 {
 
+	/*
     // Compute the sines and cosines of theta for each of
         //   the three axes in one computation.
         vec3 angles = radians( -1 * theta );
@@ -36,7 +37,7 @@ void main()
 
         // Workaround for bug in ATI driver
         rz[2][2] = 1.0;
-
+*/
         color = vec4(vColor,1.0);
-        gl_Position = rz * ry * rx * vPosition;
+        gl_Position = vPosition; // rz * ry * rx * vPosition;
 }
