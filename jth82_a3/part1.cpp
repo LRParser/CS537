@@ -3,13 +3,15 @@
 
 #include "Angel.h"
 #include <math.h>
+#include "mat.h"
+#include <GL/gl.h>
+
 
 const int ellipsePoints = 100;
 const int pointsPerSquare = 12;
 const int numSquares = 6;
 const int squarePoints = pointsPerSquare * numSquares;
 
-const int NumPoints = ellipsePoints + squarePoints;
 const double TwicePi = 2 * M_PI;
 const int squaresStartIdx = 0;
 const int squaresEndIdx = squaresStartIdx + 5 * pointsPerSquare;
@@ -34,14 +36,13 @@ window_info subWindowInfo;
 
 //--------------------------------------------------------------------------
 
-vec3 vertices[NumPoints];
-vec3 colors[NumPoints];
+vec3 vertices[squarePoints];
+vec3 colors[squarePoints];
 
-vec3 subVertices[NumPoints];
-vec3 subColors[NumPoints];
+vec3 subVertices[ellipsePoints];
+vec3 subColors[ellipsePoints];
 
 const int windowTwoPoints = 103;
-
 vec3 windowTwoVertices[windowTwoPoints];
 vec3 windowTwoColors[windowTwoPoints];
 
@@ -97,7 +98,7 @@ void createSquare(int startVertex, float scaleFactor, float centroidX, float cen
 	float normalizedXScale = scaleFactor * xScale;
 	float normalizedYScale = scaleFactor * yScale;
 
-	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY - normalizedYScale,zIndex);
+	vertices[currentVertex] = vec3(centroidX - normalizedXScale, centroidY - normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
 
@@ -145,13 +146,11 @@ void createSquare(int startVertex, float scaleFactor, float centroidX, float cen
 	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY - normalizedYScale,zIndex);
 	colors[currentVertex] = vec3(color);
 	currentVertex++;
+
+
 }
 
-
-void
-initMainWindow( void )
-{
-
+void drawSquares() {
 	float overallScale = .5;
 
 	createSquare(squaresStartIdx,overallScale,0,0,.7,.7,true,0.0);
@@ -161,7 +160,13 @@ initMainWindow( void )
 	createSquare(squaresStartIdx + 4 * pointsPerSquare,overallScale,0,0,.3,.3,true,0.4);
 	createSquare(squaresStartIdx + 5 * pointsPerSquare,overallScale,0,0,.2,.2,false,0.5);
 
+}
 
+void
+initMainWindow( void )
+{
+
+	drawSquares();
     // Create a vertex array object
     GLuint vao[1];
     glGenVertexArrays( 1, vao );
@@ -199,8 +204,9 @@ initMainWindow( void )
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(vertices)) );
 
-
     theta = glGetUniformLocation( program, "theta" );
+    glEnable( GL_DEPTH_TEST );
+
     glEnable( GL_DEPTH_TEST );
 
 
@@ -215,10 +221,7 @@ displayMainWindow( void )
 	glutSetWindow(mainWindow);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
     glUniform3fv( theta, 1, Theta );
-    int totalSquareIdxs = pointsPerSquare * 6;
-
-    glDrawArrays( GL_TRIANGLES, 0, totalSquareIdxs );
-
+    glDrawArrays( GL_TRIANGLES, 0, squarePoints );
 
     glutSwapBuffers();
 
@@ -292,11 +295,12 @@ void initWindow2(void) {
 
 
 	// Shaded circle
-	createCircle(windowTwoVertices,windowTwoColors,.3,0,100,1.2,false,0,0);
+	createCircle(windowTwoVertices,windowTwoColors,.3,0,100,1.2,false,.5,.5);
 
-    windowTwoVertices[100] =  vec3(-.75,-.75,0);
-    windowTwoVertices[101] = vec3(-.75,1,0);
-    windowTwoVertices[102] = vec3(0,-.75,0);
+	// Triangle
+    windowTwoVertices[100] =  vec3(0,0,0);
+    windowTwoVertices[101] = vec3(.75,0,0);
+    windowTwoVertices[102] = vec3(0,.75,0);
 
 	for(int i = 0; i < 103; i++) {
 		windowTwoColors[i] = vec3(window2Red,window2Green,window2Blue);
@@ -355,6 +359,10 @@ void displayWindow2() {
 
     size_t totalSize = sizeof(windowTwoVertices) +
     		sizeof(windowTwoColors);
+    // Rotate counter-clockwise
+    windowTwoVertices[100] =  vec3(0,0,0);
+    windowTwoVertices[101] = vec3(.75,0,0);
+    windowTwoVertices[102] = vec3(0,.75,0);
 
     glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_DYNAMIC_DRAW );
 
@@ -432,15 +440,15 @@ keyboardWindow2( unsigned char key, int x, int y )
 			break;
 		case 'o':
 			pressed = true;
-			window2Red = 0;
-			window2Green = 1;
-			window2Blue = 1;
+			window2Red = 1;
+			window2Green = 0.5;
+			window2Blue = 0;
 			break;
 		case 'p':
 			pressed = true;
-			window2Red = 0;
-			window2Green = 0;
-			window2Blue = 1;
+			window2Red = 1.0f;
+			window2Green = (1.0 * (192.0/256.0));
+			window2Blue = (1.0f * (203.0/256.0));
 			break;
 		case 'w':
 			pressed = true;
@@ -468,9 +476,12 @@ void idle() {
     Theta[Axis] += 0.05;
 
     if ( Theta[Axis] > 360.0 ) {
-	Theta[Axis] -= 360.0;
+    	Theta[Axis] -= 360.0;
     }
-	glutPostRedisplay();
+
+    	glutPostRedisplay();
+
+
 }
 
 void idle2() {
@@ -486,24 +497,23 @@ void idle2() {
 //----------------------------------------------------------------------------
 
 void menu_chooser(int id) {
+	bool choiceSet = false;
 	switch(id)
 	{
 	case 1:
 		blueValue = 0.0f;
-
 	    glClearColor( 0.0,1.0,blueValue,0.0f ); // green background
+	    choiceSet = true;
 	    break;
 
 	case 2:
 		blueValue = 1.0f;
-
 	    glClearColor( 0.0,1.0,blueValue,0.0f ); // green background
+	    choiceSet = true;
 	    break;
-
-	default:
-		blueValue = 0.0f;
-	    glClearColor( 0.0,1.0,blueValue,0.0f ); // green background
-	    break;
+	}
+	if(choiceSet) {
+		glutPostRedisplay();
 	}
 
 }
@@ -514,7 +524,7 @@ main( int argc, char **argv )
 
     glutInit( &argc, argv );
 #ifdef __APPLE__
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA );
+    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE );
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
 #endif
@@ -555,6 +565,7 @@ main( int argc, char **argv )
 		glutAttachMenu(GLUT_RIGHT_BUTTON);
 
 		// Draw a circle and triangle, which have the same color, in a separate window entitled “window 2”. Allow the user to change the color of these objects by typing a key, 'r' - red, 'g' - green, 'b' - blue, 'y' - yellow, 'o' - orange, 'p' - purple, 'w' - white.
+
 		window2 = glutCreateWindow( "Window 2" );
 	    glutInitWindowSize( w, h );
 

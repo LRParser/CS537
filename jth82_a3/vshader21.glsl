@@ -10,7 +10,7 @@ void main()
 
     // Compute the sines and cosines of theta for each of
         //   the three axes in one computation.
-        vec3 angles = radians( theta );
+        vec3 angles = radians( -1 * theta );
         vec3 c = cos( angles );
         vec3 s = sin( angles );
 
