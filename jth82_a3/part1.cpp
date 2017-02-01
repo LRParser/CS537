@@ -33,6 +33,7 @@ float window2Blue = 0.0f;
 float window2TriangleX[3];
 float window2TriangleY[3];
 
+GLint64 window2LastTime = 0;
 
 
 window_info subWindowInfo;
@@ -489,9 +490,55 @@ void idle() {
 
 }
 
+void timer( int value )
+{
+	printf("Called timer\n");
+
+    glutTimerFunc( 1000, timer, 0 );
+}
+
+
 void idle2() {
-	glutSetWindow(window2);
-	glutPostRedisplay();
+
+	// Measure time and then update based on this
+	GLint64 currentTime;
+	glGetInteger64v(GL_TIMESTAMP, &currentTime);
+	long int elapsedTime = (currentTime - window2LastTime) / 1000;
+	//printf("Elapsed: %li\n",elapsedTime);
+	if(elapsedTime > 500000) {
+
+		printf("Update display\n");
+		printf("Elapsed inner: %li\n",elapsedTime);
+
+		Theta[Axis] += 0.01;
+
+		    if ( Theta[Axis] > 360.0 ) {
+			Theta[Axis] -= 360.0;
+		    }
+
+		    // Trig ref online = http://petercollingridge.appspot.com/3D-tutorial/rotating-objects
+		    float sin_t = sin(Theta[Axis]);
+		    float cos_t = cos(Theta[Axis]);
+			for(int i = 0; i < 3; i++) {
+		        float x = window2TriangleX[i];
+		        float y = window2TriangleY[i];
+		        window2TriangleX[i] = x * cos_t - y * sin_t;
+		        window2TriangleY[i] = y * cos_t + x * sin_t;
+			}
+
+		    windowTwoVertices[100] =  vec3(window2TriangleX[0],window2TriangleY[0],0);
+		    windowTwoVertices[101] = vec3(window2TriangleX[1],window2TriangleY[1],0);
+		    windowTwoVertices[102] = vec3(window2TriangleX[2],window2TriangleY[2],0);
+		    window2LastTime = currentTime;
+		    glutSetWindow(window2);
+		    glutPostRedisplay();
+
+
+	}
+
+
+
+
 
 }
 
@@ -519,33 +566,6 @@ void menu_chooser(int id) {
 
 }
 
-void timer( int value )
-{
-	printf("Called timer\n");
-    Theta[Axis] += 0.01;
-
-    if ( Theta[Axis] > 360.0 ) {
-	Theta[Axis] -= 360.0;
-    }
-
-    float sin_t = sin(Theta[Axis]);
-    float cos_t = cos(Theta[Axis]);
-	for(int i = 0; i < 3; i++) {
-        float x = window2TriangleX[i];
-        float y = window2TriangleY[i];
-        window2TriangleX[i] = x * cos_t - y * sin_t;
-        window2TriangleY[i] = y * cos_t + x * sin_t;
-	}
-
-    windowTwoVertices[100] =  vec3(window2TriangleX[0],window2TriangleY[0],0);
-    windowTwoVertices[101] = vec3(window2TriangleX[1],window2TriangleY[1],0);
-    windowTwoVertices[102] = vec3(window2TriangleX[2],window2TriangleY[2],0);
-
-
-    glutSetWindow(window2);
-    glutPostRedisplay();
-    glutTimerFunc( 1000, timer, 0 );
-}
 
 int
 main( int argc, char **argv )
@@ -602,7 +622,7 @@ main( int argc, char **argv )
 
 	    glutDisplayFunc( displayWindow2 );
 	    glutKeyboardFunc( keyboardWindow2 );
-		// glutIdleFunc(idle2);
+		glutIdleFunc(idle2);
 		// glutTimerFunc( 0, timer, 0 );
 
 
