@@ -3,8 +3,7 @@
 
 #include "Angel.h"
 #include <math.h>
-#include "mat.h"
-#include <GL/gl.h>
+#include <time.h>
 
 
 const int ellipsePoints = 100;
@@ -33,8 +32,10 @@ float window2Blue = 0.0f;
 float window2TriangleX[3];
 float window2TriangleY[3];
 
-GLint64 window1LastTime = 0;
-GLint64 window2LastTime = 0;
+struct timespec ts_start;
+struct timespec ts_end;
+
+bool animationEnabled = false;
 
 
 window_info subWindowInfo;
@@ -46,6 +47,7 @@ vec3 colors[squarePoints];
 
 vec3 subVertices[ellipsePoints];
 vec3 subColors[ellipsePoints];
+vec3 squareColor = vec3(1.0,1.0,1.0);
 
 const int windowTwoPoints = 103;
 vec3 windowTwoVertices[windowTwoPoints];
@@ -87,9 +89,9 @@ void createCircle(vec3 buffer[], vec3 colors[], float baseScaleFactor, int start
 
 void createSquare(int startVertex, float scaleFactor, float centroidX, float centroidY, float xScale, float yScale, bool isWhite, float zIndex) {
 
-	vec3 whiteColor = vec3(1.0,1.0,1.0);
+
 	vec3 blackColor = vec3(0.0,0.0,0.0);
-	vec3 color = isWhite ? whiteColor : blackColor;
+	vec3 color = isWhite ? squareColor : blackColor;
 
 	int currentVertex = startVertex;
 
@@ -365,7 +367,7 @@ void initWindow2(void) {
 
 void displayWindow2() {
 
-	printf("Display 2\n");
+	// printf("Display 2\n");
 
     size_t totalSize = sizeof(windowTwoVertices) +
     		sizeof(windowTwoColors);
@@ -482,16 +484,23 @@ keyboardWindow2( unsigned char key, int x, int y )
 
 void idle() {
 	// Measure time and then update based on this
-	GLint64 currentTime;
-	glGetInteger64v(GL_TIMESTAMP, &currentTime);
-	long int elapsedTime = (currentTime - window1LastTime) / 1000;
 
-	if(elapsedTime > 500000) {
+	if(animationEnabled) {
 
-		printf("Update display1\n");
-		printf("Elapsed inner1: %li\n",elapsedTime);
+	    clock_gettime(CLOCK_MONOTONIC, &ts_start);
 
-		Theta[Axis] += 0.01;
+		//printf("Current time: %d\n",ts_start.tv_sec);
+		//printf("End time: %d\n",ts_end.tv_sec);
+
+		long int elapsedTime = (ts_end.tv_sec - ts_start.tv_sec);
+		//printf("Elapsed secs: %li\n",elapsedTime);
+
+		if(elapsedTime > 1 || elapsedTime < 0) {
+
+		// printf("Update display1\n");
+		//printf("Elapsed inner1: %li\n",elapsedTime);
+
+		Theta[Axis] += 0.05;
 
 		    if ( Theta[Axis] > 360.0 ) {
 			Theta[Axis] -= 360.0;
@@ -529,25 +538,20 @@ void idle() {
 		    // Pulsing circle
 			createCircle(windowTwoVertices,windowTwoColors,.3   * sin(Theta[Axis]),0,100,1.2,false,.5,.5);
 
-
-		    window2LastTime = currentTime;
-		    glutSetWindow(window2);
+			glutSetWindow(window2);
 		    glutPostRedisplay();
 		    glutSetWindow(mainWindow);
 		    glutPostRedisplay();
 
-		    window1LastTime = currentTime;
-
-
+		    clock_gettime(CLOCK_MONOTONIC, &ts_end);
+		}
 	}
-
-
 }
 
 
 //----------------------------------------------------------------------------
 
-void menu_chooser(int id) {
+void menu_chooser_subwindow(int id) {
 	bool choiceSet = false;
 	switch(id)
 	{
@@ -566,7 +570,58 @@ void menu_chooser(int id) {
 	if(choiceSet) {
 		glutPostRedisplay();
 	}
+}
 
+void setSquaresColor(vec3 color) {
+	// Squares 0, 2, 4 need coloring
+	for(int i = 0; i < 12; i++) {
+		colors[i] = vec3(color);
+	}
+	for(int i = 24; i < 36; i++) {
+		colors[i] = vec3(color);
+	}
+	for(int i = 48; i < 60; i++) {
+		colors[i] = vec3(color);
+	}
+
+}
+
+void menu_chooser_mainwindow(int id) {
+	bool choiceSet = false;
+	switch(id)
+	{
+	case 1:
+		animationEnabled = true;
+	    choiceSet = true;
+	    break;
+
+	case 2:
+		animationEnabled = false;
+	    choiceSet = true;
+	    break;
+	case 3:
+		squareColor = vec3(1.0,1.0,1.0);
+		printf("Set square color to white\n");
+		setSquaresColor(squareColor);
+	    choiceSet = true;
+	    break;
+	case 4:
+		squareColor = vec3(1.0,0.0,0.0);
+		printf("Set square color to red\n");
+		setSquaresColor(squareColor);
+	    choiceSet = true;
+	    break;
+	case 5:
+		squareColor = vec3(0.0,1.0,0.0);
+		printf("Set square color to green\n");
+		setSquaresColor(squareColor);
+
+	    choiceSet = true;
+	    break;
+	}
+	if(choiceSet) {
+		glutPostRedisplay();
+	}
 }
 
 
@@ -598,6 +653,20 @@ main( int argc, char **argv )
 	    glutKeyboardFunc( keyboard );
 		glutIdleFunc(idle);
 
+		int animationMenu = glutCreateMenu(menu_chooser_mainwindow);
+		glutAddMenuEntry("Start Animation",1);
+		glutAddMenuEntry("Stop Animation",2);
+
+		int squareColorMenu = glutCreateMenu(menu_chooser_mainwindow);
+		glutAddMenuEntry("White",3);
+		glutAddMenuEntry("Red",4);
+		glutAddMenuEntry("Green",5);
+
+		int mainMenu = glutCreateMenu(menu_chooser_mainwindow);
+		glutAddSubMenu("Animation", animationMenu);
+		glutAddSubMenu("Square Color", squareColorMenu);
+		glutAttachMenu(GLUT_RIGHT_BUTTON);
+
 
 
 	    subWindow1 = glutCreateSubWindow(mainWindow,
@@ -608,10 +677,12 @@ main( int argc, char **argv )
 	     glutDisplayFunc(displaySubWindow);
 
 
+
+
 		// Create a menu on the sub window only that allows the user to change the subwindow's
 		// background color.
 
-		glutCreateMenu(menu_chooser);
+		glutCreateMenu(menu_chooser_subwindow);
 		glutAddMenuEntry("Green",1);
 		glutAddMenuEntry("Light Blue",2);
 		glutAttachMenu(GLUT_RIGHT_BUTTON);
