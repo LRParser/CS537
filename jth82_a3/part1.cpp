@@ -525,6 +525,11 @@ void idle() {
 		    windowTwoVertices[100] =  vec3(window2TriangleX[0],window2TriangleY[0],0);
 		    windowTwoVertices[101] = vec3(window2TriangleX[1],window2TriangleY[1],0);
 		    windowTwoVertices[102] = vec3(window2TriangleX[2],window2TriangleY[2],0);
+
+		    // Pulsing circle
+			createCircle(windowTwoVertices,windowTwoColors,.3   * sin(Theta[Axis]),0,100,1.2,false,.5,.5);
+
+
 		    window2LastTime = currentTime;
 		    glutSetWindow(window2);
 		    glutPostRedisplay();
