@@ -1,24 +1,20 @@
 GL_OPTIONS = -framework OpenGL -framework GLUT
 
-name1 = part1
-name2 = part2
+name1 = assignment3
 
 CXXINCS = -Wall -pedantic -Iinclude 
 
 INIT_SHADER = common/InitShader.cpp
 INIT_SHADER_OBJ = common/InitShader.o
 
-EXAMPLELIST = part1.cpp
-TARGETS = part1
-DEPS = part1.o
+EXAMPLELIST = assignment3.cpp
+TARGETS = assignment3
+DEPS = assignment3.o
 
-part1: $(INIT_SHADER_OBJ)
-	g++ $(INIT_SHADER_OBJ) part1.cpp $(GL_OPTIONS) -O2 $(CXXINCS) -o part1
+assignment3: $(INIT_SHADER_OBJ)
+	g++ $(INIT_SHADER_OBJ) assignment3.cpp $(GL_OPTIONS) -O2 $(CXXINCS) -o assignment3
 	
-part2: $(INIT_SHADER_OBJ)
-	g++ $(INIT_SHADER_OBJ) part2.cpp $(GL_OPTIONS) -O2 $(CXXINCS) -o part2
-	
-all: part1 part2
+all: assignment3
 
 $(INIT_SHADER_OBJ): $(INIT_SHADER)
 	g++ -c -Wall $(INIT_SHADER) -o $(INIT_SHADER_OBJ) -O2 $(CXXINCS)
@@ -30,7 +26,4 @@ cleanall:
 	rm *.o
 
 run: clean all
-	./part1
-	
-run2: clean all
-	./part2
+	./assignment3

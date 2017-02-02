@@ -1,3 +1,6 @@
 This program should be run on MacOS with make -f Makefile.mac run
-The first window opens showing part 1, press 'q' to exit first window and display second
-Press 'q' again to close second part and exit the execution of make run 
+Two windows open, "Window 2" in front of the main window named "Assignment 3".
+In Window 2, change color of the objects by typing a key, 'r' - red, 'g' - green, 'b' - blue, 'y' - yellow, 'o' - orange, 'p' - purple, 'w' - white
+In Main Window, change color and start/stop animation via right-click on anywhere in main window (excepting subwindow in top left)
+In Main Window, subwindow in top-left corner, change background color via right-click on subwindow
+Press 'q' to exit the execution of make run 
