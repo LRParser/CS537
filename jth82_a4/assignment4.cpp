@@ -38,7 +38,7 @@ GLint windowHeight, windowWidth;
 // Array of rotation angles (in degrees) for each coordinate axis
 enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
 int      Axis = Zaxis;
-float delta = 0.05;
+float delta = 0.5;
 
 GLfloat  Theta[NumAxes] = { 0.0, 0.0, 0.0 };
 GLuint  theta;  // The location of the "theta" shader uniform variable
@@ -210,43 +210,52 @@ keyboard( unsigned char key, int x, int y )
 			exit( EXIT_SUCCESS );
 			break;
 		case '1':
-	    	// Increase x component of transform
+	    	// Decrease x component of transform
 			Axis = Xaxis;
-			Theta[Axis] += delta;
+			Theta[Axis] -= delta;
 			pressed = true;
 			break;
 		case '2':
-			// Decrease x component of transform
+			// Increase x component of transform
 			Axis = Xaxis;
-			Theta[Axis] -= delta;
+			Theta[Axis] += delta;
 			pressed = true;
 			break;
 		case '3':
 			Axis = Yaxis;
-			Theta[Axis] += delta;
+			Theta[Axis] -= delta;
 			pressed = true;
 			break;
 		case '4':
 			Axis = Yaxis;
-			Theta[Axis] -= delta;
+			Theta[Axis] += delta;
 			pressed = true;
 			break;
 		case '5':
 			Axis = Zaxis;
-			Theta[Axis] += delta;
+			Theta[Axis] -= delta;
 			pressed = true;
 			break;
 		case '6':
 			Axis = Zaxis;
-			Theta[Axis] -= delta;
+			Theta[Axis] += delta;
 			pressed = true;
 			break;
-		case '+':
+		case '7':
+			delta -= .1;
+			if(delta <= 0) {
+				delta = .01; // Don't allow delta of less than minimum increment
+			}
+			// printf("Delta is: %f\n",delta);
+
 			pressed = true;
 			break;
-		case '-':
+		case '8':
+			delta += .1;
+			// printf("Delta is: %f\n",delta);
 			pressed = true;
 			break;
+
     }
     if(pressed) {
 
@@ -348,7 +357,7 @@ main( int argc, char **argv )
 	    glutKeyboardFunc( keyboard );
 		glutIdleFunc(idle);
 
-		int animationMenu = glutCreateMenu(menu_chooser_mainwindow);
+		glutCreateMenu(menu_chooser_mainwindow);
 		glutAddMenuEntry("Apply Scale Transform",1);
 		glutAddMenuEntry("Apply Rotate Transform",2);
 		glutAddMenuEntry("Apply Translate Transform",3);
@@ -357,8 +366,8 @@ main( int argc, char **argv )
 
 
 		std::cout << "Usage: Right Click main window named Assignment 4. Right click and choose to select current transformation to be applied (scale, rotate or translate)" << std::endl;
-		std::cout << "You can (increase,decrease) the transform amount in X, Y and Z axis by pressing (1,2), (3,4) or (5,6) number keys, respectively" << std::endl;
-		std::cout << "You can increase or decrease the delta applied to the current transform by pressing either '+' or '-'" << std::endl;
+		std::cout << "You can decrease or increase the transform amount in X, Y and Z axis by pressing either 1 or 2 (decease or increase in X), 3 or 4 (decrease or increase in Y) or 5 and 6 (decrease or increase in Z) number keys, respectively" << std::endl;
+		std::cout << "You can decrease or increase the delta applied to the current transform by pressing either 7 or 8, respectively" << std::endl;
 
 	    glutMainLoop();
 	    return 0;

@@ -26,8 +26,8 @@ void main()
     		    0.0, 0.0,  0.0, 1.0 );
 
         // Workaround for bug in ATI driver
-        ry[1][0] = 0.0;
-        ry[1][1] = 1.0;
+        //ry[1][0] = 0.0;
+        //ry[1][1] = 1.0;
 
         mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
     		    s.z,  c.z, 0.0, 0.0,
@@ -35,8 +35,8 @@ void main()
     		    0.0,  0.0, 0.0, 1.0 );
 
         // Workaround for bug in ATI driver
-        rz[2][2] = 1.0;
+        //rz[2][2] = 1.0;
 
         color = vec4(vColor,1.0);
-        gl_Position = vPosition; // rz * ry * rx * vPosition;
+        gl_Position = rz * ry * rx * vPosition;
 }
