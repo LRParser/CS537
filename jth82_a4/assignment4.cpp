@@ -38,6 +38,8 @@ GLint windowHeight, windowWidth;
 // Array of rotation angles (in degrees) for each coordinate axis
 enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
 int      Axis = Zaxis;
+float delta = 0.05;
+
 GLfloat  Theta[NumAxes] = { 0.0, 0.0, 0.0 };
 GLuint  theta;  // The location of the "theta" shader uniform variable
 
@@ -209,23 +211,34 @@ keyboard( unsigned char key, int x, int y )
 			break;
 		case '1':
 	    	// Increase x component of transform
-			exit( EXIT_SUCCESS );
+			Axis = Xaxis;
+			Theta[Axis] += delta;
+			pressed = true;
 			break;
 		case '2':
 			// Decrease x component of transform
+			Axis = Xaxis;
+			Theta[Axis] -= delta;
 			pressed = true;
 			break;
 		case '3':
-
+			Axis = Yaxis;
+			Theta[Axis] += delta;
 			pressed = true;
 			break;
 		case '4':
+			Axis = Yaxis;
+			Theta[Axis] -= delta;
 			pressed = true;
 			break;
 		case '5':
+			Axis = Zaxis;
+			Theta[Axis] += delta;
 			pressed = true;
 			break;
 		case '6':
+			Axis = Zaxis;
+			Theta[Axis] -= delta;
 			pressed = true;
 			break;
 		case '+':
