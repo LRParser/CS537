@@ -12,7 +12,7 @@ TARGETS = part1
 DEPS = part1.o
 
 part1: $(INIT_SHADER_OBJ)
-	g++ $(INIT_SHADER_OBJ) part1.cpp $(LDLIBS) -O2 $(CXXINCS) -o part1
+	g++ $(INIT_SHADER_OBJ) assignment3.cpp $(LDLIBS) -O2 $(CXXINCS) -o part1
 	
 all: part1
 
