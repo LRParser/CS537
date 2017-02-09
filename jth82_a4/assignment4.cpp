@@ -41,7 +41,14 @@ int      Axis = Zaxis;
 float delta = 0.5;
 
 GLfloat  Theta[NumAxes] = { 0.0, 0.0, 0.0 };
-GLuint  theta;  // The location of the "theta" shader uniform variable
+GLuint  theta;  // The location of the "Theta" shader uniform variable
+
+GLfloat  ScaleFactors[NumAxes] = { 1.0, 1.0, 1.0 };
+GLuint scaleFactors; // Location of "ScaleFactors" uniform variable
+
+mat4 TransformMatrix;
+GLuint transformMatrix;
+
 
 
 void createSquare(int startVertex, float scaleFactor, float centroidX, float centroidY, float xScale, float yScale, bool isWhite, float zIndex) {
@@ -125,6 +132,26 @@ void drawSquares() {
 	createSquare(squaresStartIdx + 5 * pointsPerSquare,overallScale,0,0,.2,.2,false,0.5);
 
 }
+vec3 radians(vec3 degrees) {
+	return (M_PI * degrees) / 180;
+}
+
+vec3 cos(vec3 angles) {
+	angles.x = cos(angles.x);
+	angles.y = cos(angles.y);
+	angles.z = cos(angles.z);
+
+	return angles;
+}
+
+vec3 sin(vec3 angles) {
+	angles.x = sin(angles.x);
+	angles.y = sin(angles.y);
+	angles.z = sin(angles.z);
+
+	return angles;
+}
+
 
 void
 initMainWindow( void )
@@ -161,7 +188,30 @@ initMainWindow( void )
     glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(vertices)) );
 
-    theta = glGetUniformLocation( program, "theta" );
+    transformMatrix = glGetUniformLocation(program, "transformMatrix");
+
+    vec3 angles = radians( -1 * theta );
+
+    vec3 c = cos( angles );
+    vec3 s = sin( angles );
+
+    mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
+		    0.0,  c.x,  s.x, 0.0,
+		    0.0, -s.x,  c.x, 0.0,
+		    0.0,  0.0,  0.0, 1.0 );
+    mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
+		    0.0, 1.0,  0.0, 0.0,
+		    s.y, 0.0,  c.y, 0.0,
+		    0.0, 0.0,  0.0, 1.0 );
+
+    mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
+		    s.z,  c.z, 0.0, 0.0,
+		    0.0,  0.0, 1.0, 0.0,
+		    0.0,  0.0, 0.0, 1.0 );
+
+    TransformMatrix = rx * ry * rz;
+    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
+
     glEnable( GL_DEPTH_TEST );
 
 
@@ -170,21 +220,29 @@ initMainWindow( void )
 
 }
 
+
+
 void
 displayMainWindow( void )
 {
+
     size_t totalSize = sizeof(vertices) +
-    		sizeof(colors);
+        		sizeof(colors);
 
-    glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
+        glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
 
-    glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vertices),
-    		vertices );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors),
-    		colors );
+        glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vertices),
+        		vertices );
+        glBufferSubData( GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors),
+        		colors );
 
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    glUniform3fv( theta, 1, Theta );
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+        glUniform3fv( theta, 1, Theta );
+
+        glUniform3fv(scaleFactors, 1, ScaleFactors);
+
+
+
     glDrawArrays( GL_TRIANGLES, 0, squarePoints );
 
     glutSwapBuffers();
@@ -196,6 +254,11 @@ void reshape(GLsizei w, GLsizei h) {
 	windowWidth = w;
 	windowHeight = h;
 	glViewport(0,0,windowWidth,windowHeight);
+}
+
+void resetAllTransformations() {
+	// Reset to original points
+	initMainWindow();
 }
 
 void
@@ -253,6 +316,10 @@ keyboard( unsigned char key, int x, int y )
 		case '8':
 			delta += .1;
 			// printf("Delta is: %f\n",delta);
+			pressed = true;
+			break;
+		case 'r':
+			resetAllTransformations();
 			pressed = true;
 			break;
 
@@ -368,6 +435,7 @@ main( int argc, char **argv )
 		std::cout << "Usage: Right Click main window named Assignment 4. Right click and choose to select current transformation to be applied (scale, rotate or translate)" << std::endl;
 		std::cout << "You can decrease or increase the transform amount in X, Y and Z axis by pressing either 1 or 2 (decease or increase in X), 3 or 4 (decrease or increase in Y) or 5 and 6 (decrease or increase in Z) number keys, respectively" << std::endl;
 		std::cout << "You can decrease or increase the delta applied to the current transform by pressing either 7 or 8, respectively" << std::endl;
+		std::cout << "Press r to reset all transformations" << std::endl;
 
 	    glutMainLoop();
 	    return 0;
