@@ -35,19 +35,26 @@ int border = 50;
 GLint windowHeight, windowWidth;
 
 
-// Array of rotation angles (in degrees) for each coordinate axis
+
+
 enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
-int      Axis = Zaxis;
-float delta = 0.5;
+int      Axis = Xaxis;
+float delta = 1.0f;
 
-GLfloat  Theta[NumAxes] = { 0.0, 0.0, 0.0 };
-GLuint  theta;  // The location of the "Theta" shader uniform variable
 
-GLfloat  ScaleFactors[NumAxes] = { 1.0, 1.0, 1.0 };
 GLuint scaleFactors; // Location of "ScaleFactors" uniform variable
+
+vec3 ScaleFactors = vec3(1.0f, 1.0f, 1.0f);
+vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
+vec3  TranslationFactors = vec3(0.0f,0.0f,0.0f);
+
+
+mat4 ScaleMatrix;
 
 mat4 TransformMatrix;
 GLuint transformMatrix;
+
+vec3 *currentOperation = &ScaleFactors;
 
 
 
@@ -171,8 +178,6 @@ initMainWindow( void )
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
 
 
-
-
     // Load shaders and use the resulting shader program
     GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
     //  glUseProgram( program );  // This is called in InitShader
@@ -190,30 +195,9 @@ initMainWindow( void )
 
     transformMatrix = glGetUniformLocation(program, "transformMatrix");
 
-    vec3 angles = radians( -1 * theta );
 
-    vec3 c = cos( angles );
-    vec3 s = sin( angles );
-
-    mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
-		    0.0,  c.x,  s.x, 0.0,
-		    0.0, -s.x,  c.x, 0.0,
-		    0.0,  0.0,  0.0, 1.0 );
-    mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
-		    0.0, 1.0,  0.0, 0.0,
-		    s.y, 0.0,  c.y, 0.0,
-		    0.0, 0.0,  0.0, 1.0 );
-
-    mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
-		    s.z,  c.z, 0.0, 0.0,
-		    0.0,  0.0, 1.0, 0.0,
-		    0.0,  0.0, 0.0, 1.0 );
-
-    TransformMatrix = rx * ry * rz;
-    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
 
     glEnable( GL_DEPTH_TEST );
-
 
     glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 
@@ -237,11 +221,41 @@ displayMainWindow( void )
         		colors );
 
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-        glUniform3fv( theta, 1, Theta );
 
-        glUniform3fv(scaleFactors, 1, ScaleFactors);
+        printf("X scale set to: %f\n",ScaleFactors.x);
+        ScaleMatrix[0][0] = ScaleFactors.x;
+        ScaleMatrix[1][1] = ScaleFactors.y;
+        ScaleMatrix[2][2] = ScaleFactors.z;
 
+        TransformMatrix *= ScaleMatrix;
 
+        // Rotate
+        vec3 angles = radians(-1.0f * RotationFactors);
+
+        vec3 c = cos( angles );
+        vec3 s = sin( angles );
+
+        mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
+    		    0.0,  c.x,  s.x, 0.0,
+    		    0.0, -s.x,  c.x, 0.0,
+    		    0.0,  0.0,  0.0, 1.0 );
+        mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
+    		    0.0, 1.0,  0.0, 0.0,
+    		    s.y, 0.0,  c.y, 0.0,
+    		    0.0, 0.0,  0.0, 1.0 );
+
+        mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
+    		    s.z,  c.z, 0.0, 0.0,
+    		    0.0,  0.0, 1.0, 0.0,
+    		    0.0,  0.0, 0.0, 1.0 );
+
+        // Transform TBD
+
+        mat4 newMatrix = ScaleMatrix * rx * ry * rz;
+        TransformMatrix = newMatrix;
+
+        glUniformMatrix4fv( transformMatrix, 1, GL_FALSE, TransformMatrix );
+        printf("Calling Draw and SwapBuffers");
 
     glDrawArrays( GL_TRIANGLES, 0, squarePoints );
 
@@ -267,41 +281,40 @@ keyboard( unsigned char key, int x, int y )
 	// Define six keys for increasing and decreasing the X,Y,Z components of the current transformation.
 	// The cube should only be transformed with each key stroke.
 	bool pressed = false;
+
+	// We either manipulate ScaleFactor, RotationFactor, or TranslateFactor, depending on current operation
+
     switch ( key ) {
 		case 'q':
 			// Exit
 			exit( EXIT_SUCCESS );
 			break;
 		case '1':
-	    	// Decrease x component of transform
-			Axis = Xaxis;
-			Theta[Axis] -= delta;
+	    	// Decrease x component of current operation
+			currentOperation->x -= delta;
 			pressed = true;
 			break;
 		case '2':
 			// Increase x component of transform
-			Axis = Xaxis;
-			Theta[Axis] += delta;
+			currentOperation->x += delta;
+			printf("Increased Xaxis component\n");
 			pressed = true;
 			break;
+			/*
 		case '3':
-			Axis = Yaxis;
-			Theta[Axis] -= delta;
+			currentOperation.y -= delta;
 			pressed = true;
 			break;
 		case '4':
-			Axis = Yaxis;
-			Theta[Axis] += delta;
+			currentOperation.y += delta;
 			pressed = true;
 			break;
 		case '5':
-			Axis = Zaxis;
-			Theta[Axis] -= delta;
+			currentOperation.z -= delta;
 			pressed = true;
 			break;
 		case '6':
-			Axis = Zaxis;
-			Theta[Axis] += delta;
+			currentOperation.z += delta;
 			pressed = true;
 			break;
 		case '7':
@@ -309,20 +322,20 @@ keyboard( unsigned char key, int x, int y )
 			if(delta <= 0) {
 				delta = .01; // Don't allow delta of less than minimum increment
 			}
-			// printf("Delta is: %f\n",delta);
+			printf("Delta is: %f\n",delta);
 
 			pressed = true;
 			break;
 		case '8':
 			delta += .1;
-			// printf("Delta is: %f\n",delta);
+			printf("Delta is: %f\n",delta);
 			pressed = true;
 			break;
 		case 'r':
 			resetAllTransformations();
 			pressed = true;
 			break;
-
+*/
     }
     if(pressed) {
 
@@ -335,29 +348,8 @@ keyboard( unsigned char key, int x, int y )
 
 
 void idle() {
-	// Measure time and then update based on this
-
-	if(animationEnabled) {
-
-	    clock_gettime(CLOCK_MONOTONIC, &ts_start);
-
-		long int elapsedTime = (ts_end.tv_sec - ts_start.tv_sec);
-
-		if(elapsedTime > 1 || elapsedTime < 0) {
-
-		Theta[Axis] += 0.05;
-
-		    if ( Theta[Axis] > 360.0 ) {
-			Theta[Axis] -= 360.0;
-		    }
 
 
-		    glutSetWindow(mainWindow);
-		    glutPostRedisplay();
-
-		    clock_gettime(CLOCK_MONOTONIC, &ts_end);
-		}
-	}
 }
 
 
@@ -369,24 +361,16 @@ void menu_chooser_mainwindow(int id) {
 	switch(id)
 	{
 	case 1:
-		animationEnabled = true;
+		currentOperation = &ScaleFactors;
 	    choiceSet = true;
 	    break;
 
 	case 2:
-		animationEnabled = false;
+		currentOperation = &RotationFactors;
 	    choiceSet = true;
 	    break;
 	case 3:
-
-	    choiceSet = true;
-	    break;
-	case 4:
-
-	    choiceSet = true;
-	    break;
-	case 5:
-
+		currentOperation = &TranslationFactors;
 	    choiceSet = true;
 	    break;
 	}
@@ -425,9 +409,9 @@ main( int argc, char **argv )
 		glutIdleFunc(idle);
 
 		glutCreateMenu(menu_chooser_mainwindow);
-		glutAddMenuEntry("Apply Scale Transform",1);
-		glutAddMenuEntry("Apply Rotate Transform",2);
-		glutAddMenuEntry("Apply Translate Transform",3);
+		glutAddMenuEntry("Set Scale Transform",1);
+		glutAddMenuEntry("Set Rotate Transform",2);
+		glutAddMenuEntry("Set Translate Transform",3);
 		glutAttachMenu(GLUT_RIGHT_BUTTON);
 
 
