@@ -39,7 +39,7 @@ GLint windowHeight, windowWidth;
 
 enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
 int      Axis = Xaxis;
-float delta = 1.0f;
+float delta = .1f;
 
 
 GLuint scaleFactors; // Location of "ScaleFactors" uniform variable
@@ -49,7 +49,7 @@ vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
 vec3  TranslationFactors = vec3(0.0f,0.0f,0.0f);
 
 
-mat4 ScaleMatrix;
+
 
 mat4 TransformMatrix;
 GLuint transformMatrix;
@@ -223,11 +223,10 @@ displayMainWindow( void )
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
         printf("X scale set to: %f\n",ScaleFactors.x);
-        ScaleMatrix[0][0] = ScaleFactors.x;
-        ScaleMatrix[1][1] = ScaleFactors.y;
-        ScaleMatrix[2][2] = ScaleFactors.z;
-
-        TransformMatrix *= ScaleMatrix;
+        mat4 scaleMatrix;
+        scaleMatrix[0][0] = ScaleFactors.x;
+        scaleMatrix[1][1] = ScaleFactors.y;
+        scaleMatrix[2][2] = ScaleFactors.z;
 
         // Rotate
         vec3 angles = radians(-1.0f * RotationFactors);
@@ -249,12 +248,18 @@ displayMainWindow( void )
     		    0.0,  0.0, 1.0, 0.0,
     		    0.0,  0.0, 0.0, 1.0 );
 
-        // Transform TBD
+        mat4 rotationMatrix = rx * ry * rz;
 
-        mat4 newMatrix = ScaleMatrix * rx * ry * rz;
+        // TTranslate
+        mat4 translationMatrix;
+        translationMatrix[0][3] = TranslationFactors.x;
+        translationMatrix[1][3] = TranslationFactors.y;
+        translationMatrix[2][3] = TranslationFactors.z;
+
+        mat4 newMatrix = scaleMatrix * rotationMatrix * translationMatrix;
         TransformMatrix = newMatrix;
 
-        glUniformMatrix4fv( transformMatrix, 1, GL_FALSE, TransformMatrix );
+        glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
         printf("Calling Draw and SwapBuffers");
 
     glDrawArrays( GL_TRIANGLES, 0, squarePoints );
@@ -272,7 +277,15 @@ void reshape(GLsizei w, GLsizei h) {
 
 void resetAllTransformations() {
 	// Reset to original points
-	initMainWindow();
+	ScaleFactors.x = 1.0f;
+	ScaleFactors.y = 1.0f;
+	ScaleFactors.z = 1.0f;
+	RotationFactors.x = 0.0f;
+	RotationFactors.y = 0.0f;
+	RotationFactors.z = 0.0f;
+	TranslationFactors.x = 0.0f;
+	TranslationFactors.y = 0.0f;
+	TranslationFactors.z = 0.0f;
 }
 
 void
@@ -300,21 +313,21 @@ keyboard( unsigned char key, int x, int y )
 			printf("Increased Xaxis component\n");
 			pressed = true;
 			break;
-			/*
+
 		case '3':
-			currentOperation.y -= delta;
+			currentOperation->y -= delta;
 			pressed = true;
 			break;
 		case '4':
-			currentOperation.y += delta;
+			currentOperation->y += delta;
 			pressed = true;
 			break;
 		case '5':
-			currentOperation.z -= delta;
+			currentOperation->z -= delta;
 			pressed = true;
 			break;
 		case '6':
-			currentOperation.z += delta;
+			currentOperation->z += delta;
 			pressed = true;
 			break;
 		case '7':
@@ -335,7 +348,7 @@ keyboard( unsigned char key, int x, int y )
 			resetAllTransformations();
 			pressed = true;
 			break;
-*/
+
     }
     if(pressed) {
 
