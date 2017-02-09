@@ -9,8 +9,7 @@ uniform mat4 transformMatrix;
 void main()
 {
 
-	// Reference is Angel Chapter 3 Example 6
-
+		// Reference is Angel Chapter 3 Example 6
         color = vec4(vColor,1.0);
         gl_Position =  transformMatrix * vPosition;
 }

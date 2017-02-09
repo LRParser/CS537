@@ -2,29 +2,69 @@
 
 #include "Angel.h"
 #include <math.h>
-#include <time.h>
-
 
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
-struct timespec ts_start;
-struct timespec ts_end;
 
-bool animationEnabled = false;
-const int pointsPerSquare = 12;
-const int numSquares = 6;
-const int squarePoints = pointsPerSquare * numSquares;
-vec3 squareColor = vec3(1.0,1.0,1.0);
+// Copied from Lecture 8 slides as described in assignment
 
-const int squaresStartIdx = 0;
-const int squaresEndIdx = squarePoints -1;
+const int NumVertices = 36; //(6 faces)(2 triangles/face)(3 vertices/triangle)
 
-//--------------------------------------------------------------------------
+point4 points[NumVertices];
+color4 colors[NumVertices];
 
-vec3 vertices[squarePoints];
-vec3 colors[squarePoints];
+// Vertices of a unit cube centered at origin, sides aligned with axes
+point4 vertices[8] = {
+    point4( -0.5, -0.5,  0.5, 1.0 ),
+    point4( -0.5,  0.5,  0.5, 1.0 ),
+    point4(  0.5,  0.5,  0.5, 1.0 ),
+    point4(  0.5, -0.5,  0.5, 1.0 ),
+    point4( -0.5, -0.5, -0.5, 1.0 ),
+    point4( -0.5,  0.5, -0.5, 1.0 ),
+    point4(  0.5,  0.5, -0.5, 1.0 ),
+    point4(  0.5, -0.5, -0.5, 1.0 )
+};
 
+// RGBA olors
+color4 vertex_colors[8] = {
+    color4( 0.0, 0.0, 0.0, 1.0 ),  // black
+    color4( 1.0, 0.0, 0.0, 1.0 ),  // red
+    color4( 1.0, 1.0, 0.0, 1.0 ),  // yellow
+    color4( 0.0, 1.0, 0.0, 1.0 ),  // green
+    color4( 0.0, 0.0, 1.0, 1.0 ),  // blue
+    color4( 1.0, 0.0, 1.0, 1.0 ),  // magenta
+    color4( 1.0, 1.0, 1.0, 1.0 ),  // white
+    color4( 0.0, 1.0, 1.0, 1.0 )   // cyan
+};
+
+// quad generates two triangles for each face and assigns colors
+//    to the vertices
+int Index = 0;
+void
+quad( int a, int b, int c, int d )
+{
+    colors[Index] = vertex_colors[a]; points[Index] = vertices[a]; Index++;
+    colors[Index] = vertex_colors[b]; points[Index] = vertices[b]; Index++;
+    colors[Index] = vertex_colors[c]; points[Index] = vertices[c]; Index++;
+    colors[Index] = vertex_colors[a]; points[Index] = vertices[a]; Index++;
+    colors[Index] = vertex_colors[c]; points[Index] = vertices[c]; Index++;
+    colors[Index] = vertex_colors[d]; points[Index] = vertices[d]; Index++;
+}
+
+//----------------------------------------------------------------------------
+
+// generate 12 triangles: 36 vertices and 36 colors
+void
+colorcube()
+{
+    quad( 1, 0, 3, 2 );
+    quad( 2, 3, 7, 6 );
+    quad( 3, 0, 4, 7 );
+    quad( 6, 5, 1, 2 );
+    quad( 4, 5, 6, 7 );
+    quad( 5, 4, 0, 1 );
+}
 
 int mainWindow;
 
@@ -39,8 +79,7 @@ GLint windowHeight, windowWidth;
 
 enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
 int      Axis = Xaxis;
-float delta = .1f;
-
+int opIndex = 0;
 
 GLuint scaleFactors; // Location of "ScaleFactors" uniform variable
 
@@ -49,99 +88,13 @@ vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
 vec3  TranslationFactors = vec3(0.0f,0.0f,0.0f);
 
 
-
-
 mat4 TransformMatrix;
 GLuint transformMatrix;
 
 vec3 *currentOperation = &ScaleFactors;
+float deltas[3] = { .1f,1.0f,.05f};
 
 
-
-void createSquare(int startVertex, float scaleFactor, float centroidX, float centroidY, float xScale, float yScale, bool isWhite, float zIndex) {
-
-
-	vec3 blackColor = vec3(0.0,0.0,0.0);
-	vec3 color = isWhite ? squareColor : blackColor;
-
-	int currentVertex = startVertex;
-
-	// Make square from 4 triangles all "pointing" towards center point
-
-	// Triangle 1
-	vertices[currentVertex] = vec3(centroidX,centroidY,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	float normalizedXScale = scaleFactor * xScale;
-	float normalizedYScale = scaleFactor * yScale;
-
-	vertices[currentVertex] = vec3(centroidX - normalizedXScale, centroidY - normalizedYScale,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	vertices[currentVertex] = vec3(centroidX + normalizedXScale,centroidY - normalizedYScale,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	// Triangle 2, center + 2 points
-	vertices[currentVertex] = vec3(centroidX,centroidY,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	vertices[currentVertex] = vec3(centroidX + normalizedXScale,centroidY - normalizedYScale,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	vertices[currentVertex] = vec3(centroidX + normalizedXScale,centroidY + normalizedYScale,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	// Triangle 3, center + 2 points
-	vertices[currentVertex] = vec3(centroidX,centroidY,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY + normalizedYScale,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	vertices[currentVertex] = vec3(centroidX + normalizedXScale,centroidY + normalizedYScale,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	// Triangle 4, center + 2 points
-
-	vertices[currentVertex] = vec3(centroidX,centroidY,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-
-	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY + normalizedYScale,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-	vertices[currentVertex] = vec3(centroidX - normalizedXScale,centroidY - normalizedYScale,zIndex);
-	colors[currentVertex] = vec3(color);
-	currentVertex++;
-
-
-}
-
-void drawSquares() {
-	float overallScale = .5;
-
-	createSquare(squaresStartIdx,overallScale,0,0,.7,.7,true,0.0);
-	createSquare(squaresStartIdx + 1 * pointsPerSquare,overallScale,0,0,.6,.6,false,0.1);
-	createSquare(squaresStartIdx + 2 * pointsPerSquare,overallScale,0,0,.5,.5,true,0.2);
-	createSquare(squaresStartIdx + 3 * pointsPerSquare,overallScale,0,0,.4,.4,false,0.3);
-	createSquare(squaresStartIdx + 4 * pointsPerSquare,overallScale,0,0,.3,.3,true,0.4);
-	createSquare(squaresStartIdx + 5 * pointsPerSquare,overallScale,0,0,.2,.2,false,0.5);
-
-}
-vec3 radians(vec3 degrees) {
-	return (M_PI * degrees) / 180;
-}
 
 vec3 cos(vec3 angles) {
 	angles.x = cos(angles.x);
@@ -165,17 +118,22 @@ initMainWindow( void )
 {
 
 	// We need to now draw 6 squares to make a full 3D cube
-	drawSquares();
+	colorcube();
     // Create a vertex array object
     GLuint vao[1];
     glGenVertexArrays( 1, vao );
     glBindVertexArray( vao[0] );
 
 
-    // Create and initialize a buffer object
     GLuint buffer;
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
+       sizeof(colors), NULL, GL_STATIC_DRAW );
+    glBufferSubData( GL_ARRAY_BUFFER, 0,
+        sizeof(points), points );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
+        sizeof(colors), colors );
 
 
     // Load shaders and use the resulting shader program
@@ -185,13 +143,13 @@ initMainWindow( void )
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
     glEnableVertexAttribArray( vPosition );
-    glVertexAttribPointer( vPosition, 3, GL_FLOAT, GL_FALSE, 0,
+    glVertexAttribPointer( vPosition, 4, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(0) );
 
     GLuint vColor = glGetAttribLocation( program, "vColor" );
     glEnableVertexAttribArray( vColor );
-    glVertexAttribPointer( vColor, 3, GL_FLOAT, GL_FALSE, 0,
-                           BUFFER_OFFSET(sizeof(vertices)) );
+    glVertexAttribPointer( vColor, 4, GL_FLOAT, GL_FALSE, 0,
+                           BUFFER_OFFSET(sizeof(points)) );
 
     transformMatrix = glGetUniformLocation(program, "transformMatrix");
 
@@ -204,25 +162,25 @@ initMainWindow( void )
 
 }
 
+vec3 radians(vec3 degrees) {
+	return (M_PI * degrees) / 180;
+}
+
 
 
 void
 displayMainWindow( void )
 {
 
-    size_t totalSize = sizeof(vertices) +
-        		sizeof(colors);
-
-        glBufferData( GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW );
-
-        glBufferSubData( GL_ARRAY_BUFFER, 0, sizeof(vertices),
-        		vertices );
-        glBufferSubData( GL_ARRAY_BUFFER, sizeof(vertices), sizeof(colors),
-        		colors );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
+       sizeof(colors), NULL, GL_STATIC_DRAW );
+    glBufferSubData( GL_ARRAY_BUFFER, 0,
+        sizeof(points), points );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
+        sizeof(colors), colors );
 
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-        printf("X scale set to: %f\n",ScaleFactors.x);
         mat4 scaleMatrix;
         scaleMatrix[0][0] = ScaleFactors.x;
         scaleMatrix[1][1] = ScaleFactors.y;
@@ -256,13 +214,18 @@ displayMainWindow( void )
         translationMatrix[1][3] = TranslationFactors.y;
         translationMatrix[2][3] = TranslationFactors.z;
 
-        mat4 newMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+        // Translate to origin
+        mat4 translationMatrixOrigin;
+        translationMatrixOrigin[0][3] = 0.0f;
+        translationMatrixOrigin[1][3] = 0.0f;
+        translationMatrixOrigin[2][3] = 0.0f;
+
+        mat4 newMatrix = translationMatrixOrigin * scaleMatrix * rotationMatrix * translationMatrix;
         TransformMatrix = newMatrix;
 
         glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
-        printf("Calling Draw and SwapBuffers");
 
-    glDrawArrays( GL_TRIANGLES, 0, squarePoints );
+    glDrawArrays( GL_TRIANGLES, 0, NumVertices );
 
     glutSwapBuffers();
 
@@ -286,6 +249,11 @@ void resetAllTransformations() {
 	TranslationFactors.x = 0.0f;
 	TranslationFactors.y = 0.0f;
 	TranslationFactors.z = 0.0f;
+	deltas[0] = .1f;
+	deltas[1] = 1.0f;
+	deltas[2] = .05f;
+	opIndex = 0;
+
 }
 
 void
@@ -304,44 +272,40 @@ keyboard( unsigned char key, int x, int y )
 			break;
 		case '1':
 	    	// Decrease x component of current operation
-			currentOperation->x -= delta;
+			currentOperation->x -= deltas[opIndex];
 			pressed = true;
 			break;
 		case '2':
 			// Increase x component of transform
-			currentOperation->x += delta;
-			printf("Increased Xaxis component\n");
+			currentOperation->x += deltas[opIndex];
 			pressed = true;
 			break;
 
 		case '3':
-			currentOperation->y -= delta;
+			currentOperation->y -= deltas[opIndex];
 			pressed = true;
 			break;
 		case '4':
-			currentOperation->y += delta;
+			currentOperation->y += deltas[opIndex];
 			pressed = true;
 			break;
 		case '5':
-			currentOperation->z -= delta;
+			currentOperation->z -= deltas[opIndex];
 			pressed = true;
 			break;
 		case '6':
-			currentOperation->z += delta;
+			currentOperation->z += deltas[opIndex];
 			pressed = true;
 			break;
 		case '7':
-			delta -= .1;
-			if(delta <= 0) {
-				delta = .01; // Don't allow delta of less than minimum increment
-			}
-			printf("Delta is: %f\n",delta);
+
+			deltas[opIndex] -= .1;
 
 			pressed = true;
 			break;
 		case '8':
-			delta += .1;
-			printf("Delta is: %f\n",delta);
+
+			deltas[opIndex] += .1;
 			pressed = true;
 			break;
 		case 'r':
@@ -375,15 +339,18 @@ void menu_chooser_mainwindow(int id) {
 	{
 	case 1:
 		currentOperation = &ScaleFactors;
+		opIndex = 0;
 	    choiceSet = true;
 	    break;
 
 	case 2:
 		currentOperation = &RotationFactors;
+		opIndex = 1;
 	    choiceSet = true;
 	    break;
 	case 3:
 		currentOperation = &TranslationFactors;
+		opIndex = 2;
 	    choiceSet = true;
 	    break;
 	}
@@ -427,12 +394,17 @@ main( int argc, char **argv )
 		glutAddMenuEntry("Set Translate Transform",3);
 		glutAttachMenu(GLUT_RIGHT_BUTTON);
 
-
-
-		std::cout << "Usage: Right Click main window named Assignment 4. Right click and choose to select current transformation to be applied (scale, rotate or translate)" << std::endl;
-		std::cout << "You can decrease or increase the transform amount in X, Y and Z axis by pressing either 1 or 2 (decease or increase in X), 3 or 4 (decrease or increase in Y) or 5 and 6 (decrease or increase in Z) number keys, respectively" << std::endl;
-		std::cout << "You can decrease or increase the delta applied to the current transform by pressing either 7 or 8, respectively" << std::endl;
-		std::cout << "Press r to reset all transformations" << std::endl;
+		std::cout << "Usage: Right Click main window named Assignment 4 and choose to select current transformation to be applied (scale, rotate or translate)" << std::endl;
+		std::cout << "Press: 1 - to increase transform in X axis" << std::endl;
+		std::cout << "Press: 2 - to decrease transform in X axis" << std::endl;
+		std::cout << "Press: 3 - to increase transform in Y axis" << std::endl;
+		std::cout << "Press: 4 - to decrease transform in Y axis" << std::endl;
+		std::cout << "Press: 5 - to increase transform in Z axis" << std::endl;
+		std::cout << "Press: 6 - to decrease transform in Z axis" << std::endl;
+		std::cout << "Press: 7 - to increase delta for current transform" << std::endl;
+		std::cout << "Press: 8 - to decrease delta for current transform" << std::endl;
+		std::cout << "Press: r - to reset all transformations and deltas to default" << std::endl;
+		std::cout << "Press: q - to quit" << std::endl;
 
 	    glutMainLoop();
 	    return 0;
