@@ -208,19 +208,13 @@ displayMainWindow( void )
 
         mat4 rotationMatrix = rx * ry * rz;
 
-        // TTranslate
+        // Translate
         mat4 translationMatrix;
         translationMatrix[0][3] = TranslationFactors.x;
         translationMatrix[1][3] = TranslationFactors.y;
         translationMatrix[2][3] = TranslationFactors.z;
 
-        // Translate to origin
-        mat4 translationMatrixOrigin;
-        translationMatrixOrigin[0][3] = 0.0f;
-        translationMatrixOrigin[1][3] = 0.0f;
-        translationMatrixOrigin[2][3] = 0.0f;
-
-        mat4 newMatrix = translationMatrixOrigin * scaleMatrix * rotationMatrix * translationMatrix;
+        mat4 newMatrix = scaleMatrix * rotationMatrix * translationMatrix;
         TransformMatrix = newMatrix;
 
         glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
