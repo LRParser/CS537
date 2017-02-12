@@ -9,23 +9,27 @@ typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
 struct faceInfo {
-	int face1;
-	int face2;
-	int face3;
+	float face1;
+	float face2;
+	float face3;
 };
 
 
 // Copied from Lecture 8 slides as described in assignment
 
 const int NumVertices = 1000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
-int NumVerticesUsed = 0;
+int NumVerticesUsed = 24;
 
 vec4 smfVertices[NumVertices];
 struct faceInfo smfFaces[NumVertices];
 
 //vec4 *points;
-//vec4 *colors;
+// vec4 *colors;
 
+vec4 points[1000];
+vec4 colors[1000];
+
+/*
 vec4 points[6] = {
     vec4(-.75,-.75,1,1), vec4(-.75,0,1,1),vec4(0,-.75,1,1),
     vec4(-.75,0,1,1 ), vec4(0,-.75,1,1), vec4( 0, 0,1,1 )
@@ -35,6 +39,7 @@ vec4 colors[6] = {
     vec4(1,0,0,0), vec4(1,0,0,0),vec4(1,0,0,0),
 	vec4(1,0,0,0), vec4(1,0,0,0), vec4(1,0,0,0)
 };
+*/
 
 int mainWindow;
 
@@ -100,7 +105,7 @@ initMainWindow( void )
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    glDrawArrays( GL_TRIANGLES, 0, 6 );
+    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
     glFlush();
 
     // glutSwapBuffers();
@@ -122,7 +127,7 @@ displayMainWindow( void )
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    glDrawArrays( GL_TRIANGLES, 0, 6 );
+    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
     glFlush();
 
     // glutSwapBuffers();
@@ -172,9 +177,9 @@ void idle() {
 
 void readSMF() {
 
-	/*
+
 	// Read in the SMF file
-			std::ifstream infile("octahedron.smf");
+			std::ifstream infile("bound-bunny_200.smf");
 
 			char a;
 			float b, c, d;
@@ -195,26 +200,29 @@ void readSMF() {
 			    printf("%c, %f, %f, %f\n",a, b,c,d);
 			}
 
-			NumVerticesUsed = numSmfVertices;
 			printf("NumVerticesUsed is: %d\n",NumVerticesUsed);
 
-			points = (vec4*) malloc(sizeof(vec4) * NumVerticesUsed);
-			colors = (vec4*) malloc(sizeof(vec4) * NumVerticesUsed);
+			// points = (vec4*) malloc(sizeof(vec4) * NumVerticesUsed);
+			// colors = (vec4*) malloc(sizeof(vec4) * NumVerticesUsed);
 
 			// Now, take the faces to order the vertices
 
+			int totalPoints = 0;
 			for(int i = 0; i < numSmfFaces; i++) {
 				faceInfo currentFace = smfFaces[i];
 				// Find the vertices it specifies and add them to vertices
 				// Subtract 1 because SMF is 1-indexed
-				int index1 = currentFace.face1 - 1;
-				vec4 vertex1 = smfVertices[index1];
+				printf("Building face: %d - %f %f %f\n",i,currentFace.face1,currentFace.face2,currentFace.face3);
+				int index1 = currentFace.face1;
+				vec4 vertex1 = smfVertices[index1 - 1];
 
-				int index2 = currentFace.face2 - 1;
-				vec4 vertex2 = smfVertices[index2];
+				int index2 = currentFace.face2;
+				vec4 vertex2 = smfVertices[index2 - 1];
 
-				int index3 = currentFace.face3 - 1;
-				vec4 vertex3 = smfVertices[index3];
+				int index3 = currentFace.face3;
+				vec4 vertex3 = smfVertices[index3 - 1];
+
+				printf("Looking at indices: %d, %d, %d\n",index1,index2,index3);
 
 				int currentOffset = i * 3;
 
@@ -225,14 +233,24 @@ void readSMF() {
 				colors[currentOffset] = vec4(1.0,0.0,0.0,1.0);
 				colors[currentOffset + 1] = vec4(1.0,0.0,0.0,1.0);
 				colors[currentOffset + 2] = vec4(1.0,0.0,0.0,1.0);
+				totalPoints += 3;
 			}
-			*/
+
+			for(int i = 0; i < totalPoints; i++) {
+				printf("Point created: %f, %f, %f\n",points[i].x,points[i].y,points[i].z);
+			}
+
+			printf("Total points created: %d\n",totalPoints);
+			NumVerticesUsed = totalPoints;
+
+
 }
 
 int
 main( int argc, char **argv )
 {
 
+	readSMF();
 
     glutInit( &argc, argv );
 #ifdef __APPLE__
