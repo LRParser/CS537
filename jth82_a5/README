@@ -1,0 +1,16 @@
+This program should be run on MacOS with make -f Makefile.mac run
+One window opens,named "Assignment 4".
+A colored cube is shown allowing the following usage:
+
+Usage: Right Click main window named Assignment 4 and choose to select current transformation to be applied (scale, rotate or translate)
+Press: 1 - to increase transform in X axis
+Press: 2 - to decrease transform in X axis
+Press: 3 - to increase transform in Y axis
+Press: 4 - to decrease transform in Y axis
+Press: 5 - to increase transform in Z axis
+Press: 6 - to decrease transform in Z axis
+Press: 7 - to increase delta for current transform
+Press: 8 - to decrease delta for current transform
+Press: r - to reset all transformations and deltas to default
+Press: q - to quit
+
