@@ -8,68 +8,33 @@
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
+struct faceInfo {
+	int face1;
+	int face2;
+	int face3;
+};
+
 
 // Copied from Lecture 8 slides as described in assignment
 
-const int NumVertices = 36; //(6 faces)(2 triangles/face)(3 vertices/triangle)
+const int NumVertices = 1000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
+int NumVerticesUsed = 0;
 
-point4 points[NumVertices];
-color4 colors[NumVertices];
+vec4 smfVertices[NumVertices];
+struct faceInfo smfFaces[NumVertices];
 
-vec3 smfVertices[1000];
-vec3 smfFaces[1000];
+//vec4 *points;
+//vec4 *colors;
 
-// Vertices of a unit cube centered at origin, sides aligned with axes
-point4 vertices[8] = {
-    point4( -0.5, -0.5,  0.5, 1.0 ),
-    point4( -0.5,  0.5,  0.5, 1.0 ),
-    point4(  0.5,  0.5,  0.5, 1.0 ),
-    point4(  0.5, -0.5,  0.5, 1.0 ),
-    point4( -0.5, -0.5, -0.5, 1.0 ),
-    point4( -0.5,  0.5, -0.5, 1.0 ),
-    point4(  0.5,  0.5, -0.5, 1.0 ),
-    point4(  0.5, -0.5, -0.5, 1.0 )
+vec4 points[6] = {
+    vec4(-.75,-.75,1,1), vec4(-.75,0,1,1),vec4(0,-.75,1,1),
+    vec4(-.75,0,1,1 ), vec4(0,-.75,1,1), vec4( 0, 0,1,1 )
 };
 
-// RGBA olors
-color4 vertex_colors[8] = {
-    color4( 0.0, 0.0, 0.0, 1.0 ),  // black
-    color4( 1.0, 0.0, 0.0, 1.0 ),  // red
-    color4( 1.0, 1.0, 0.0, 1.0 ),  // yellow
-    color4( 0.0, 1.0, 0.0, 1.0 ),  // green
-    color4( 0.0, 0.0, 1.0, 1.0 ),  // blue
-    color4( 1.0, 0.0, 1.0, 1.0 ),  // magenta
-    color4( 1.0, 1.0, 1.0, 1.0 ),  // white
-    color4( 0.0, 1.0, 1.0, 1.0 )   // cyan
+vec4 colors[6] = {
+    vec4(1,0,0,0), vec4(1,0,0,0),vec4(1,0,0,0),
+	vec4(1,0,0,0), vec4(1,0,0,0), vec4(1,0,0,0)
 };
-
-// quad generates two triangles for each face and assigns colors
-//    to the vertices
-int Index = 0;
-void
-quad( int a, int b, int c, int d )
-{
-    colors[Index] = vertex_colors[a]; points[Index] = vertices[a]; Index++;
-    colors[Index] = vertex_colors[b]; points[Index] = vertices[b]; Index++;
-    colors[Index] = vertex_colors[c]; points[Index] = vertices[c]; Index++;
-    colors[Index] = vertex_colors[a]; points[Index] = vertices[a]; Index++;
-    colors[Index] = vertex_colors[c]; points[Index] = vertices[c]; Index++;
-    colors[Index] = vertex_colors[d]; points[Index] = vertices[d]; Index++;
-}
-
-//----------------------------------------------------------------------------
-
-// generate 12 triangles: 36 vertices and 36 colors
-void
-colorcube()
-{
-    quad( 1, 0, 3, 2 );
-    quad( 2, 3, 7, 6 );
-    quad( 3, 0, 4, 7 );
-    quad( 6, 5, 1, 2 );
-    quad( 4, 5, 6, 7 );
-    quad( 5, 4, 0, 1 );
-}
 
 int mainWindow;
 
@@ -80,50 +45,13 @@ int border = 50;
 GLint windowHeight, windowWidth;
 
 
-
-
-enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
-int      Axis = Xaxis;
-int opIndex = 0;
-
-GLuint scaleFactors; // Location of "ScaleFactors" uniform variable
-
-vec3 ScaleFactors = vec3(1.0f, 1.0f, 1.0f);
-vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
-vec3  TranslationFactors = vec3(0.0f,0.0f,0.0f);
-
-
-mat4 TransformMatrix;
-GLuint transformMatrix;
-
-vec3 *currentOperation = &ScaleFactors;
-float deltas[3] = { .1f,1.0f,.05f};
-
-
-
-vec3 cos(vec3 angles) {
-	angles.x = cos(angles.x);
-	angles.y = cos(angles.y);
-	angles.z = cos(angles.z);
-
-	return angles;
-}
-
-vec3 sin(vec3 angles) {
-	angles.x = sin(angles.x);
-	angles.y = sin(angles.y);
-	angles.z = sin(angles.z);
-
-	return angles;
-}
-
-
 void
 initMainWindow( void )
 {
 
 	// We need to now draw 6 squares to make a full 3D cube
-	colorcube();
+
+
     // Create a vertex array object
     GLuint vao[1];
     glGenVertexArrays( 1, vao );
@@ -156,19 +84,27 @@ initMainWindow( void )
     glVertexAttribPointer( vColor, 4, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(points)) );
 
-    transformMatrix = glGetUniformLocation(program, "transformMatrix");
 
 
 
-    glEnable( GL_DEPTH_TEST );
+    // glEnable( GL_DEPTH_TEST );
 
-    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
+    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // black background
 
+    glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
+       sizeof(colors), NULL, GL_STATIC_DRAW );
+    glBufferSubData( GL_ARRAY_BUFFER, 0,
+        sizeof(points), points );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
+        sizeof(colors), colors );
 
-}
+   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-vec3 radians(vec3 degrees) {
-	return (M_PI * degrees) / 180;
+    glDrawArrays( GL_TRIANGLES, 0, 6 );
+    glFlush();
+
+    // glutSwapBuffers();
+
 }
 
 
@@ -184,49 +120,12 @@ displayMainWindow( void )
     glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
         sizeof(colors), colors );
 
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-        mat4 scaleMatrix;
-        scaleMatrix[0][0] = ScaleFactors.x;
-        scaleMatrix[1][1] = ScaleFactors.y;
-        scaleMatrix[2][2] = ScaleFactors.z;
+    glDrawArrays( GL_TRIANGLES, 0, 6 );
+    glFlush();
 
-        // Rotate
-        vec3 angles = radians(-1.0f * RotationFactors);
-
-        vec3 c = cos( angles );
-        vec3 s = sin( angles );
-
-        mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
-    		    0.0,  c.x,  s.x, 0.0,
-    		    0.0, -s.x,  c.x, 0.0,
-    		    0.0,  0.0,  0.0, 1.0 );
-        mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
-    		    0.0, 1.0,  0.0, 0.0,
-    		    s.y, 0.0,  c.y, 0.0,
-    		    0.0, 0.0,  0.0, 1.0 );
-
-        mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
-    		    s.z,  c.z, 0.0, 0.0,
-    		    0.0,  0.0, 1.0, 0.0,
-    		    0.0,  0.0, 0.0, 1.0 );
-
-        mat4 rotationMatrix = rx * ry * rz;
-
-        // Translate
-        mat4 translationMatrix;
-        translationMatrix[0][3] = TranslationFactors.x;
-        translationMatrix[1][3] = TranslationFactors.y;
-        translationMatrix[2][3] = TranslationFactors.z;
-
-        mat4 newMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-        TransformMatrix = newMatrix;
-
-        glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
-
-    glDrawArrays( GL_TRIANGLES, 0, NumVertices );
-
-    glutSwapBuffers();
+    // glutSwapBuffers();
 
 }
 
@@ -235,24 +134,6 @@ void reshape(GLsizei w, GLsizei h) {
 	windowWidth = w;
 	windowHeight = h;
 	glViewport(0,0,windowWidth,windowHeight);
-}
-
-void resetAllTransformations() {
-	// Reset to original points
-	ScaleFactors.x = 1.0f;
-	ScaleFactors.y = 1.0f;
-	ScaleFactors.z = 1.0f;
-	RotationFactors.x = 0.0f;
-	RotationFactors.y = 0.0f;
-	RotationFactors.z = 0.0f;
-	TranslationFactors.x = 0.0f;
-	TranslationFactors.y = 0.0f;
-	TranslationFactors.z = 0.0f;
-	deltas[0] = .1f;
-	deltas[1] = 1.0f;
-	deltas[2] = .05f;
-	opIndex = 0;
-
 }
 
 void
@@ -269,48 +150,6 @@ keyboard( unsigned char key, int x, int y )
 			// Exit
 			exit( EXIT_SUCCESS );
 			break;
-		case '1':
-	    	// Decrease x component of current operation
-			currentOperation->x -= deltas[opIndex];
-			pressed = true;
-			break;
-		case '2':
-			// Increase x component of transform
-			currentOperation->x += deltas[opIndex];
-			pressed = true;
-			break;
-
-		case '3':
-			currentOperation->y -= deltas[opIndex];
-			pressed = true;
-			break;
-		case '4':
-			currentOperation->y += deltas[opIndex];
-			pressed = true;
-			break;
-		case '5':
-			currentOperation->z -= deltas[opIndex];
-			pressed = true;
-			break;
-		case '6':
-			currentOperation->z += deltas[opIndex];
-			pressed = true;
-			break;
-		case '7':
-
-			deltas[opIndex] -= .1;
-
-			pressed = true;
-			break;
-		case '8':
-
-			deltas[opIndex] += .1;
-			pressed = true;
-			break;
-		case 'r':
-			resetAllTransformations();
-			pressed = true;
-			break;
 
     }
     if(pressed) {
@@ -324,50 +163,80 @@ keyboard( unsigned char key, int x, int y )
 
 
 void idle() {
-
+	glutSwapBuffers();
 
 }
 
 
 //----------------------------------------------------------------------------
 
+void readSMF() {
 
-void menu_chooser_mainwindow(int id) {
-	bool choiceSet = false;
-	switch(id)
-	{
-	case 1:
-		currentOperation = &ScaleFactors;
-		opIndex = 0;
-	    choiceSet = true;
-	    break;
+	/*
+	// Read in the SMF file
+			std::ifstream infile("octahedron.smf");
 
-	case 2:
-		currentOperation = &RotationFactors;
-		opIndex = 1;
-	    choiceSet = true;
-	    break;
-	case 3:
-		currentOperation = &TranslationFactors;
-		opIndex = 2;
-	    choiceSet = true;
-	    break;
-	}
-	if(choiceSet) {
-		glutPostRedisplay();
-	}
+			char a;
+			float b, c, d;
+			int numSmfVertices = 0;
+			int numSmfFaces = 0;
+			while (infile >> a >> b >> c >> d)
+			{
+				if(a == 'v') {
+					smfVertices[numSmfVertices] = vec4(b,c,d,1.0);
+					numSmfVertices++;
+				}
+				else if(a == 'f') {
+
+					faceInfo f = {int(b),int(c),int(d)};
+					smfFaces[numSmfFaces] = f;
+					numSmfFaces++;
+				}
+			    printf("%c, %f, %f, %f\n",a, b,c,d);
+			}
+
+			NumVerticesUsed = numSmfVertices;
+			printf("NumVerticesUsed is: %d\n",NumVerticesUsed);
+
+			points = (vec4*) malloc(sizeof(vec4) * NumVerticesUsed);
+			colors = (vec4*) malloc(sizeof(vec4) * NumVerticesUsed);
+
+			// Now, take the faces to order the vertices
+
+			for(int i = 0; i < numSmfFaces; i++) {
+				faceInfo currentFace = smfFaces[i];
+				// Find the vertices it specifies and add them to vertices
+				// Subtract 1 because SMF is 1-indexed
+				int index1 = currentFace.face1 - 1;
+				vec4 vertex1 = smfVertices[index1];
+
+				int index2 = currentFace.face2 - 1;
+				vec4 vertex2 = smfVertices[index2];
+
+				int index3 = currentFace.face3 - 1;
+				vec4 vertex3 = smfVertices[index3];
+
+				int currentOffset = i * 3;
+
+				points[currentOffset] = vertex1;
+				points[currentOffset + 1] = vertex2;
+				points[currentOffset + 2] = vertex3;
+
+				colors[currentOffset] = vec4(1.0,0.0,0.0,1.0);
+				colors[currentOffset + 1] = vec4(1.0,0.0,0.0,1.0);
+				colors[currentOffset + 2] = vec4(1.0,0.0,0.0,1.0);
+			}
+			*/
 }
-
 
 int
 main( int argc, char **argv )
 {
 
-	/*
 
     glutInit( &argc, argv );
 #ifdef __APPLE__
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE );
+    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA );
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
 #endif
@@ -389,38 +258,12 @@ main( int argc, char **argv )
 	    glutKeyboardFunc( keyboard );
 		glutIdleFunc(idle);
 
-		glutCreateMenu(menu_chooser_mainwindow);
-		glutAddMenuEntry("Set Scale Transform",1);
-		glutAddMenuEntry("Set Rotate Transform",2);
-		glutAddMenuEntry("Set Translate Transform",3);
-		glutAttachMenu(GLUT_RIGHT_BUTTON);
 
-		*/
-
-		// Read in the SMF file
-		std::ifstream infile("octahedron.smf");
-
-		char a;
-		int b, c, d;
-		int numSmfVertices = 0;
-		int numSmfFaces = 0;
-		while (infile >> a >> b >> c >> d)
-		{
-			if(a == 'v') {
-				smfVertices[numSmfVertices] = vec3(b,c,d);
-				numSmfVertices++;
-			}
-			else if(a == 'f') {
-				smfFaces[numSmfFaces] = vec3(b,c,d);
-				numSmfFaces++;
-			}
-		    printf("%c, %d, %d, %d\n",a, b,c,d);
-		}
 
 
 		std::cout << "Usage Info: TBD" << std::endl;
 
 
-	    // glutMainLoop();
+	    glutMainLoop();
 	    return 0;
 }
