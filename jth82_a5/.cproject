@@ -14,17 +14,28 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration buildProperties="" id="cdt.managedbuild.toolchain.gnu.macosx.base.220783298" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
+				<configuration buildProperties="" description="" id="cdt.managedbuild.toolchain.gnu.macosx.base.220783298" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
 					<folderInfo id="cdt.managedbuild.toolchain.gnu.macosx.base.220783298.780309836" name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.macosx.base.566256131" name="MacOSX GCC" superClass="cdt.managedbuild.toolchain.gnu.macosx.base">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.MachO64" id="cdt.managedbuild.target.gnu.platform.macosx.base.708472384" name="Debug Platform" osList="macosx" superClass="cdt.managedbuild.target.gnu.platform.macosx.base"/>
-							<builder id="cdt.managedbuild.target.gnu.builder.macosx.base.435201863" managedBuildOn="false" name="Gnu Make Builder.Default" superClass="cdt.managedbuild.target.gnu.builder.macosx.base"/>
+							<builder arguments="-f Makefile.tux" command="make" id="cdt.managedbuild.target.gnu.builder.macosx.base.435201863" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.macosx.base"/>
 							<tool id="cdt.managedbuild.tool.macosx.c.linker.macosx.base.1610586996" name="MacOS X C Linker" superClass="cdt.managedbuild.tool.macosx.c.linker.macosx.base"/>
-							<tool id="cdt.managedbuild.tool.macosx.cpp.linker.macosx.base.1485324476" name="MacOS X C++ Linker" superClass="cdt.managedbuild.tool.macosx.cpp.linker.macosx.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.macosx.base.1526274321" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.macosx.base"/>
+							<tool id="cdt.managedbuild.tool.macosx.cpp.linker.macosx.base.1485324476" name="MacOS X C++ Linker" superClass="cdt.managedbuild.tool.macosx.cpp.linker.macosx.base">
+								<inputType id="cdt.managedbuild.tool.macosx.cpp.linker.input.861039207" superClass="cdt.managedbuild.tool.macosx.cpp.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.macosx.base.1526274321" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.macosx.base">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1642821306" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.macosx.base.1208655493" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.macosx.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base.432012035" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.base.1348296099" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base.432012035" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base">
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.557551175" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.base.1348296099" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.base">
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.576948309" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
 						</toolChain>
 					</folderInfo>
 				</configuration>
@@ -39,4 +50,10 @@
 		<project id="jth82_a5.null.103213433" name="jth82_a5"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Default">
+			<resource resourceType="PROJECT" workspacePath="/jth82_a5"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

@@ -1,6 +1,6 @@
 GL_OPTIONS = -framework OpenGL -framework GLUT
 
-name1 = assignment4
+name1 = assignment5
 
 CXXINCS = -Wall -pedantic -Iinclude 
 

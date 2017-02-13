@@ -29,18 +29,6 @@ struct faceInfo smfFaces[NumVertices];
 vec4 points[1000];
 vec4 colors[1000];
 
-/*
-vec4 points[6] = {
-    vec4(-.75,-.75,1,1), vec4(-.75,0,1,1),vec4(0,-.75,1,1),
-    vec4(-.75,0,1,1 ), vec4(0,-.75,1,1), vec4( 0, 0,1,1 )
-};
-
-vec4 colors[6] = {
-    vec4(1,0,0,0), vec4(1,0,0,0),vec4(1,0,0,0),
-	vec4(1,0,0,0), vec4(1,0,0,0), vec4(1,0,0,0)
-};
-*/
-
 int mainWindow;
 
 int w = 500;
@@ -230,9 +218,28 @@ void readSMF() {
 				points[currentOffset + 1] = vertex2;
 				points[currentOffset + 2] = vertex3;
 
-				colors[currentOffset] = vec4(1.0,0.0,0.0,1.0);
-				colors[currentOffset + 1] = vec4(1.0,0.0,0.0,1.0);
-				colors[currentOffset + 2] = vec4(1.0,0.0,0.0,1.0);
+				// Calculate the surface normal, ref alg from Kronos Group
+				/*
+				 * So for a triangle p1, p2, p3, if the vector U = p2 - p1 and the vector V = p3 - p1 then the normal N = U X V and can be calculated by:
+					Nx = UyVz - UzVy
+					Ny = UzVx - UxVz
+					Nz = UxVy - UyVx
+				 */
+
+				vec4 U = vertex2 - vertex1;
+				vec4 V = vertex3 - vertex1;
+				float normalX = (U.y*V.z) - (U.z*V.y);
+				float normalY = (U.z*V.x) - (U.x*V.z);
+				float normalZ = (U.x*V.y) - (U.y*V.x);
+
+				float normalDenominator = sqrt((normalX*normalX) + (normalY*normalY) + (normalZ*normalZ));
+				normalX = normalX / normalDenominator;
+				normalY = normalY / normalDenominator;
+				normalZ = normalZ / normalDenominator;
+
+				colors[currentOffset] = vec4(normalX,normalY,normalZ,1.0);
+				colors[currentOffset + 1] = vec4(normalX,normalY,normalZ,1.0);
+				colors[currentOffset + 2] = vec4(normalX,normalY,normalZ,1.0);
 				totalPoints += 3;
 			}
 
