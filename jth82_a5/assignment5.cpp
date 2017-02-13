@@ -3,7 +3,10 @@
 #include "Angel.h"
 #include <math.h>
 #include <fstream>
+#include <time.h>
 
+struct timespec ts_start;
+struct timespec ts_end;
 
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
@@ -44,7 +47,7 @@ float Rho = 4.0; // Radius in degrees
 float Phi = 90; // Zenith angle in degrees
 float Theta = 1; // Longitude angle in degrees
 
-float RhoDelta = 5;
+float RhoDelta = 1;
 int Delta = 5;
 float PhiDelta = 5;
 
@@ -153,8 +156,8 @@ void calculateEyeVector() {
 	EyeVector.y = Y;
 	EyeVector.z = Z;
 
-	printf("Rho: %f, Phi: %f, Theta: %f\n",Rho,Theta,Phi);
-	printf("Eye vector at: %f %f %f\n",X,Y,Z);
+	// printf("Rho: %f, Phi: %f, Theta: %f\n",Rho,Theta,Phi);
+	// printf("Eye vector at: %f %f %f\n",X,Y,Z);
 }
 
 
@@ -170,43 +173,6 @@ displayMainWindow( void )
         sizeof(colors), colors );
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-
-   mat4 scaleMatrix;
-   scaleMatrix[0][0] = ScaleFactors.x;
-   scaleMatrix[1][1] = ScaleFactors.y;
-   scaleMatrix[2][2] = ScaleFactors.z;
-
-   // Rotate
-   vec3 angles = radians(-1.0f * RotationFactors);
-
-   vec3 c = cos( angles );
-   vec3 s = sin( angles );
-
-   mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
-               0.0,  c.x,  s.x, 0.0,
-               0.0, -s.x,  c.x, 0.0,
-               0.0,  0.0,  0.0, 1.0 );
-   mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
-               0.0, 1.0,  0.0, 0.0,
-               s.y, 0.0,  c.y, 0.0,
-               0.0, 0.0,  0.0, 1.0 );
-
-   mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
-               s.z,  c.z, 0.0, 0.0,
-               0.0,  0.0, 1.0, 0.0,
-               0.0,  0.0, 0.0, 1.0 );
-
-   mat4 rotationMatrix = rx * ry * rz;
-
-   // Translate
-   mat4 translationMatrix;
-   translationMatrix[0][3] = TranslationFactors.x;
-   translationMatrix[1][3] = TranslationFactors.y;
-   translationMatrix[2][3] = TranslationFactors.z;
-
-   mat4 newMatrix; // = scaleMatrix * rotationMatrix * translationMatrix;
-
-   // Reference - http://www.opengl-tutorial.org/beginners-tutorials/tutorial-3-matrices/
 
    // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
    mat4 Projection = Perspective(45.0f, 4/3, 0.1f, 100.0f);
@@ -318,7 +284,22 @@ keyboard( unsigned char key, int x, int y )
 
 
 void idle() {
-	// glutSwapBuffers();
+
+    clock_gettime(CLOCK_MONOTONIC, &ts_start);
+
+        long int elapsedTime = (ts_end.tv_sec - ts_start.tv_sec);
+        if(elapsedTime > 1 || elapsedTime < 0) {
+
+        	Theta += 10;
+        	if(Theta == 360) {
+        		Theta = 0;
+        	}
+
+            clock_gettime(CLOCK_MONOTONIC, &ts_end);
+        }
+
+
+        glutPostRedisplay();
 
 }
 
@@ -390,18 +371,25 @@ void readSMF() {
 
 				vec4 U = vertex2 - vertex1;
 				vec4 V = vertex3 - vertex1;
+				vec4 normal = cross(U,V);
+
 				float normalX = (U.y*V.z) - (U.z*V.y);
 				float normalY = (U.z*V.x) - (U.x*V.z);
 				float normalZ = (U.x*V.y) - (U.y*V.x);
+
+				vec4 normalVector = vec4(normalX,normalY,normalZ);
 
 				float normalDenominator = sqrt((normalX*normalX) + (normalY*normalY) + (normalZ*normalZ));
 				normalX = normalX / normalDenominator;
 				normalY = normalY / normalDenominator;
 				normalZ = normalZ / normalDenominator;
 
-				colors[currentOffset] = vec4(normalX,normalY,normalZ,1.0);
-				colors[currentOffset + 1] = vec4(normalX,normalY,normalZ,1.0);
-				colors[currentOffset + 2] = vec4(normalX,normalY,normalZ,1.0);
+				vec4 normalNormalized = vec4(normalX,normalY,normalZ,1.0);
+
+
+				colors[currentOffset] = normalNormalized;
+				colors[currentOffset + 1] = normalNormalized;
+				colors[currentOffset + 2] = normalNormalized;
 				totalPoints += 3;
 			}
 
@@ -439,6 +427,7 @@ main( int argc, char **argv )
 #endif
 
 	    glutInitWindowSize( w, h );
+	    // glEnable(GL_CULL_FACE);
 
 	    initMainWindow();
 	    glutDisplayFunc( displayMainWindow );
