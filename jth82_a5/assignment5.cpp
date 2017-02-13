@@ -14,6 +14,11 @@ struct faceInfo {
 	float face3;
 };
 
+mat4 TransformMatrix;
+GLuint transformMatrix;
+
+
+
 
 // Copied from Lecture 8 slides as described in assignment
 
@@ -29,6 +34,20 @@ struct faceInfo smfFaces[NumVertices];
 vec4 points[1000];
 vec4 colors[1000];
 
+vec3 ScaleFactors = vec3(1.0f, 1.0f, 1.0f);
+vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
+vec3  TranslationFactors = vec3(0.0f,0.0f,0.0f);
+
+vec3 EyeVector = vec3(1.0f,1.0f,3.0f);
+
+float Rho = 4.0; // Radius in degrees
+float Phi = 90; // Zenith angle in degrees
+float Theta = 1; // Longitude angle in degrees
+
+float RhoDelta = 5;
+int Delta = 5;
+float PhiDelta = 5;
+
 int mainWindow;
 
 int w = 500;
@@ -37,6 +56,13 @@ int border = 50;
 
 GLint windowHeight, windowWidth;
 
+float radians(float degrees) {
+	return (M_PI * degrees) / 180;
+}
+
+vec3 radians(vec3 degrees) {
+        return (M_PI * degrees) / 180;
+}
 
 void
 initMainWindow( void )
@@ -77,10 +103,10 @@ initMainWindow( void )
     glVertexAttribPointer( vColor, 4, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(points)) );
 
+    transformMatrix = glGetUniformLocation(program, "transformMatrix");
 
 
-
-    // glEnable( GL_DEPTH_TEST );
+    glEnable( GL_DEPTH_TEST );
 
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); // black background
 
@@ -100,6 +126,36 @@ initMainWindow( void )
 
 }
 
+vec3 cos(vec3 angles) {
+        angles.x = cos(angles.x);
+        angles.y = cos(angles.y);
+        angles.z = cos(angles.z);
+
+        return angles;
+}
+
+vec3 sin(vec3 angles) {
+        angles.x = sin(angles.x);
+        angles.y = sin(angles.y);
+        angles.z = sin(angles.z);
+
+        return angles;
+}
+
+void calculateEyeVector() {
+
+	// http://gamedev.stackexchange.com/questions/5766/camera-rotation-using-angles
+	float X, Y, Z;
+	X = Rho * sin(radians(Phi)) * cos(radians(Theta));
+	Y = Rho * cos(radians(Phi));
+	Z = Rho * sin(radians(Phi)) * sin(radians(Theta));
+	EyeVector.x = X;
+	EyeVector.y = Y;
+	EyeVector.z = Z;
+
+	printf("Rho: %f, Phi: %f, Theta: %f\n",Rho,Theta,Phi);
+	printf("Eye vector at: %f %f %f\n",X,Y,Z);
+}
 
 
 void
@@ -115,10 +171,71 @@ displayMainWindow( void )
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
+   mat4 scaleMatrix;
+   scaleMatrix[0][0] = ScaleFactors.x;
+   scaleMatrix[1][1] = ScaleFactors.y;
+   scaleMatrix[2][2] = ScaleFactors.z;
+
+   // Rotate
+   vec3 angles = radians(-1.0f * RotationFactors);
+
+   vec3 c = cos( angles );
+   vec3 s = sin( angles );
+
+   mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
+               0.0,  c.x,  s.x, 0.0,
+               0.0, -s.x,  c.x, 0.0,
+               0.0,  0.0,  0.0, 1.0 );
+   mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
+               0.0, 1.0,  0.0, 0.0,
+               s.y, 0.0,  c.y, 0.0,
+               0.0, 0.0,  0.0, 1.0 );
+
+   mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
+               s.z,  c.z, 0.0, 0.0,
+               0.0,  0.0, 1.0, 0.0,
+               0.0,  0.0, 0.0, 1.0 );
+
+   mat4 rotationMatrix = rx * ry * rz;
+
+   // Translate
+   mat4 translationMatrix;
+   translationMatrix[0][3] = TranslationFactors.x;
+   translationMatrix[1][3] = TranslationFactors.y;
+   translationMatrix[2][3] = TranslationFactors.z;
+
+   mat4 newMatrix; // = scaleMatrix * rotationMatrix * translationMatrix;
+
+   // Reference - http://www.opengl-tutorial.org/beginners-tutorials/tutorial-3-matrices/
+
+   // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+   mat4 Projection = Perspective(45.0f, 4/3, 0.1f, 100.0f);
+
+   // Or, for an ortho camera :
+   // mat4 Projection = Ortho(-1.0f,1.0f,-1.0f,1.0f,0.0f,100.0f); // In world coordinates
+
+   // Move camera around in world space
+
+   calculateEyeVector();
+
+   // Camera matrix
+   mat4 View = LookAt(
+	EyeVector, // Camera is at (4,3,3), in World Space
+    vec3(0,0,0), // and looks at the origin
+    vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+       );
+
+   // Model matrix : an identity matrix (model will be at the origin)
+   mat4 Model = mat4(1.0f);
+
+   TransformMatrix = Projection * View * Model;
+
+   glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
+
     glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
     glFlush();
 
-    // glutSwapBuffers();
+    glutSwapBuffers();
 
 }
 
@@ -128,6 +245,7 @@ void reshape(GLsizei w, GLsizei h) {
 	windowHeight = h;
 	glViewport(0,0,windowWidth,windowHeight);
 }
+
 
 void
 keyboard( unsigned char key, int x, int y )
@@ -139,13 +257,57 @@ keyboard( unsigned char key, int x, int y )
 	// We either manipulate ScaleFactor, RotationFactor, or TranslateFactor, depending on current operation
 
     switch ( key ) {
+
+
+    case '5' :
+    	// Changing theta changes rotation
+    	pressed = true;
+    	Theta += Delta;
+    	break;
+    case 'g' :
+    	// Decrease height
+    	pressed = true;
+    	Theta -= Delta;
+    	break;
+    case '4' :
+    	pressed = true;
+    	Rho += RhoDelta;
+    	if(Rho >= 360) {
+    		Rho = 360;
+    	}
+    	break;
+    case 'f' :
+    	pressed = true;
+    	Rho -= RhoDelta;
+    	if(Rho <= 1) {
+    		Rho = 1;
+    	}
+    	break;
+    case '0' :
+    	// Increase phi
+    	pressed = true;
+    	Phi += PhiDelta;
+    	if(Phi >= 360) {
+    		Phi = 360;
+    	}
+    	break;
+    case ';' :
+    	// Decrease phi
+    	pressed = true;
+    	Phi -= PhiDelta;
+    	if(Phi <= 0) {
+    		Phi = 0;
+    	}
+    	break;
+
 		case 'q':
 			// Exit
 			exit( EXIT_SUCCESS );
 			break;
-
     }
     if(pressed) {
+
+    	calculateEyeVector();
 
         glutSetWindow(mainWindow);
         glutPostRedisplay();
@@ -156,7 +318,7 @@ keyboard( unsigned char key, int x, int y )
 
 
 void idle() {
-	glutSwapBuffers();
+	// glutSwapBuffers();
 
 }
 
@@ -261,7 +423,7 @@ main( int argc, char **argv )
 
     glutInit( &argc, argv );
 #ifdef __APPLE__
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA );
+    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE );
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
 #endif
