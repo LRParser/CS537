@@ -21,21 +21,27 @@ mat4 TransformMatrix;
 GLuint transformMatrix;
 
 
+// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+bool isPerspective = true;
 
+// For Ortho coordinates
+float left = -1.0f;
+float right = 1.0f;
+float bottom = -1.0f;
+float top = 1.0f;
+float near = 0.0f;
+float far = 10.0f;
 
 // Copied from Lecture 8 slides as described in assignment
 
-const int NumVertices = 1000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
+const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
 int NumVerticesUsed = 24;
 
 vec4 smfVertices[NumVertices];
 struct faceInfo smfFaces[NumVertices];
 
-//vec4 *points;
-// vec4 *colors;
-
-vec4 points[1000];
-vec4 colors[1000];
+vec4 points[10000];
+vec4 colors[10000];
 
 vec3 ScaleFactors = vec3(1.0f, 1.0f, 1.0f);
 vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
@@ -46,10 +52,13 @@ vec3 EyeVector = vec3(1.0f,1.0f,3.0f);
 float Rho = 4.0; // Radius in degrees
 float Phi = 90; // Zenith angle in degrees
 float Theta = 1; // Longitude angle in degrees
+float Height = 0;
 
 float RhoDelta = 1;
 int Delta = 5;
 float PhiDelta = 5;
+float HeightDelta = .1;
+float ParallelDelta = 2;
 
 int mainWindow;
 
@@ -149,15 +158,16 @@ void calculateEyeVector() {
 
 	// http://gamedev.stackexchange.com/questions/5766/camera-rotation-using-angles
 	float X, Y, Z;
+
 	X = Rho * sin(radians(Phi)) * cos(radians(Theta));
-	Y = Rho * cos(radians(Phi));
+	Y = Rho * cos(radians(Phi)) + Height;
 	Z = Rho * sin(radians(Phi)) * sin(radians(Theta));
+
 	EyeVector.x = X;
 	EyeVector.y = Y;
 	EyeVector.z = Z;
 
-	// printf("Rho: %f, Phi: %f, Theta: %f\n",Rho,Theta,Phi);
-	// printf("Eye vector at: %f %f %f\n",X,Y,Z);
+
 }
 
 
@@ -174,24 +184,26 @@ displayMainWindow( void )
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-   // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-   mat4 Projection = Perspective(45.0f, 4/3, 0.1f, 100.0f);
+   mat4 Projection;
+   if(isPerspective) {
+	   Projection = Perspective(45.0f, 4/3, 0.1f, 100.0f);
+   }
+   else {
+	   Projection = Ortho(left,right,bottom,top,near,far); // In world coordinates
 
-   // Or, for an ortho camera :
-   // mat4 Projection = Ortho(-1.0f,1.0f,-1.0f,1.0f,0.0f,100.0f); // In world coordinates
+   }
 
-   // Move camera around in world space
 
    calculateEyeVector();
 
    // Camera matrix
    mat4 View = LookAt(
-	EyeVector, // Camera is at (4,3,3), in World Space
-    vec3(0,0,0), // and looks at the origin
-    vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+	EyeVector,
+    vec3(0,0,0),
+    vec3(0,1,0)
        );
 
-   // Model matrix : an identity matrix (model will be at the origin)
+   // Move model to the origin
    mat4 Model = mat4(1.0f);
 
    TransformMatrix = Projection * View * Model;
@@ -225,31 +237,49 @@ keyboard( unsigned char key, int x, int y )
     switch ( key ) {
 
 
-    case '5' :
-    	// Changing theta changes rotation
+    case '1' :
+    	// Increase Height
     	pressed = true;
-    	Theta += Delta;
+    	Height += HeightDelta;
     	break;
-    case 'g' :
+    case '2' :
     	// Decrease height
     	pressed = true;
-    	Theta -= Delta;
+    	Height -= HeightDelta;
+    	break;
+    case '3' :
+    	// Increase orbit radius / distance of camera
+    	pressed = true;
+
+    	if(isPerspective) {
+        	Rho += RhoDelta;
+        	if(Rho >= 360) {
+        		Rho = 360;
+        	}
+    	}
+    	else {
+    		near += ParallelDelta;
+    		far += ParallelDelta;
+    	}
+
     	break;
     case '4' :
     	pressed = true;
-    	Rho += RhoDelta;
-    	if(Rho >= 360) {
-    		Rho = 360;
+    	if(isPerspective) {
+        	Rho -= RhoDelta;
+        	if(Rho <= 1) {
+        		Rho = 1;
+        	}
     	}
-    	break;
-    case 'f' :
-    	pressed = true;
-    	Rho -= RhoDelta;
-    	if(Rho <= 1) {
-    		Rho = 1;
+    	else {
+    		near -= ParallelDelta;
+    		far -= ParallelDelta;
+
     	}
+
+
     	break;
-    case '0' :
+    case '5' :
     	// Increase phi
     	pressed = true;
     	Phi += PhiDelta;
@@ -257,7 +287,7 @@ keyboard( unsigned char key, int x, int y )
     		Phi = 360;
     	}
     	break;
-    case ';' :
+    case '6' :
     	// Decrease phi
     	pressed = true;
     	Phi -= PhiDelta;
@@ -265,7 +295,18 @@ keyboard( unsigned char key, int x, int y )
     		Phi = 0;
     	}
     	break;
+    case '7' :
+    	// Set perspective projection
+    	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+    	isPerspective = true;
 
+    	pressed = true;
+    	break;
+    case '8' :
+    	// Decrease phi
+    	isPerspective = false;
+    	pressed = true;
+    	break;
 		case 'q':
 			// Exit
 			exit( EXIT_SUCCESS );
@@ -306,11 +347,11 @@ void idle() {
 
 //----------------------------------------------------------------------------
 
-void readSMF() {
+void readSMF(char* fileName) {
 
 
 	// Read in the SMF file
-			std::ifstream infile("bound-bunny_200.smf");
+			std::ifstream infile(fileName);
 
 			char a;
 			float b, c, d;
@@ -328,13 +369,10 @@ void readSMF() {
 					smfFaces[numSmfFaces] = f;
 					numSmfFaces++;
 				}
-			    printf("%c, %f, %f, %f\n",a, b,c,d);
+			    // printf("%c, %f, %f, %f\n",a, b,c,d);
 			}
 
-			printf("NumVerticesUsed is: %d\n",NumVerticesUsed);
-
-			// points = (vec4*) malloc(sizeof(vec4) * NumVerticesUsed);
-			// colors = (vec4*) malloc(sizeof(vec4) * NumVerticesUsed);
+			// printf("NumVerticesUsed is: %d\n",NumVerticesUsed);
 
 			// Now, take the faces to order the vertices
 
@@ -343,7 +381,7 @@ void readSMF() {
 				faceInfo currentFace = smfFaces[i];
 				// Find the vertices it specifies and add them to vertices
 				// Subtract 1 because SMF is 1-indexed
-				printf("Building face: %d - %f %f %f\n",i,currentFace.face1,currentFace.face2,currentFace.face3);
+				// printf("Building face: %d - %f %f %f\n",i,currentFace.face1,currentFace.face2,currentFace.face3);
 				int index1 = currentFace.face1;
 				vec4 vertex1 = smfVertices[index1 - 1];
 
@@ -352,8 +390,6 @@ void readSMF() {
 
 				int index3 = currentFace.face3;
 				vec4 vertex3 = smfVertices[index3 - 1];
-
-				printf("Looking at indices: %d, %d, %d\n",index1,index2,index3);
 
 				int currentOffset = i * 3;
 
@@ -371,21 +407,19 @@ void readSMF() {
 
 				vec4 U = vertex2 - vertex1;
 				vec4 V = vertex3 - vertex1;
-				vec4 normal = cross(U,V);
 
 				float normalX = (U.y*V.z) - (U.z*V.y);
 				float normalY = (U.z*V.x) - (U.x*V.z);
 				float normalZ = (U.x*V.y) - (U.y*V.x);
 
-				vec4 normalVector = vec4(normalX,normalY,normalZ);
-
 				float normalDenominator = sqrt((normalX*normalX) + (normalY*normalY) + (normalZ*normalZ));
 				normalX = normalX / normalDenominator;
 				normalY = normalY / normalDenominator;
-				normalZ = normalZ / normalDenominator;
+				normalZ = normalZ  / normalDenominator;
+
+				//printf("Color is: %f, %f, %f\n",normalX,normalY,normalZ);
 
 				vec4 normalNormalized = vec4(normalX,normalY,normalZ,1.0);
-
 
 				colors[currentOffset] = normalNormalized;
 				colors[currentOffset + 1] = normalNormalized;
@@ -394,10 +428,10 @@ void readSMF() {
 			}
 
 			for(int i = 0; i < totalPoints; i++) {
-				printf("Point created: %f, %f, %f\n",points[i].x,points[i].y,points[i].z);
+				//printf("Point created: %f, %f, %f\n",points[i].x,points[i].y,points[i].z);
 			}
 
-			printf("Total points created: %d\n",totalPoints);
+			//printf("Total points created: %d\n",totalPoints);
 			NumVerticesUsed = totalPoints;
 
 
@@ -407,8 +441,6 @@ int
 main( int argc, char **argv )
 {
 
-	readSMF();
-
     glutInit( &argc, argv );
 #ifdef __APPLE__
     glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE );
@@ -417,7 +449,7 @@ main( int argc, char **argv )
 #endif
     glutInitWindowSize( 500, 500 );
 
-    mainWindow = glutCreateWindow( "Assignment 4" );
+    mainWindow = glutCreateWindow( "Assignment 5" );
 
 #ifndef __APPLE__
     GLenum err = glewInit();
@@ -427,17 +459,34 @@ main( int argc, char **argv )
 #endif
 
 	    glutInitWindowSize( w, h );
-	    // glEnable(GL_CULL_FACE);
-
 	    initMainWindow();
 	    glutDisplayFunc( displayMainWindow );
 	    glutKeyboardFunc( keyboard );
 		glutIdleFunc(idle);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
 
 
+		if(argc == 1) {
+			std::cout << "You must specify an SMF file" << std::endl;
+		}
+		else {
+			char* fileName = argv[1];
+			std::cout << "Filename is: " << argv[1] << std::endl;
+			readSMF(fileName);
+			std::cout << "Press: 1 - To increase camera height" << std::endl;
+			std::cout << "Press: 2 - To decrease camera height" << std::endl;
+			std::cout << "Press: 3 - To increase orbit radius" << std::endl;
+			std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
+			std::cout << "Press: 5 - To increase cylinder angle" << std::endl;
+			std::cout << "Press: 6 - To decrease cylinder angle" << std::endl;
+			std::cout << "Press: 7 - To switch to perspective projection mode (default)" << std::endl;
+			std::cout << "Press: 8 - To switch to parallel projection mode" << std::endl;
+			std::cout << "Press: q - To exit the program" << std::endl;
 
 
-		std::cout << "Usage Info: TBD" << std::endl;
+		}
+
 
 
 	    glutMainLoop();

@@ -19,4 +19,4 @@ clean:
 	@rm -f *.o common/*.o $(name1)
 
 run: clean all
-	./$(name1)
+	./$(name1) bound-bunny_200.smf
