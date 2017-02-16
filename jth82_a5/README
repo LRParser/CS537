@@ -1,16 +1,16 @@
 This program should be run on MacOS with make -f Makefile.mac run
-One window opens,named "Assignment 4".
-A colored cube is shown allowing the following usage:
+To open another SMF file run e.g. ./assignment5 octahedron.smf
+One window opens,named "Assignment 5".
+The SMF model is shown allowing the following usage:
 
-Usage: Right Click main window named Assignment 4 and choose to select current transformation to be applied (scale, rotate or translate)
-Press: 1 - to increase transform in X axis
-Press: 2 - to decrease transform in X axis
-Press: 3 - to increase transform in Y axis
-Press: 4 - to decrease transform in Y axis
-Press: 5 - to increase transform in Z axis
-Press: 6 - to decrease transform in Z axis
-Press: 7 - to increase delta for current transform
-Press: 8 - to decrease delta for current transform
-Press: r - to reset all transformations and deltas to default
-Press: q - to quit
+Press: 1 - To increase camera height
+Press: 2 - To decrease camera height
+Press: 3 - To increase orbit radius
+Press: 4 - To decrease orbit radius
+Press: 5 - To increase cylinder angle
+Press: 6 - To decrease cylinder angle
+Press: 7 - To switch to perspective projection mode (default)
+Press: 8 - To switch to parallel projection mode
+Press: q - To exit the program
 
+Note that as discussed in class, changing the orbit radius in parallel mode will show a front or back clipping plane based on whether radius is increased or decreased
