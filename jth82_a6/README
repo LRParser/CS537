@@ -1,0 +1,16 @@
+This program should be run on MacOS with make -f Makefile.mac run
+To open another SMF file run e.g. ./assignment5 octahedron.smf
+One window opens,named "Assignment 5".
+The SMF model is shown allowing the following usage:
+
+Press: 1 - To increase camera height
+Press: 2 - To decrease camera height
+Press: 3 - To increase orbit radius
+Press: 4 - To decrease orbit radius
+Press: 5 - To increase cylinder angle
+Press: 6 - To decrease cylinder angle
+Press: 7 - To switch to perspective projection mode (default)
+Press: 8 - To switch to parallel projection mode
+Press: q - To exit the program
+
+Note that as discussed in class, changing the orbit radius in parallel mode will show a front or back clipping plane based on whether radius is increased or decreased
