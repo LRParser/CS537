@@ -13,7 +13,7 @@ assignment6: $(INIT_SHADER_OBJ)
 appendix6 : $(INIT_SHADER_OBJ)
 	g++ $(INIT_SHADER_OBJ) append_example_a6.cpp $(GL_OPTIONS) -O2 $(CXXINCS) -o appendix6
 	
-all: assignment6 appendix6
+all: clean assignment6 appendix6
 
 $(INIT_SHADER_OBJ): $(INIT_SHADER)
 	g++ -c -Wall $(INIT_SHADER) -o $(INIT_SHADER_OBJ) -O2 $(CXXINCS)

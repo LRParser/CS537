@@ -66,6 +66,12 @@ int w = 500;
 int h = 500;
 int border = 50;
 
+vec3 light_i_ambient;
+vec3 light_i_diffuse;
+vec3 light_i_specular;
+
+float colorScaleFactor = 20;
+
 GLint windowHeight, windowWidth;
 
 float radians(float degrees) {
@@ -76,12 +82,21 @@ vec3 radians(vec3 degrees) {
         return (M_PI * degrees) / 180;
 }
 
+vec4 vAbs(vec4 input) {
+	vec4 absVec = vec4(std::abs(input.x),std::abs(input.y),
+			std::abs(input.z),1.0);
+	return absVec;
+}
+
+vec4 vScale(vec4 input, float scaleFactor) {
+	vec4 scaleVec = vec4(scaleFactor * input.x,scaleFactor * input.y,scaleFactor * input.z,1.0);
+	return scaleVec;
+}
+
+
 void
 initMainWindow( void )
 {
-
-	// We need to now draw 6 squares to make a full 3D cube
-
 
     // Create a vertex array object
     GLuint vao[1];
@@ -133,8 +148,6 @@ initMainWindow( void )
 
     glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
     glFlush();
-
-    // glutSwapBuffers();
 
 }
 
@@ -210,10 +223,9 @@ displayMainWindow( void )
 
    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
 
-    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
-    glFlush();
+   glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
 
-    glutSwapBuffers();
+   glutSwapBuffers();
 
 }
 
@@ -351,7 +363,63 @@ void idle() {
 
 //----------------------------------------------------------------------------
 
-void readSMF(char* fileName) {
+void printVector(vec4 vIn) {
+	printf("Vector is: %f, %f, %f\n",vIn.x,vIn.y,vIn.z);
+}
+
+void calculateColors(int numSmfFaces) {
+	for(int i = 0; i < numSmfFaces; i++) {
+		faceInfo currentFace = smfFaces[i];
+		// Find the vertices it specifies and add them to vertices
+		// Subtract 1 because SMF is 1-indexed
+		// printf("Building face: %d - %f %f %f\n",i,currentFace.face1,currentFace.face2,currentFace.face3);
+		int index1 = currentFace.face1;
+		vec4 vertex1 = smfVertices[index1 - 1];
+
+		int index2 = currentFace.face2;
+		vec4 vertex2 = smfVertices[index2 - 1];
+
+		int index3 = currentFace.face3;
+		vec4 vertex3 = smfVertices[index3 - 1];
+
+		int currentOffset = i * 3;
+
+		points[currentOffset] = vertex1;
+		points[currentOffset + 1] = vertex2;
+		points[currentOffset + 2] = vertex3;
+
+		// See p 272
+		vec4 U = vertex2 - vertex1;
+		vec4 V = vertex3 - vertex1;
+
+		vec4 crossVector = cross(U,V);
+		printf("Cross product ");
+		printVector(crossVector);
+		vec4 normalNormalized = normalize(crossVector);
+		printf("Normalized vector ");
+		printVector(normalNormalized);
+		vec4 absNormalNormalized = vAbs(normalNormalized);
+		printf("Absolute value vector ");
+		printVector(absNormalNormalized);
+		vec4 scaledAbsNormalNormalized = vScale(absNormalNormalized,50);
+		printf("Scaled absolute value vector ");
+		printVector(scaledAbsNormalNormalized);
+
+		printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
+		printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
+		printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
+
+		printf("Final Color is: %f, %f, %f, %f\n",scaledAbsNormalNormalized.x,scaledAbsNormalNormalized.y,scaledAbsNormalNormalized.z,scaledAbsNormalNormalized.w);
+
+		//vec4 normalNormalized = vec4(normalX,normalY,normalZ,1.0);
+
+		colors[currentOffset] = scaledAbsNormalNormalized;
+		colors[currentOffset + 1] = scaledAbsNormalNormalized;
+		colors[currentOffset + 2] = scaledAbsNormalNormalized;
+	}
+}
+
+int readSMF(char* fileName) {
 
 
 	// Read in the SMF file
@@ -375,67 +443,9 @@ void readSMF(char* fileName) {
 				}
 			}
 
+			NumVerticesUsed = numSmfFaces * 3;
 
-
-			int totalPoints = 0;
-			for(int i = 0; i < numSmfFaces; i++) {
-				faceInfo currentFace = smfFaces[i];
-				// Find the vertices it specifies and add them to vertices
-				// Subtract 1 because SMF is 1-indexed
-				// printf("Building face: %d - %f %f %f\n",i,currentFace.face1,currentFace.face2,currentFace.face3);
-				int index1 = currentFace.face1;
-				vec4 vertex1 = smfVertices[index1 - 1];
-
-				int index2 = currentFace.face2;
-				vec4 vertex2 = smfVertices[index2 - 1];
-
-				int index3 = currentFace.face3;
-				vec4 vertex3 = smfVertices[index3 - 1];
-
-				int currentOffset = i * 3;
-
-				points[currentOffset] = vertex1;
-				points[currentOffset + 1] = vertex2;
-				points[currentOffset + 2] = vertex3;
-
-				// Calculate the surface normal, ref alg from Kronos Group
-				/*
-				 * So for a triangle p1, p2, p3, if the vector U = p2 - p1 and the vector V = p3 - p1 then the normal N = U X V and can be calculated by:
-					Nx = UyVz - UzVy
-					Ny = UzVx - UxVz
-					Nz = UxVy - UyVx
-				 */
-
-				vec4 U = vertex2 - vertex1;
-				vec4 V = vertex3 - vertex1;
-
-				float normalX = (U.y*V.z) - (U.z*V.y);
-				float normalY = (U.z*V.x) - (U.x*V.z);
-				float normalZ = (U.x*V.y) - (U.y*V.x);
-
-				float normalDenominator = sqrt((normalX*normalX) + (normalY*normalY) + (normalZ*normalZ));
-				normalX = normalX / normalDenominator;
-				normalY = normalY / normalDenominator;
-				normalZ = normalZ  / normalDenominator;
-
-				//printf("Color is: %f, %f, %f\n",normalX,normalY,normalZ);
-
-				vec4 normalNormalized = vec4(normalX,normalY,normalZ,1.0);
-
-				colors[currentOffset] = normalNormalized;
-				colors[currentOffset + 1] = normalNormalized;
-				colors[currentOffset + 2] = normalNormalized;
-				totalPoints += 3;
-			}
-
-			for(int i = 0; i < totalPoints; i++) {
-				//printf("Point created: %f, %f, %f\n",points[i].x,points[i].y,points[i].z);
-			}
-
-			//printf("Total points created: %d\n",totalPoints);
-			NumVerticesUsed = totalPoints;
-
-
+			return numSmfFaces;
 }
 
 int
@@ -474,7 +484,8 @@ main( int argc, char **argv )
 		else {
 			char* fileName = argv[1];
 			std::cout << "Filename is: " << argv[1] << std::endl;
-			readSMF(fileName);
+			int numFaces = readSMF(fileName);
+			calculateColors(numFaces);
 			std::cout << "Press: 1 - To increase camera height" << std::endl;
 			std::cout << "Press: 2 - To decrease camera height" << std::endl;
 			std::cout << "Press: 3 - To increase orbit radius" << std::endl;
