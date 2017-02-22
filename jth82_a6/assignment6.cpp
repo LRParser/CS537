@@ -100,10 +100,6 @@ float radians(float degrees) {
 	return (M_PI * degrees) / 180;
 }
 
-vec3 radians(vec3 degrees) {
-        return (M_PI * degrees) / 180;
-}
-
 void printVector(vec4 vIn) {
 	printf("(%f, %f, %f)\n",vIn.x,vIn.y,vIn.z);
 }
@@ -276,10 +272,7 @@ void calculateEyeVector2() {
 	EyeVector.x = X;
 	EyeVector.y = Y;
 	EyeVector.z = Z;
-	if(debug) {
-		//printf("Eye vector");
-		//printVector(EyeVector);
-	}
+
 
 }
 
@@ -458,9 +451,6 @@ void idle() {
 //----------------------------------------------------------------------------
 
 
-void normalizeColors() {
-
-}
 
 // Find all triangles incident to this vertex
 
@@ -548,8 +538,8 @@ void createPointsAndColorsArrays() {
 
 void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
 	// See p 272
-			vec4 U = vertex2 - vertex1;
-			vec4 V = vertex3 - vertex1;
+			vec4 U = vertex3 - vertex1;
+			vec4 V = vertex2 - vertex1;
 
 			vec4 crossVector = cross(U,V);
 			printf("Cross product ");
