@@ -4,6 +4,10 @@
 #include <math.h>
 #include <fstream>
 #include <time.h>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <iterator>
 
 struct timespec ts_start;
 struct timespec ts_end;
@@ -11,11 +15,20 @@ struct timespec ts_end;
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
-struct faceInfo {
-	float face1;
-	float face2;
-	float face3;
+class face {
+public:
+	int faceIdx;
+	int firstVertexIndex;
+	int secondVertexIndex;
+	int thirdVertexIndex;
+	vec4 firstVertex;
+	vec4 secondVertex;
+	vec4 thirdVertex;
+	vec4 color;
 };
+
+
+std::map<vec4,std::vector<face> > vectorFaceMapping;
 
 mat4 TransformMatrix;
 GLuint transformMatrix;
@@ -38,7 +51,7 @@ const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle
 int NumVerticesUsed = 24;
 
 vec4 smfVertices[NumVertices];
-struct faceInfo smfFaces[NumVertices];
+std::vector<face> smfFaces;
 
 vec4 points[10000];
 vec4 colors[10000];
@@ -367,20 +380,38 @@ void printVector(vec4 vIn) {
 	printf("Vector is: %f, %f, %f\n",vIn.x,vIn.y,vIn.z);
 }
 
-void calculateColors(int numSmfFaces) {
-	for(int i = 0; i < numSmfFaces; i++) {
-		faceInfo currentFace = smfFaces[i];
+// Find all triangles incident to this vertex
+
+/* For HW6, we need to:
+ * find the average of the normals of the triangles incident to the vertex. See Lecture 10, slide 53.
+ */
+void calculateVertexColors() {
+
+	// Iterate thru all vertices, average the color info for their incident faces list
+    for (auto& x: vectorFaceMapping) {
+    		vec4 vertex = x.first;
+    		std::vector<face> facesList = x.second;
+    		for(auto& y : facesList) {
+    			std::cout << "Vertex" << vertex << "incident on: " << y.faceIdx << std::endl;
+    		}
+
+    }
+
+
+}
+
+
+void calculateFaceColors() {
+	for(int i = 0; i < smfFaces.size(); i++) {
+		face currentFace = smfFaces.at(i);
 		// Find the vertices it specifies and add them to vertices
 		// Subtract 1 because SMF is 1-indexed
 		// printf("Building face: %d - %f %f %f\n",i,currentFace.face1,currentFace.face2,currentFace.face3);
-		int index1 = currentFace.face1;
-		vec4 vertex1 = smfVertices[index1 - 1];
+		vec4 vertex1 = currentFace.firstVertex; // smfVertices[index1 - 1];
 
-		int index2 = currentFace.face2;
-		vec4 vertex2 = smfVertices[index2 - 1];
+		vec4 vertex2 = currentFace.secondVertex; // smfVertices[index2 - 1];
 
-		int index3 = currentFace.face3;
-		vec4 vertex3 = smfVertices[index3 - 1];
+		vec4 vertex3 = currentFace.thirdVertex; // smfVertices[index3 - 1];
 
 		int currentOffset = i * 3;
 
@@ -388,35 +419,39 @@ void calculateColors(int numSmfFaces) {
 		points[currentOffset + 1] = vertex2;
 		points[currentOffset + 2] = vertex3;
 
-		// See p 272
-		vec4 U = vertex2 - vertex1;
-		vec4 V = vertex3 - vertex1;
 
-		vec4 crossVector = cross(U,V);
-		printf("Cross product ");
-		printVector(crossVector);
-		vec4 normalNormalized = normalize(crossVector);
-		printf("Normalized vector ");
-		printVector(normalNormalized);
-		vec4 absNormalNormalized = vAbs(normalNormalized);
-		printf("Absolute value vector ");
-		printVector(absNormalNormalized);
-		vec4 scaledAbsNormalNormalized = vScale(absNormalNormalized,50);
-		printf("Scaled absolute value vector ");
-		printVector(scaledAbsNormalNormalized);
+		colors[currentOffset] = currentFace.color;
+		colors[currentOffset + 1] = currentFace.color;
+		colors[currentOffset + 2] = currentFace.color;
 
-		printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
-		printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
-		printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
-
-		printf("Final Color is: %f, %f, %f, %f\n",scaledAbsNormalNormalized.x,scaledAbsNormalNormalized.y,scaledAbsNormalNormalized.z,scaledAbsNormalNormalized.w);
-
-		//vec4 normalNormalized = vec4(normalX,normalY,normalZ,1.0);
-
-		colors[currentOffset] = scaledAbsNormalNormalized;
-		colors[currentOffset + 1] = scaledAbsNormalNormalized;
-		colors[currentOffset + 2] = scaledAbsNormalNormalized;
 	}
+}
+
+void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, face& currentFace) {
+	// See p 272
+			vec4 U = vertex2 - vertex1;
+			vec4 V = vertex3 - vertex1;
+
+			vec4 crossVector = cross(U,V);
+			printf("Cross product ");
+			printVector(crossVector);
+			vec4 normalNormalized = normalize(crossVector);
+			printf("Normalized vector ");
+			printVector(normalNormalized);
+			vec4 absNormalNormalized = vAbs(normalNormalized);
+			printf("Absolute value vector ");
+			printVector(absNormalNormalized);
+			vec4 scaledAbsNormalNormalized = vScale(absNormalNormalized,50);
+			printf("Scaled absolute value vector ");
+			printVector(scaledAbsNormalNormalized);
+
+			printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
+			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
+			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
+
+			printf("Final Color is: %f, %f, %f, %f\n",scaledAbsNormalNormalized.x,scaledAbsNormalNormalized.y,scaledAbsNormalNormalized.z,scaledAbsNormalNormalized.w);
+
+			currentFace.color = scaledAbsNormalNormalized;
 }
 
 int readSMF(char* fileName) {
@@ -437,8 +472,36 @@ int readSMF(char* fileName) {
 				}
 				else if(a == 'f') {
 
-					faceInfo f = {int(b),int(c),int(d)};
-					smfFaces[numSmfFaces] = f;
+					face f;
+					f.faceIdx = numSmfFaces + 1; // faces are 1-indexed
+					f.firstVertexIndex = int(b);
+					f.secondVertexIndex = int(c);
+					f.thirdVertexIndex = int(d);
+					vec4 firstVertex = smfVertices[f.firstVertexIndex - 1];
+					f.firstVertex = firstVertex;
+					vec4 secondVertex = smfVertices[f.secondVertexIndex - 1];
+					f.secondVertex = secondVertex;
+					vec4 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
+					f.thirdVertex = thirdVertex;
+
+					calculateFaceColor(firstVertex,secondVertex,thirdVertex,f);
+
+					//vectorFaceMapping.con
+					std::map<vec4,std::vector<face> >::iterator it;
+
+					it = vectorFaceMapping.find(firstVertex);
+					  if (it != vectorFaceMapping.end()) {
+						  // List already exists
+						  std::vector<face> incidentFacesList = it->second;
+						  incidentFacesList.push_back(f);
+					  }
+					  else {
+						  std::vector<face> incidentFacesList;
+						  incidentFacesList.push_back(f);
+						  vectorFaceMapping[firstVertex] = incidentFacesList;
+					  }
+
+					smfFaces.push_back(f);
 					numSmfFaces++;
 				}
 			}
@@ -484,8 +547,9 @@ main( int argc, char **argv )
 		else {
 			char* fileName = argv[1];
 			std::cout << "Filename is: " << argv[1] << std::endl;
-			int numFaces = readSMF(fileName);
-			calculateColors(numFaces);
+			readSMF(fileName);
+			calculateFaceColors();
+			calculateVertexColors();
 			std::cout << "Press: 1 - To increase camera height" << std::endl;
 			std::cout << "Press: 2 - To decrease camera height" << std::endl;
 			std::cout << "Press: 3 - To increase orbit radius" << std::endl;
