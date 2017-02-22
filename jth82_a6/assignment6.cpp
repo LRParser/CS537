@@ -94,6 +94,8 @@ float colorScaleFactor = 1;
 
 GLint windowHeight, windowWidth;
 
+vec4 minColor = vec4(.2,.2,.2,0.0);
+
 float radians(float degrees) {
 	return (M_PI * degrees) / 180;
 }
@@ -135,6 +137,40 @@ vec4 calculateModelCentroid() {
 	return centroid;
 }
 
+vec4 scaleColorVector() {
+	// Map x, y and z to range 0..1
+
+	vec4 maxVec;
+	for(int i = 0; i < NumVerticesUsed; i++) {
+		vec4 currentColor = colors[i];
+		if(currentColor.x > maxVec.x) {
+			maxVec.x = currentColor.x;
+		}
+		if(currentColor.y > maxVec.y) {
+			maxVec.y = currentColor.y;
+		}
+		if(currentColor.z > maxVec.z) {
+			maxVec.z = currentColor.z;
+		}
+	}
+	// Normalize them
+	for(int i = 0; i < NumVerticesUsed; i++) {
+		vec4 currentColor = colors[i];
+		currentColor.x = (currentColor.x / maxVec.x) + .2;
+		currentColor.y = (currentColor.y / maxVec.y) + .2;
+		currentColor.z = (currentColor.z / maxVec.z) + .2;
+		printf("(ScaledColor");
+		printVector(currentColor);
+		printVector(colors[i]);
+		colors[i] = currentColor;
+
+
+		}
+
+
+
+}
+
 
 void
 initMainWindow( void )
@@ -155,6 +191,20 @@ initMainWindow( void )
         sizeof(points), points );
     glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
         sizeof(colors), colors );
+
+    // Print points and colors info
+	if(debug) {
+		for(int i = 0; i < NumVerticesUsed; i++) {
+			vec4 currentPoint = points[i];
+			printf("(Point)");
+			printVector(currentPoint);
+		}
+		for(int i = 0; i < NumVerticesUsed; i++) {
+			vec4 currentColor = colors[i];
+			printf("(Color)");
+			printVector(currentColor);
+		}
+	}
 
 
     // Load shaders and use the resulting shader program
@@ -408,6 +458,9 @@ void idle() {
 //----------------------------------------------------------------------------
 
 
+void normalizeColors() {
+
+}
 
 // Find all triangles incident to this vertex
 
@@ -599,6 +652,7 @@ main( int argc, char **argv )
     			std::cout << "Filename is: " << argv[1] << std::endl;
     			readSMF(fileName);
     			createPointsAndColorsArrays();
+    			scaleColorVector();
 
     			std::cout << "Press: 1 - To increase camera height" << std::endl;
     			std::cout << "Press: 2 - To decrease camera height" << std::endl;
