@@ -1,6 +1,6 @@
 LDLIBS = -lglut -lGLEW -lGL -lGLU
 
-name1 = assignment5
+name1 = assignment6
 
 CXXINCS = -Wall -pedantic -Iinclude 
 
@@ -12,9 +12,13 @@ TARGETS = part1
 DEPS = part1.o
 
 part1: $(INIT_SHADER_OBJ)
-	g++ $(INIT_SHADER_OBJ) assignment5.cpp $(LDLIBS) -O2 $(CXXINCS) -o $(name1)
+	g++ $(INIT_SHADER_OBJ) assignment6.cpp $(LDLIBS) -O2 $(CXXINCS) -o $(name1)
 	
-all: part1
+appendix6 : $(INIT_SHADER_OBJ)
+	g++ $(INIT_SHADER_OBJ) append_example_a6.cpp $(GL_OPTIONS) -O2 $(CXXINCS) -o appendix6
+	
+	
+all: clean part1
 
 $(INIT_SHADER_OBJ): $(INIT_SHADER)
 	g++ -c -Wall $(INIT_SHADER) -o $(INIT_SHADER_OBJ) -O2 $(CXXINCS)

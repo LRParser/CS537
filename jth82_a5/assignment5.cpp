@@ -54,7 +54,7 @@ float Phi = 90; // Zenith angle in degrees
 float Theta = 1; // Longitude angle in degrees
 float Height = 0;
 
-float RhoDelta = 1;
+float RadiusDelta = 1;
 int Delta = 5;
 float PhiDelta = 5;
 float HeightDelta = .1;
@@ -194,7 +194,7 @@ displayMainWindow( void )
    }
 
 
-   calculateEyeVector();
+   calculateEyeVector2();
 
    // Camera matrix
    mat4 View = LookAt(
@@ -252,7 +252,7 @@ keyboard( unsigned char key, int x, int y )
     	pressed = true;
 
     	if(isPerspective) {
-        	Rho += RhoDelta;
+        	Rho += RadiusDelta;
         	if(Rho >= 360) {
         		Rho = 360;
         	}
@@ -266,7 +266,7 @@ keyboard( unsigned char key, int x, int y )
     case '4' :
     	pressed = true;
     	if(isPerspective) {
-        	Rho -= RhoDelta;
+        	Rho -= RadiusDelta;
         	if(Rho <= 1) {
         		Rho = 1;
         	}
@@ -314,7 +314,7 @@ keyboard( unsigned char key, int x, int y )
     }
     if(pressed) {
 
-    	calculateEyeVector();
+    	calculateEyeVector2();
 
         glutSetWindow(mainWindow);
         glutPostRedisplay();

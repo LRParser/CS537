@@ -27,6 +27,7 @@ public:
 	vec4 color;
 };
 
+bool debug = true;
 
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
@@ -36,7 +37,7 @@ GLuint transformMatrix;
 
 
 // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-bool isPerspective = true;
+bool isPerspective = false;
 
 // For Ortho coordinates
 float left = -1.0f;
@@ -63,12 +64,17 @@ vec3  TranslationFactors = vec3(0.0f,0.0f,0.0f);
 
 vec3 EyeVector = vec3(1.0f,1.0f,3.0f);
 
-float Rho = 4.0; // Radius in degrees
+vec4 modelCentroid;
+
+double bounding_box[6] = {-1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
+
+
+float Radius = 4.0; // Radius in degrees
 float Phi = 90; // Zenith angle in degrees
 float Theta = 1; // Longitude angle in degrees
-float Height = 0;
+float Height = 1;
 
-float RhoDelta = 1;
+float RadiusDelta = 1;
 int Delta = 5;
 float PhiDelta = 5;
 float HeightDelta = .1;
@@ -84,7 +90,7 @@ vec3 light_i_ambient;
 vec3 light_i_diffuse;
 vec3 light_i_specular;
 
-float colorScaleFactor = 20;
+float colorScaleFactor = 1;
 
 GLint windowHeight, windowWidth;
 
@@ -96,6 +102,10 @@ vec3 radians(vec3 degrees) {
         return (M_PI * degrees) / 180;
 }
 
+void printVector(vec4 vIn) {
+	printf("(%f, %f, %f)\n",vIn.x,vIn.y,vIn.z);
+}
+
 vec4 vAbs(vec4 input) {
 	vec4 absVec = vec4(std::abs(input.x),std::abs(input.y),
 			std::abs(input.z),1.0);
@@ -105,6 +115,24 @@ vec4 vAbs(vec4 input) {
 vec4 vScale(vec4 input, float scaleFactor) {
 	vec4 scaleVec = vec4(scaleFactor * input.x,scaleFactor * input.y,scaleFactor * input.z,1.0);
 	return scaleVec;
+}
+
+
+vec4 calculateModelCentroid() {
+	vec4 sumOfAllPoints;
+	for(int i = 0; i < NumVerticesUsed; i++) {
+		if(debug) {
+			printf("[Point]");
+			printVector(points[i]);
+		}
+		sumOfAllPoints += points[i];
+	}
+	vec4 centroid = (sumOfAllPoints) / NumVerticesUsed;
+	if(debug) {
+		printf("Model centroid");
+		printVector(centroid);
+	}
+	return centroid;
 }
 
 
@@ -144,12 +172,14 @@ initMainWindow( void )
     glVertexAttribPointer( vColor, 4, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(points)) );
 
+    modelCentroid = calculateModelCentroid();
+
     transformMatrix = glGetUniformLocation(program, "transformMatrix");
 
 
     glEnable( GL_DEPTH_TEST );
 
-    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // black background
+    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 
     glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
        sizeof(colors), NULL, GL_STATIC_DRAW );
@@ -181,19 +211,25 @@ vec3 sin(vec3 angles) {
         return angles;
 }
 
-void calculateEyeVector() {
-
-	// http://gamedev.stackexchange.com/questions/5766/camera-rotation-using-angles
+void calculateEyeVector2() {
+//	Recall that the Cartesian coordinates of a point (X, Y , Z) defined in cylindrical coordinates (θ, R(adius), H(eight)) is
+//	X = R * cos(θ)
+//	Y = R * sin(θ)
+//	Z = H
 	float X, Y, Z;
 
-	X = Rho * sin(radians(Phi)) * cos(radians(Theta));
-	Y = Rho * cos(radians(Phi)) + Height;
-	Z = Rho * sin(radians(Phi)) * sin(radians(Theta));
+
+	X = Radius * cos(radians(Theta));
+	Y = Radius * sin(radians(Theta));
+	Z = Height;
 
 	EyeVector.x = X;
 	EyeVector.y = Y;
 	EyeVector.z = Z;
-
+	if(debug) {
+		//printf("Eye vector");
+		//printVector(EyeVector);
+	}
 
 }
 
@@ -202,12 +238,6 @@ void
 displayMainWindow( void )
 {
 
-    glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
-       sizeof(colors), NULL, GL_STATIC_DRAW );
-    glBufferSubData( GL_ARRAY_BUFFER, 0,
-        sizeof(points), points );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
-        sizeof(colors), colors );
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
@@ -221,12 +251,12 @@ displayMainWindow( void )
    }
 
 
-   calculateEyeVector();
+   calculateEyeVector2();
 
    // Camera matrix
    mat4 View = LookAt(
 	EyeVector,
-    vec3(0,0,0),
+	modelCentroid,
     vec3(0,1,0)
        );
 
@@ -278,9 +308,9 @@ keyboard( unsigned char key, int x, int y )
     	pressed = true;
 
     	if(isPerspective) {
-        	Rho += RhoDelta;
-        	if(Rho >= 360) {
-        		Rho = 360;
+        	Radius += RadiusDelta;
+        	if(Radius >= 360) {
+        		Radius = 360;
         	}
     	}
     	else {
@@ -292,9 +322,9 @@ keyboard( unsigned char key, int x, int y )
     case '4' :
     	pressed = true;
     	if(isPerspective) {
-        	Rho -= RhoDelta;
-        	if(Rho <= 1) {
-        		Rho = 1;
+        	Radius -= RadiusDelta;
+        	if(Radius <= 1) {
+        		Radius = 1;
         	}
     	}
     	else {
@@ -359,7 +389,7 @@ keyboard( unsigned char key, int x, int y )
     }
     if(pressed) {
 
-    	calculateEyeVector();
+    	calculateEyeVector2();
 
         glutSetWindow(mainWindow);
         glutPostRedisplay();
@@ -377,9 +407,7 @@ void idle() {
 
 //----------------------------------------------------------------------------
 
-void printVector(vec4 vIn) {
-	printf("Vector is: %f, %f, %f\n",vIn.x,vIn.y,vIn.z);
-}
+
 
 // Find all triangles incident to this vertex
 
@@ -396,23 +424,35 @@ vec4 calculateVertexColor(int vertexIdx) {
 
 	int incidentFacesCount = 0;
 
-	for (auto i : incidentFaces) {
-		incidentFacesColorsSum += i.color;
-		std::cout << "Vertex Index" << vertexIdx << "incident on Face " << i.faceIdx << " with face color: " << i.color << std::endl;
+
+	std::vector<Face>::iterator it;
+	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
+		incidentFacesColorsSum += it->color;
+		//std::cout << "Vertex Index" << vertexIdx << "incident on Face " << it->faceIdx << " with face color: " << it->color << std::endl;
 		incidentFacesCount++;
 	}
 
-	printf("There are a total of %d faces incident to Vertex %d\n",incidentFacesCount,vertexIdx);
+
+	//printf("There are a total of %d faces incident to Vertex %d\n",incidentFacesCount,vertexIdx);
 
 
-	printf("Colors sum to: ");
-	printVector(incidentFacesColorsSum);
-	std::cout << "Incident faces count for vertex: " << vertexIdx << " is: " << incidentFacesCount << std::endl;
-	std::cout << "Incident faces average: ";
+	if(debug) {
+		printf("Colors sum to: ");
+		printVector(incidentFacesColorsSum);
+		std::cout << "Incident faces count for vertex: " << vertexIdx << " is: " << incidentFacesCount << std::endl;
+		std::cout << "Incident faces average: ";
+	}
+
+
 	averageColor = incidentFacesColorsSum / incidentFacesCount;
-	printVector(averageColor);
 
-    printf("Found %d entries in face mapping for index: %d\n");
+	if(debug) {
+		printf("Average color is");
+		printVector(averageColor);
+
+	}
+
+    //printf("Found %d entries in face mapping for index: %d\n",incidentFacesCount,vertexIdx);
 
 
 	return averageColor;
@@ -422,6 +462,9 @@ vec4 calculateVertexColor(int vertexIdx) {
 
 }
 
+void calculateBoundingBoxSize(std::vector<vec4> points) {
+
+}
 
 void createPointsAndColorsArrays() {
 	for(int i = 0; i < smfFaces.size(); i++) {
@@ -464,7 +507,7 @@ void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentF
 			vec4 absNormalNormalized = vAbs(normalNormalized);
 			printf("Absolute value vector ");
 			printVector(absNormalNormalized);
-			vec4 scaledAbsNormalNormalized = vScale(absNormalNormalized,50);
+			vec4 scaledAbsNormalNormalized = vScale(absNormalNormalized,colorScaleFactor);
 			printf("Scaled absolute value vector ");
 			printVector(scaledAbsNormalNormalized);
 
@@ -477,29 +520,7 @@ void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentF
 			currentFace.color = scaledAbsNormalNormalized;
 }
 
-void addToMapping(int vertexIndex, Face face) {
-
-	vertexFaceMapping[vertexIndex].push_back(face);
-
-	/*
-	std::map<int,std::vector<Face> >::iterator it;
-
-	it = vertexFaceMapping.find(vertexIndex);
-	  if (it != vertexFaceMapping.end()) {
-		  // List already exists
-		  std::vector<Face> incidentFacesList = it->second;
-		  printf("Adding vector to existing incident faces list of size %d for Index %d, adding Face %d \n",incidentFacesList.size(),vertexIndex,face.faceIdx);
-		  incidentFacesList.push_back(face);
-
-	  }
-	  else {
-		  std::vector<Face> incidentFacesList;
-		  incidentFacesList.push_back(face);
-		  printf("Creating new incident faces list for Index %d, adding Face %d\n",vertexIndex,face.faceIdx);
-
-		  vertexFaceMapping[vertexIndex] = incidentFacesList;
-	  }
-	  */
+void scaleFaceColors() {
 
 }
 
@@ -523,9 +544,9 @@ int readSMF(char* fileName) {
 
 					Face f;
 					f.faceIdx = numSmfFaces + 1; // faces are 1-indexed
-					f.firstVertexIndex = int(b);
+					f.firstVertexIndex = int(b); // was b
 					f.secondVertexIndex = int(c);
-					f.thirdVertexIndex = int(d);
+					f.thirdVertexIndex = int(d); // was d
 					vec4 firstVertex = smfVertices[f.firstVertexIndex - 1];
 					f.firstVertex = firstVertex;
 					vec4 secondVertex = smfVertices[f.secondVertexIndex - 1];
@@ -535,10 +556,9 @@ int readSMF(char* fileName) {
 
 					calculateFaceColor(firstVertex,secondVertex,thirdVertex,f);
 
-					addToMapping(f.firstVertexIndex,f);
-					addToMapping(f.secondVertexIndex,f);
-					addToMapping(f.thirdVertexIndex,f);
-
+					vertexFaceMapping[f.firstVertexIndex].push_back(f);
+					vertexFaceMapping[f.secondVertexIndex].push_back(f);
+					vertexFaceMapping[f.thirdVertexIndex].push_back(f);
 
 					smfFaces.push_back(f);
 					numSmfFaces++;
@@ -562,7 +582,7 @@ main( int argc, char **argv )
 #endif
     glutInitWindowSize( 500, 500 );
 
-    mainWindow = glutCreateWindow( "Assignment 5" );
+    mainWindow = glutCreateWindow( "Assignment 6" );
 
 #ifndef __APPLE__
     GLenum err = glewInit();
@@ -571,38 +591,38 @@ main( int argc, char **argv )
       fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
 #endif
 
+    if(argc == 1) {
+    			std::cout << "You must specify an SMF file" << std::endl;
+    		}
+    		else {
+    			char* fileName = argv[1];
+    			std::cout << "Filename is: " << argv[1] << std::endl;
+    			readSMF(fileName);
+    			createPointsAndColorsArrays();
+
+    			std::cout << "Press: 1 - To increase camera height" << std::endl;
+    			std::cout << "Press: 2 - To decrease camera height" << std::endl;
+    			std::cout << "Press: 3 - To increase orbit radius" << std::endl;
+    			std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
+    			std::cout << "Press: 5 - To increase cylinder angle" << std::endl;
+    			std::cout << "Press: 6 - To decrease cylinder angle" << std::endl;
+    			std::cout << "Press: 7 - To switch to perspective projection mode (default)" << std::endl;
+    			std::cout << "Press: 8 - To switch to parallel projection mode" << std::endl;
+    			std::cout << "Press: 9 - To rotate camera counterclockwise" << std::endl;
+    			std::cout << "Press: 0 - To rotate camera clockwise" << std::endl;
+    			std::cout << "Press: q - To exit the program" << std::endl;
+
+
+    		}
+
 	    glutInitWindowSize( w, h );
 	    initMainWindow();
 	    glutDisplayFunc( displayMainWindow );
 	    glutKeyboardFunc( keyboard );
 		glutIdleFunc(idle);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
 
 
-		if(argc == 1) {
-			std::cout << "You must specify an SMF file" << std::endl;
-		}
-		else {
-			char* fileName = argv[1];
-			std::cout << "Filename is: " << argv[1] << std::endl;
-			readSMF(fileName);
-			createPointsAndColorsArrays();
 
-			std::cout << "Press: 1 - To increase camera height" << std::endl;
-			std::cout << "Press: 2 - To decrease camera height" << std::endl;
-			std::cout << "Press: 3 - To increase orbit radius" << std::endl;
-			std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
-			std::cout << "Press: 5 - To increase cylinder angle" << std::endl;
-			std::cout << "Press: 6 - To decrease cylinder angle" << std::endl;
-			std::cout << "Press: 7 - To switch to perspective projection mode (default)" << std::endl;
-			std::cout << "Press: 8 - To switch to parallel projection mode" << std::endl;
-			std::cout << "Press: 9 - To rotate camera counterclockwise" << std::endl;
-			std::cout << "Press: 0 - To rotate camera clockwise" << std::endl;
-			std::cout << "Press: q - To exit the program" << std::endl;
-
-
-		}
 
 
 
