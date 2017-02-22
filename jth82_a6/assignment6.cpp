@@ -28,6 +28,7 @@ public:
 };
 
 
+
 std::map<int,std::vector<Face> > vertexFaceMapping;
 
 mat4 TransformMatrix;
@@ -387,29 +388,31 @@ void printVector(vec4 vIn) {
  */
 vec4 calculateVertexColor(int vertexIdx) {
 
-    auto it = vertexFaceMapping.find(vertexIdx);
-    std::cout << vertexFaceMapping.size() << std::endl;
-	vec4 averageColor;
 
-    if (it != vertexFaceMapping.end()) {
-    	auto incidentFaces = it->second;
-    	vec4 incidentFacesColorsSum;
-    	for(int i = 0; i < incidentFaces.size(); i++) {
-    		Face incidentFace = incidentFaces.at(i);
-    		incidentFacesColorsSum += incidentFace.color;
-    		std::cout << "Vertex" << vertexIdx << "incident on: " << incidentFace.faceIdx << "with face color: " << incidentFace.color << std::endl;
-    	}
-    	printf("Colors sum to: ");
-    	printVector(incidentFacesColorsSum);
-    	std::cout << "Incident faces count: " << incidentFaces.size() << std::endl;
-    	std::cout << "Incident faces average: ";
-    	averageColor = incidentFacesColorsSum / incidentFaces.size();
-    	printVector(averageColor);
-    }
-    else {
-    	printf("Error at vertex idx: %d \n",vertexIdx);
-    	exit(0);
-    }
+
+    std::vector<Face> incidentFaces = vertexFaceMapping.at(vertexIdx);
+    vec4 averageColor;
+    vec4 incidentFacesColorsSum;
+
+	int incidentFacesCount = 0;
+
+	for (auto i : incidentFaces) {
+		incidentFacesColorsSum += i.color;
+		std::cout << "Vertex Index" << vertexIdx << "incident on Face " << i.faceIdx << " with face color: " << i.color << std::endl;
+		incidentFacesCount++;
+	}
+
+	printf("There are a total of %d faces incident to Vertex %d\n",incidentFacesCount,vertexIdx);
+
+
+	printf("Colors sum to: ");
+	printVector(incidentFacesColorsSum);
+	std::cout << "Incident faces count for vertex: " << vertexIdx << " is: " << incidentFacesCount << std::endl;
+	std::cout << "Incident faces average: ";
+	averageColor = incidentFacesColorsSum / incidentFacesCount;
+	printVector(averageColor);
+
+    printf("Found %d entries in face mapping for index: %d\n");
 
 
 	return averageColor;
@@ -474,23 +477,29 @@ void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentF
 			currentFace.color = scaledAbsNormalNormalized;
 }
 
-void addToMapping(int vertexIndex, Face& face) {
+void addToMapping(int vertexIndex, Face face) {
+
+	vertexFaceMapping[vertexIndex].push_back(face);
+
+	/*
 	std::map<int,std::vector<Face> >::iterator it;
 
 	it = vertexFaceMapping.find(vertexIndex);
 	  if (it != vertexFaceMapping.end()) {
 		  // List already exists
 		  std::vector<Face> incidentFacesList = it->second;
-		  printf("Adding vector to existing incident faces list\n");
+		  printf("Adding vector to existing incident faces list of size %d for Index %d, adding Face %d \n",incidentFacesList.size(),vertexIndex,face.faceIdx);
 		  incidentFacesList.push_back(face);
+
 	  }
 	  else {
 		  std::vector<Face> incidentFacesList;
 		  incidentFacesList.push_back(face);
-		  printf("Creating new incident faces list\n");
+		  printf("Creating new incident faces list for Index %d, adding Face %d\n",vertexIndex,face.faceIdx);
 
 		  vertexFaceMapping[vertexIndex] = incidentFacesList;
 	  }
+	  */
 
 }
 
