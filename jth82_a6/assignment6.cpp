@@ -70,8 +70,8 @@ double bounding_box[6] = {-1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
 
 
 float Radius = 4.0; // Radius in degrees
-float Phi = 90; // Zenith angle in degrees
-float Theta = 1; // Longitude angle in degrees
+float Phi = 57.2958; // Camera angle
+int Theta = 90; // Longitude angle in degrees
 float Height = 1;
 
 float RadiusDelta = 1;
@@ -111,7 +111,7 @@ vec4 vAbs(vec4 input) {
 }
 
 vec4 vScale(vec4 input, float scaleFactor) {
-	vec4 scaleVec = vec4(scaleFactor * input.x,scaleFactor * input.y,scaleFactor * input.z,1.0);
+	vec4 scaleVec = vec4(scaleFactor * input.x,scaleFactor * input.y,scaleFactor * input.z,0.0);
 	return scaleVec;
 }
 
@@ -155,6 +155,7 @@ vec4 scaleColorVector() {
 		currentColor.x = (currentColor.x / maxVec.x) + .2;
 		currentColor.y = (currentColor.y / maxVec.y) + .2;
 		currentColor.z = (currentColor.z / maxVec.z) + .2;
+		currentColor.w = 1.0;
 		printf("(ScaledColor");
 		printVector(currentColor);
 		printVector(colors[i]);
@@ -171,6 +172,8 @@ vec4 scaleColorVector() {
 void
 initMainWindow( void )
 {
+
+	glDisable(GL_CULL_FACE);
 
     // Create a vertex array object
     GLuint vao[1];
@@ -223,7 +226,7 @@ initMainWindow( void )
     transformMatrix = glGetUniformLocation(program, "transformMatrix");
 
 
-    glEnable( GL_DEPTH_TEST );
+
 
     glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 
@@ -266,12 +269,17 @@ void calculateEyeVector2() {
 
 
 	X = Radius * cos(radians(Theta));
-	Y = Radius * sin(radians(Theta));
-	Z = Height;
+	Y = Height;
+	Z = Radius * sin(radians(Theta));
 
 	EyeVector.x = X;
 	EyeVector.y = Y;
 	EyeVector.z = Z;
+
+	printf("Eye Vector\n");
+	printVector(EyeVector);
+
+
 
 
 }
@@ -286,10 +294,10 @@ displayMainWindow( void )
 
    mat4 Projection;
    if(isPerspective) {
-	   Projection = Perspective(45.0f, 4/3, 0.1f, 100.0f);
+	   Projection = Perspective(45.0f, 4.0f/3.0f, 0.1f, 100.0f);
    }
    else {
-	   Projection = Ortho(left,right,bottom,top,near,far); // In world coordinates
+	   Projection = Ortho(left,right,bottom,top,near,far); // In object coordinates
 
    }
 
@@ -299,12 +307,13 @@ displayMainWindow( void )
    // Camera matrix
    mat4 View = LookAt(
 	EyeVector,
-	modelCentroid,
-    vec3(0,1,0)
+	vec3(0,0,0),
+	vec3(0,1,0)
+
        );
 
-   // Move model to the origin
-   mat4 Model = mat4(1.0f);
+   // Move model to the origin mat4(1.0f);
+   mat4 Model = Translate(modelCentroid);
 
    TransformMatrix = Projection * View * Model;
 
@@ -323,6 +332,23 @@ void reshape(GLsizei w, GLsizei h) {
 	glViewport(0,0,windowWidth,windowHeight);
 }
 
+int max(int int1, int int2) {
+	if(int1>int2) {
+		return int1;
+	}
+	else {
+		return int2;
+	}
+}
+
+int min(int int1, int int2) {
+	if(int1<int2) {
+		return int1;
+	}
+	else {
+		return int2;
+	}
+}
 
 void
 keyboard( unsigned char key, int x, int y )
@@ -379,20 +405,24 @@ keyboard( unsigned char key, int x, int y )
 
     	break;
     case '5' :
-    	// Increase phi
-    	pressed = true;
-    	Phi += PhiDelta;
-    	if(Phi >= 360) {
-    		Phi = 360;
+    	// Rotate counterclockwise
+    	Theta += 5;
+    	Theta = Theta % 360;
+    	if(debug) {
+    		printf("Theta is: %d\n",Theta);
     	}
+    	pressed = true;
+
     	break;
     case '6' :
-    	// Decrease phi
-    	pressed = true;
-    	Phi -= PhiDelta;
-    	if(Phi <= 0) {
-    		Phi = 0;
+    	Theta -= 5;
+    	Theta = Theta % 360;
+    	//Theta = max(Theta,50);
+    	if(debug) {
+    		printf("Theta is: %d\n",Theta);
     	}
+    	pressed = true;
+
     	break;
     case '7' :
     	// Set perspective projection
@@ -406,23 +436,7 @@ keyboard( unsigned char key, int x, int y )
     	isPerspective = false;
     	pressed = true;
     	break;
-    case '9' :
-    	// Rotate counterclockwise
-    	Theta += 10;
-    	if(Theta == 360) {
-    		Theta = 0;
-    	}
-    	pressed = true;
 
-    	break;
-    case '0' :
-    	Theta -= 10;
-    	if(Theta < 0) {
-    		Theta = 0;
-    	}
-    	pressed = true;
-
-    	break;
 
 	case 'q':
 		// Exit
@@ -434,7 +448,6 @@ keyboard( unsigned char key, int x, int y )
 
     	calculateEyeVector2();
 
-        glutSetWindow(mainWindow);
         glutPostRedisplay();
     }
 
@@ -580,7 +593,7 @@ int readSMF(char* fileName) {
 			while (infile >> a >> b >> c >> d)
 			{
 				if(a == 'v') {
-					smfVertices[numSmfVertices] = vec4(b,c,d,1.0);
+					smfVertices[numSmfVertices] = vec4(b,c,d,1);
 					numSmfVertices++;
 				}
 				else if(a == 'f') {
@@ -616,7 +629,7 @@ int readSMF(char* fileName) {
 int
 main( int argc, char **argv )
 {
-
+	//glEnable( GL_DEPTH_TEST );
     glutInit( &argc, argv );
 #ifdef __APPLE__
     glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE );
@@ -626,7 +639,6 @@ main( int argc, char **argv )
     glutInitWindowSize( 500, 500 );
 
     mainWindow = glutCreateWindow( "Assignment 6" );
-
 #ifndef __APPLE__
     GLenum err = glewInit();
 
@@ -648,12 +660,10 @@ main( int argc, char **argv )
     			std::cout << "Press: 2 - To decrease camera height" << std::endl;
     			std::cout << "Press: 3 - To increase orbit radius" << std::endl;
     			std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
-    			std::cout << "Press: 5 - To increase cylinder angle" << std::endl;
-    			std::cout << "Press: 6 - To decrease cylinder angle" << std::endl;
+    			std::cout << "Press: 5 - To increase cylinder angle (rotate camera)" << std::endl;
+    			std::cout << "Press: 6 - To decrease cylinder angle (rotate counterclockwise)" << std::endl;
     			std::cout << "Press: 7 - To switch to perspective projection mode (default)" << std::endl;
     			std::cout << "Press: 8 - To switch to parallel projection mode" << std::endl;
-    			std::cout << "Press: 9 - To rotate camera counterclockwise" << std::endl;
-    			std::cout << "Press: 0 - To rotate camera clockwise" << std::endl;
     			std::cout << "Press: q - To exit the program" << std::endl;
 
 
