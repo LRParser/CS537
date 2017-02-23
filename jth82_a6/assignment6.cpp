@@ -173,7 +173,6 @@ void
 initMainWindow( void )
 {
 
-	glDisable(GL_CULL_FACE);
 
     // Create a vertex array object
     GLuint vao[1];
@@ -290,7 +289,12 @@ displayMainWindow( void )
 {
 
 
-   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   glCullFace(GL_BACK);
+   glEnable(GL_CULL_FACE);
+   glEnable(GL_DEPTH_TEST);
+   glDepthFunc(GL_LEQUAL);
+   // clear the window
 
    mat4 Projection;
    if(isPerspective) {
@@ -536,9 +540,9 @@ void createPointsAndColorsArrays() {
 
 		int currentOffset = i * 3;
 
-		points[currentOffset] = vertex1;
+		points[currentOffset] = vertex3;
 		points[currentOffset + 1] = vertex2;
-		points[currentOffset + 2] = vertex3;
+		points[currentOffset + 2] = vertex1;
 
 		// Now, get the average of all
 
