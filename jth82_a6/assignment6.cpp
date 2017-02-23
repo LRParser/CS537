@@ -24,7 +24,7 @@ public:
 	vec4 firstVertex;
 	vec4 secondVertex;
 	vec4 thirdVertex;
-	vec4 color;
+	vec4 normal;
 };
 
 bool debug = true;
@@ -35,6 +35,17 @@ std::map<int,std::vector<Face> > vertexFaceMapping;
 mat4 TransformMatrix;
 GLuint transformMatrix;
 
+// Uniforms for lighting
+// Light properties
+color4 L_ambient, L_diffuse, L_specular;
+point4 L_position = point4(0,-5,-5);
+
+// Material properties
+color4 M_reflect_ambient;
+color4 M_reflect_diffuse;
+color4 M_reflect_specular;
+
+GLuint l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular;
 
 // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
 bool isPerspective = false;
@@ -56,7 +67,7 @@ vec4 smfVertices[NumVertices];
 std::vector<Face> smfFaces;
 
 vec4 points[10000];
-vec4 colors[10000];
+vec4 normals[10000];
 
 vec3 ScaleFactors = vec3(1.0f, 1.0f, 1.0f);
 vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
@@ -69,7 +80,7 @@ vec4 modelCentroid;
 double bounding_box[6] = {-1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
 
 
-float Radius = 4.0; // Radius in degrees
+float Radius = 10.0; // Radius in degrees
 float Phi = 57.2958; // Camera angle
 int Theta = 90; // Longitude angle in degrees
 float Height = 1;
@@ -86,15 +97,11 @@ int w = 500;
 int h = 500;
 int border = 50;
 
-vec3 light_i_ambient;
-vec3 light_i_diffuse;
-vec3 light_i_specular;
 
-float colorScaleFactor = 1;
+vec4 defaultColor = vec4(.5,0,0,0);
 
 GLint windowHeight, windowWidth;
 
-vec4 minColor = vec4(.2,.2,.2,0.0);
 
 float radians(float degrees) {
 	return (M_PI * degrees) / 180;
@@ -102,6 +109,10 @@ float radians(float degrees) {
 
 void printVector(vec4 vIn) {
 	printf("(%f, %f, %f)\n",vIn.x,vIn.y,vIn.z);
+}
+
+vec4 vProduct(vec4 a, vec4 b) {
+	return vec4(a[0]*b[0],a[1]*b[1],a[2]*b[2],1.0);
 }
 
 vec4 vAbs(vec4 input) {
@@ -131,116 +142,6 @@ vec4 calculateModelCentroid() {
 		printVector(centroid);
 	}
 	return centroid;
-}
-
-vec4 scaleColorVector() {
-	// Map x, y and z to range 0..1
-
-	vec4 maxVec;
-	for(int i = 0; i < NumVerticesUsed; i++) {
-		vec4 currentColor = colors[i];
-		if(currentColor.x > maxVec.x) {
-			maxVec.x = currentColor.x;
-		}
-		if(currentColor.y > maxVec.y) {
-			maxVec.y = currentColor.y;
-		}
-		if(currentColor.z > maxVec.z) {
-			maxVec.z = currentColor.z;
-		}
-	}
-	// Normalize them
-	for(int i = 0; i < NumVerticesUsed; i++) {
-		vec4 currentColor = colors[i];
-		currentColor.x = (currentColor.x / maxVec.x) + .2;
-		currentColor.y = (currentColor.y / maxVec.y) + .2;
-		currentColor.z = (currentColor.z / maxVec.z) + .2;
-		currentColor.w = 1.0;
-		printf("(ScaledColor");
-		printVector(currentColor);
-		printVector(colors[i]);
-		colors[i] = currentColor;
-
-
-		}
-
-
-
-}
-
-
-void
-initMainWindow( void )
-{
-
-
-    // Create a vertex array object
-    GLuint vao[1];
-    glGenVertexArrays( 1, vao );
-    glBindVertexArray( vao[0] );
-
-
-    GLuint buffer;
-    glGenBuffers( 1, &buffer );
-    glBindBuffer( GL_ARRAY_BUFFER, buffer );
-    glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
-       sizeof(colors), NULL, GL_STATIC_DRAW );
-    glBufferSubData( GL_ARRAY_BUFFER, 0,
-        sizeof(points), points );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
-        sizeof(colors), colors );
-
-    // Print points and colors info
-	if(debug) {
-		for(int i = 0; i < NumVerticesUsed; i++) {
-			vec4 currentPoint = points[i];
-			printf("(Point)");
-			printVector(currentPoint);
-		}
-		for(int i = 0; i < NumVerticesUsed; i++) {
-			vec4 currentColor = colors[i];
-			printf("(Color)");
-			printVector(currentColor);
-		}
-	}
-
-
-    // Load shaders and use the resulting shader program
-    GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
-    //  glUseProgram( program );  // This is called in InitShader
-
-    // Initialize the vertex position attribute from the vertex shader
-    GLuint vPosition = glGetAttribLocation( program, "vPosition" );
-    glEnableVertexAttribArray( vPosition );
-    glVertexAttribPointer( vPosition, 4, GL_FLOAT, GL_FALSE, 0,
-                           BUFFER_OFFSET(0) );
-
-    GLuint vColor = glGetAttribLocation( program, "vColor" );
-    glEnableVertexAttribArray( vColor );
-    glVertexAttribPointer( vColor, 4, GL_FLOAT, GL_FALSE, 0,
-                           BUFFER_OFFSET(sizeof(points)) );
-
-    modelCentroid = calculateModelCentroid();
-
-    transformMatrix = glGetUniformLocation(program, "transformMatrix");
-
-
-
-
-    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
-
-    glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
-       sizeof(colors), NULL, GL_STATIC_DRAW );
-    glBufferSubData( GL_ARRAY_BUFFER, 0,
-        sizeof(points), points );
-    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
-        sizeof(colors), colors );
-
-   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-
-    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
-    glFlush();
-
 }
 
 vec3 cos(vec3 angles) {
@@ -284,27 +185,93 @@ void calculateEyeVector2() {
 }
 
 
+
+void
+initMainWindow( void )
+{
+
+
+    // Create a vertex array object
+    GLuint vao[1];
+    glGenVertexArrays( 1, vao );
+    glBindVertexArray( vao[0] );
+
+    // Print points and normals info
+	if(debug) {
+		for(int i = 0; i < NumVerticesUsed; i++) {
+			vec4 currentPoint = points[i];
+			printf("(Point)");
+			printVector(currentPoint);
+		}
+		for(int i = 0; i < NumVerticesUsed; i++) {
+			vec4 currentNormal = normals[i];
+			printf("(Normal)");
+			printVector(currentNormal);
+		}
+	}
+
+    GLuint buffer;
+    glGenBuffers( 1, &buffer );
+    glBindBuffer( GL_ARRAY_BUFFER, buffer );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
+       sizeof(normals), NULL, GL_STATIC_DRAW );
+    glBufferSubData( GL_ARRAY_BUFFER, 0,
+        sizeof(points), points );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
+        sizeof(normals), normals );
+
+    // Load shaders and use the resulting shader program
+    GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
+    //  glUseProgram( program );  // This is called in InitShader
+
+    // Initialize the vertex position attribute from the vertex shader
+    GLuint vPosition = glGetAttribLocation( program, "vPosition" );
+    glEnableVertexAttribArray( vPosition );
+    glVertexAttribPointer( vPosition, 4, GL_FLOAT, GL_FALSE, 0,
+                           BUFFER_OFFSET(0) );
+
+    GLuint vNormal = glGetAttribLocation( program, "vNormal" );
+    glEnableVertexAttribArray( vNormal );
+    glVertexAttribPointer( vNormal, 4, GL_FLOAT, GL_FALSE, 0,
+                           BUFFER_OFFSET(sizeof(normals)) );
+
+    modelCentroid = calculateModelCentroid();
+
+    transformMatrix = glGetUniformLocation(program, "transformMatrix");
+    l_ambient = glGetUniformLocation(program, "l_ambient");
+	l_diffuse = glGetUniformLocation(program, "l_diffuse");
+	l_specular = glGetUniformLocation(program, "l_specular");
+	m_reflect_ambient = glGetUniformLocation(program, "m_reflect_ambient");
+	m_reflect_diffuse = glGetUniformLocation(program, "m_reflect_diffuse");
+	m_reflect_specular = glGetUniformLocation(program, "m_reflect_specular");
+
+
+    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
+
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+
+    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+    glFlush();
+
+}
+
+
+
 void
 displayMainWindow( void )
 {
 
-
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-   glCullFace(GL_BACK);
-   glEnable(GL_CULL_FACE);
    glEnable(GL_DEPTH_TEST);
-   glDepthFunc(GL_LEQUAL);
-   // clear the window
 
    mat4 Projection;
    if(isPerspective) {
 	   Projection = Perspective(45.0f, 4.0f/3.0f, 0.1f, 100.0f);
    }
    else {
-	   Projection = Ortho(left,right,bottom,top,near,far); // In object coordinates
+	   Projection = Ortho(left,right,bottom,top,near,far);
 
    }
-
 
    calculateEyeVector2();
 
@@ -322,6 +289,13 @@ displayMainWindow( void )
    TransformMatrix = Projection * View * Model;
 
    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
+   glUniform4fv(l_ambient, 1, L_ambient);
+   glUniform4fv(l_diffuse, 1, L_diffuse);
+   glUniform4fv(l_specular, 1, L_specular);
+
+   glUniform4fv(m_reflect_ambient, 1, M_reflect_ambient);
+   glUniform4fv(m_reflect_diffuse, 1, M_reflect_diffuse);
+   glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
 
    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
 
@@ -474,12 +448,10 @@ void idle() {
 /* For HW6, we need to:
  * find the average of the normals of the triangles incident to the vertex. See Lecture 10, slide 53.
  */
-vec4 calculateVertexColor(int vertexIdx) {
-
-
+vec4 calculateVertexNormal(int vertexIdx) {
 
     std::vector<Face> incidentFaces = vertexFaceMapping.at(vertexIdx);
-    vec4 averageColor;
+    vec4 vertexNormal;
     vec4 incidentFacesColorsSum;
 
 	int incidentFacesCount = 0;
@@ -487,14 +459,9 @@ vec4 calculateVertexColor(int vertexIdx) {
 
 	std::vector<Face>::iterator it;
 	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
-		incidentFacesColorsSum += it->color;
-		//std::cout << "Vertex Index" << vertexIdx << "incident on Face " << it->faceIdx << " with face color: " << it->color << std::endl;
+		incidentFacesColorsSum += it->normal;
 		incidentFacesCount++;
 	}
-
-
-	//printf("There are a total of %d faces incident to Vertex %d\n",incidentFacesCount,vertexIdx);
-
 
 	if(debug) {
 		printf("Colors sum to: ");
@@ -504,59 +471,53 @@ vec4 calculateVertexColor(int vertexIdx) {
 	}
 
 
-	averageColor = incidentFacesColorsSum / incidentFacesCount;
+	vertexNormal = incidentFacesColorsSum / incidentFacesCount;
 
 	if(debug) {
 		printf("Average color is");
-		printVector(averageColor);
+		printVector(vertexNormal);
 
 	}
 
-    //printf("Found %d entries in face mapping for index: %d\n",incidentFacesCount,vertexIdx);
-
-
-	return averageColor;
+	return vertexNormal;
 
 
 
 
 }
 
-void calculateBoundingBoxSize(std::vector<vec4> points) {
 
-}
-
-void createPointsAndColorsArrays() {
+void populatePointsAndNormalsArrays() {
 	for(int i = 0; i < smfFaces.size(); i++) {
 		Face currentFace = smfFaces.at(i);
-		// Find the vertices it specifies and add them to vertices
-		// Subtract 1 because SMF is 1-indexed
-		// printf("Building face: %d - %f %f %f\n",i,currentFace.face1,currentFace.face2,currentFace.face3);
-		vec4 vertex1 = currentFace.firstVertex; // smfVertices[index1 - 1];
 
-		vec4 vertex2 = currentFace.secondVertex; // smfVertices[index2 - 1];
+		vec4 vertex1 = currentFace.firstVertex;
 
-		vec4 vertex3 = currentFace.thirdVertex; // smfVertices[index3 - 1];
+		vec4 vertex2 = currentFace.secondVertex;
+
+		vec4 vertex3 = currentFace.thirdVertex;
 
 		int currentOffset = i * 3;
 
-		points[currentOffset] = vertex3;
+		points[currentOffset] = vertex1;
 		points[currentOffset + 1] = vertex2;
-		points[currentOffset + 2] = vertex1;
+		points[currentOffset + 2] = vertex3;
 
-		// Now, get the average of all
+		// For now, do coloring in application. Will move to shader
 
-		colors[currentOffset] = calculateVertexColor(currentFace.firstVertexIndex);
-		colors[currentOffset + 1] = calculateVertexColor(currentFace.secondVertexIndex);
-		colors[currentOffset + 2] = calculateVertexColor(currentFace.thirdVertexIndex);
+		normals[currentOffset] = calculateVertexNormal(currentFace.firstVertexIndex);
+		normals[currentOffset + 1] = calculateVertexNormal(currentFace.secondVertexIndex);
+		normals[currentOffset + 2] = calculateVertexNormal(currentFace.thirdVertexIndex);
+
+
 
 	}
 }
 
 void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
 	// See p 272
-			vec4 U = vertex3 - vertex1;
-			vec4 V = vertex2 - vertex1;
+			vec4 U = vertex2 - vertex1;
+			vec4 V = vertex3 - vertex2;
 
 			vec4 crossVector = cross(U,V);
 			printf("Cross product ");
@@ -567,22 +528,17 @@ void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentF
 			vec4 absNormalNormalized = vAbs(normalNormalized);
 			printf("Absolute value vector ");
 			printVector(absNormalNormalized);
-			vec4 scaledAbsNormalNormalized = vScale(absNormalNormalized,colorScaleFactor);
-			printf("Scaled absolute value vector ");
-			printVector(scaledAbsNormalNormalized);
+
 
 			printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
 			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
 			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
 
-			printf("Final Color is: %f, %f, %f, %f\n",scaledAbsNormalNormalized.x,scaledAbsNormalNormalized.y,scaledAbsNormalNormalized.z,scaledAbsNormalNormalized.w);
+			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
 
-			currentFace.color = scaledAbsNormalNormalized;
+			currentFace.normal = absNormalNormalized;
 }
 
-void scaleFaceColors() {
-
-}
 
 int readSMF(char* fileName) {
 
@@ -604,9 +560,9 @@ int readSMF(char* fileName) {
 
 					Face f;
 					f.faceIdx = numSmfFaces + 1; // faces are 1-indexed
-					f.firstVertexIndex = int(b); // was b
+					f.firstVertexIndex = int(b);
 					f.secondVertexIndex = int(c);
-					f.thirdVertexIndex = int(d); // was d
+					f.thirdVertexIndex = int(d);
 					vec4 firstVertex = smfVertices[f.firstVertexIndex - 1];
 					f.firstVertex = firstVertex;
 					vec4 secondVertex = smfVertices[f.secondVertexIndex - 1];
@@ -657,8 +613,7 @@ main( int argc, char **argv )
     			char* fileName = argv[1];
     			std::cout << "Filename is: " << argv[1] << std::endl;
     			readSMF(fileName);
-    			createPointsAndColorsArrays();
-    			scaleColorVector();
+    			populatePointsAndNormalsArrays();
 
     			std::cout << "Press: 1 - To increase camera height" << std::endl;
     			std::cout << "Press: 2 - To decrease camera height" << std::endl;

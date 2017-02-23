@@ -128,14 +128,7 @@ init()
     color4 material_diffuse( 1.0, 0.8, 0.0, 1.0 );
     color4 material_specular( 1.0, 0.8, 0.0, 1.0 );
 
-//    point4 light_position( 0.0, 0.0, -1.0, 0.0 );
-//    color4 light_ambient( 0.2, 0.2, 0.2, 1.0 );
-//    color4 light_diffuse( 1.0, 1.0, 1.0, 1.0 );
-//    color4 light_specular( 1.0, 1.0, 1.0, 1.0 );
-//
-//    color4 material_ambient( 1.0, 0.0, 1.0, 1.0 );
-//    color4 material_diffuse( 1.0, 0.8, 0.0, 1.0 );
-//    color4 material_specular( 1.0, 0.8, 0.0, 1.0 );
+
     float  material_shininess = 100.0;
 
     color4 ambient_product = light_ambient * material_ambient;
