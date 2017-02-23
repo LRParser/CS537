@@ -37,15 +37,17 @@ GLuint transformMatrix;
 
 // Uniforms for lighting
 // Light properties
-color4 L_ambient, L_diffuse, L_specular;
-point4 L_position = point4(0,-5,-5);
+color4 L_ambient = vec4(0.0,1,0.0,1);
+color4 L_diffuse = vec4(0.0,1,0.0,1);
+color4 L_specular = vec4(0.0,1,0.0,1);
+point4 L_position = point4(0,5,5,1);
 
 // Material properties
-color4 M_reflect_ambient;
-color4 M_reflect_diffuse;
-color4 M_reflect_specular;
+color4 M_reflect_ambient = vec4(0.0,1,0.0,1.0);
+color4 M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
+color4 M_reflect_specular = vec4(0.0,1,0.0,1.0);
 
-GLuint l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular;
+GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular;
 
 // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
 bool isPerspective = false;
@@ -160,13 +162,15 @@ vec3 sin(vec3 angles) {
         return angles;
 }
 
-void calculateEyeVector2() {
-//	Recall that the Cartesian coordinates of a point (X, Y , Z) defined in cylindrical coordinates (θ, R(adius), H(eight)) is
-//	X = R * cos(θ)
-//	Y = R * sin(θ)
-//	Z = H
-	float X, Y, Z;
 
+
+void calculateEyeVector2() {
+
+	//	Recall that the Cartesian coordinates of a point (X, Y , Z) defined in cylindrical coordinates (θ, R(adius), H(eight)) is
+	//	X = R * cos(θ)
+	//	Y = R * sin(θ)
+	//	Z = H
+	float X, Y, Z;
 
 	X = Radius * cos(radians(Theta));
 	Y = Height;
@@ -175,6 +179,10 @@ void calculateEyeVector2() {
 	EyeVector.x = X;
 	EyeVector.y = Y;
 	EyeVector.z = Z;
+
+	L_position.x = X;
+	L_position.y = Y;
+	L_position.z = Z;
 
 	printf("Eye Vector\n");
 	printVector(EyeVector);
@@ -241,6 +249,7 @@ initMainWindow( void )
     l_ambient = glGetUniformLocation(program, "l_ambient");
 	l_diffuse = glGetUniformLocation(program, "l_diffuse");
 	l_specular = glGetUniformLocation(program, "l_specular");
+	l_position = glGetUniformLocation(program, "l_position");
 	m_reflect_ambient = glGetUniformLocation(program, "m_reflect_ambient");
 	m_reflect_diffuse = glGetUniformLocation(program, "m_reflect_diffuse");
 	m_reflect_specular = glGetUniformLocation(program, "m_reflect_specular");
@@ -292,6 +301,8 @@ displayMainWindow( void )
    glUniform4fv(l_ambient, 1, L_ambient);
    glUniform4fv(l_diffuse, 1, L_diffuse);
    glUniform4fv(l_specular, 1, L_specular);
+   glUniform4fv(l_position, 1, L_position);
+
 
    glUniform4fv(m_reflect_ambient, 1, M_reflect_ambient);
    glUniform4fv(m_reflect_diffuse, 1, M_reflect_diffuse);
