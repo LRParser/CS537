@@ -2,6 +2,7 @@ This program should be run on MacOS with make -f Makefile.mac run
 To open another SMF file run e.g. ./assignment6 bound-bunny_200.smf
 
 A demo video showing keyboard (tested on a linux system) is at: https://youtu.be/Y0RB2aLCO_U
+Demo key commands are listed in DemoNotes
 
 Known issues (leftover from A5): 
 
