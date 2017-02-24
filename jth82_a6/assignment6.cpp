@@ -9,9 +9,6 @@
 #include <algorithm>
 #include <iterator>
 
-struct timespec ts_start;
-struct timespec ts_end;
-
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
@@ -27,7 +24,7 @@ public:
 	vec4 normal;
 };
 
-bool debug = true;
+bool debug = false;
 
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
@@ -37,20 +34,38 @@ GLuint transformMatrix;
 
 // Uniforms for lighting
 // Light properties
-color4 L_ambient = vec4(0.0,1,0.0,1);
-color4 L_diffuse = vec4(0.0,1,0.0,1);
-color4 L_specular = vec4(0.0,1,0.0,1);
+
 point4 L_position = point4(0,5,5,1);
 
 // Material properties
+
+
+
+vec4 materialAmbientLightProperties[3];
+vec4 materialDiffuseLightProperties[3];
+vec4 materialSpecularLightProperties[3];
+
+vec4 materialAmbientReflectionProperties[3];
+vec4 materialDiffuseReflectionProperties[3];
+vec4 materialSpecularReflectionProperties[3];
+
+
+color4 L_ambient = vec4(0.0,1,0.0,1);
+color4 L_diffuse = vec4(0.0,1,0.0,1);
+color4 L_specular = vec4(1.0,1.0,1.0,1);
+
 color4 M_reflect_ambient = vec4(0.0,1,0.0,1.0);
 color4 M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
-color4 M_reflect_specular = vec4(0.0,1,0.0,1.0);
+color4 M_reflect_specular = vec4(1.0,1,1.0,1.0);
 
-GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular;
+float M_shininess = 10;
+
+GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
+GLuint cameraPosition;
+GLuint isGouraud;
 
 // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-bool isPerspective = false;
+bool isPerspective = true;
 
 // For Ortho coordinates
 float left = -1.0f;
@@ -59,6 +74,9 @@ float bottom = -1.0f;
 float top = 1.0f;
 float near = 0.0f;
 float far = 10.0f;
+
+float IsGouraud = .6; // >.5 is true, otherwise false
+
 
 // Copied from Lecture 8 slides as described in assignment
 
@@ -71,25 +89,18 @@ std::vector<Face> smfFaces;
 vec4 points[10000];
 vec4 normals[10000];
 
-vec3 ScaleFactors = vec3(1.0f, 1.0f, 1.0f);
-vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
-vec3  TranslationFactors = vec3(0.0f,0.0f,0.0f);
-
 vec3 EyeVector = vec3(1.0f,1.0f,3.0f);
 
 vec4 modelCentroid;
 
-double bounding_box[6] = {-1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
-
-
-float Radius = 10.0; // Radius in degrees
-float Phi = 57.2958; // Camera angle
+float Radius = 10.0;
 int Theta = 90; // Longitude angle in degrees
-float Height = 1;
+int LightTheta = -345;
+int LightRadius = -1;
+float Height, LightHeight = 1;
 
 float RadiusDelta = 1;
 int Delta = 5;
-float PhiDelta = 5;
 float HeightDelta = .1;
 float ParallelDelta = 2;
 
@@ -180,14 +191,18 @@ void calculateEyeVector2() {
 	EyeVector.y = Y;
 	EyeVector.z = Z;
 
+	X = LightRadius * cos(radians(LightTheta));
+	Y = LightHeight;
+	Z = LightRadius * sin(radians(LightTheta));
+
 	L_position.x = X;
 	L_position.y = Y;
 	L_position.z = Z;
 
-	printf("Eye Vector\n");
-	printVector(EyeVector);
-
-
+	if(debug) {
+		printf("Eye Vector\n");
+		printVector(EyeVector);
+	}
 
 
 }
@@ -253,6 +268,9 @@ initMainWindow( void )
 	m_reflect_ambient = glGetUniformLocation(program, "m_reflect_ambient");
 	m_reflect_diffuse = glGetUniformLocation(program, "m_reflect_diffuse");
 	m_reflect_specular = glGetUniformLocation(program, "m_reflect_specular");
+	m_shininess = glGetUniformLocation(program, "m_shininess");
+	cameraPosition = glGetUniformLocation(program, "cameraPosition");
+	isGouraud = glGetUniformLocation(program, "isGouraud");
 
 
     glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
@@ -307,6 +325,11 @@ displayMainWindow( void )
    glUniform4fv(m_reflect_ambient, 1, M_reflect_ambient);
    glUniform4fv(m_reflect_diffuse, 1, M_reflect_diffuse);
    glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
+   glUniform1f(m_shininess,M_shininess);
+   glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
+   glUniform4fv(cameraPosition,1,vec4(EyeVector,1.0));
+   glUniform1f(m_shininess,M_shininess);
+   glUniform1f(isGouraud,IsGouraud);
 
    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
 
@@ -361,38 +384,63 @@ keyboard( unsigned char key, int x, int y )
     	pressed = true;
     	Height -= HeightDelta;
     	break;
+    case 'q' :
+    	// Increase Height
+    	pressed = true;
+    	LightHeight += HeightDelta;
+    	break;
+    case 'w' :
+    	// Decrease height
+    	pressed = true;
+    	LightHeight -= HeightDelta;
+    	break;
     case '3' :
     	// Increase orbit radius / distance of camera
     	pressed = true;
 
-    	if(isPerspective) {
-        	Radius += RadiusDelta;
-        	if(Radius >= 360) {
-        		Radius = 360;
-        	}
-    	}
-    	else {
-    		near += ParallelDelta;
-    		far += ParallelDelta;
-    	}
+		Radius += RadiusDelta;
+		if(Radius >= 360) {
+			Radius = 360;
+		}
+
+		near += ParallelDelta;
+		far += ParallelDelta;
+
 
     	break;
     case '4' :
     	pressed = true;
-    	if(isPerspective) {
-        	Radius -= RadiusDelta;
-        	if(Radius <= 1) {
-        		Radius = 1;
-        	}
-    	}
-    	else {
-    		near -= ParallelDelta;
-    		far -= ParallelDelta;
+		Radius -= RadiusDelta;
+		if(Radius <= 1) {
+			Radius = 1;
+		}
 
-    	}
-
+		near -= ParallelDelta;
+		far -= ParallelDelta;
 
     	break;
+    case 'e' :
+		// Increase orbit radius / distance of light
+    	LightRadius += RadiusDelta;
+    	//LightRadius = LightRadius % 20;
+    	if(debug) {
+    		printf("LightRadius is: %d\n",LightRadius);
+    	}
+    	pressed = true;
+        break;
+
+	case 'r' :
+		// Increase orbit radius / distance of light
+    	LightRadius -= RadiusDelta;
+    	//LightRadius = LightRadius % 20;
+    	if(debug) {
+    		printf("LightRadius is: %d\n",LightRadius);
+    	}
+    	pressed = true;
+        break;
+
+
+		break;
     case '5' :
     	// Rotate counterclockwise
     	Theta += 5;
@@ -406,9 +454,27 @@ keyboard( unsigned char key, int x, int y )
     case '6' :
     	Theta -= 5;
     	Theta = Theta % 360;
-    	//Theta = max(Theta,50);
     	if(debug) {
     		printf("Theta is: %d\n",Theta);
+    	}
+    	pressed = true;
+
+    	break;
+    case 't' :
+    	// Rotate counterclockwise
+    	LightTheta += 5;
+    	LightTheta = LightTheta % 360;
+    	if(debug) {
+    		printf("LightTheta is: %d\n",LightTheta);
+    	}
+    	pressed = true;
+
+    	break;
+    case 'y' :
+    	LightTheta -= 5;
+    	LightTheta = LightTheta % 360;
+    	if(debug) {
+    		printf("LightTheta is: %d\n",LightTheta);
     	}
     	pressed = true;
 
@@ -421,13 +487,69 @@ keyboard( unsigned char key, int x, int y )
     	pressed = true;
     	break;
     case '8' :
-    	// Decrease phi
     	isPerspective = false;
     	pressed = true;
     	break;
+    case 'g' :
+    	IsGouraud = .6;
+    	if(debug) {
+    		printf("Gouraud shading mode\n");
+    	}
+    	pressed = true;
+    	break;
+    case 'p' :
+    	IsGouraud = .4;
+    	if(debug) {
+    		printf("Phong shading mode\n");
+    	}
+    	pressed = true;
+    	break;
+    case 'a' :
+    	if(debug) {
+    		printf("Material 1 selected");
+    	}
+    	L_ambient = vec4(1.0,1,0.0,1);
+    	L_diffuse = vec4(0.0,1,0.0,1);
+    	L_specular = vec4(1.0,1.0,1.0,1);
 
+    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
+    	M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
+    	M_reflect_specular = vec4(1.0,1,1.0,1.0);
+    	pressed = true;
 
-	case 'q':
+    	break;
+
+    case 's' :
+    	if(debug) {
+    		printf("Material 2 selected");
+    	}
+    	L_ambient = vec4(1.0,1,1,1);
+    	L_diffuse = vec4(0.0,0,1.0,1);
+    	L_specular = vec4(0.0,1.0,1.0,1);
+
+    	M_reflect_ambient = vec4(1.0,0,1.0,1.0);
+    	M_reflect_diffuse = vec4(1.0,.4,0.0,1.0);
+    	M_reflect_specular = vec4(0.0,.4,.4,1.0);
+    	pressed = true;
+
+    	break;
+
+    case 'd' :
+    	if(debug) {
+    		printf("Material 3 selected");
+    	}
+    	L_ambient = vec4(1.0,1,1,1);
+    	L_diffuse = vec4(0.0,0,1.0,1);
+    	L_specular = vec4(0.0,1.0,1.0,1);
+
+    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
+    	M_reflect_diffuse = vec4(1.0,1,0.0,1.0);
+    	M_reflect_specular = vec4(1.0,1,.5,1.0);
+    	pressed = true;
+
+    	break;
+
+	case 'x':
 		// Exit
 		exit( EXIT_SUCCESS );
 		break;
@@ -526,28 +648,31 @@ void populatePointsAndNormalsArrays() {
 }
 
 void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
-	// See p 272
-			vec4 U = vertex2 - vertex1;
-			vec4 V = vertex3 - vertex2;
+		// See p 272
+		vec4 U = vertex2 - vertex1;
+		vec4 V = vertex3 - vertex2;
 
-			vec4 crossVector = cross(U,V);
+		vec4 crossVector = cross(U,V);
+
+		vec4 normalNormalized = normalize(crossVector);
+
+		vec4 absNormalNormalized = vAbs(normalNormalized);
+
+		if(debug) {
 			printf("Cross product ");
 			printVector(crossVector);
-			vec4 normalNormalized = normalize(crossVector);
 			printf("Normalized vector ");
 			printVector(normalNormalized);
-			vec4 absNormalNormalized = vAbs(normalNormalized);
 			printf("Absolute value vector ");
 			printVector(absNormalNormalized);
-
-
 			printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
 			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
 			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
 
 			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
+		}
 
-			currentFace.normal = absNormalNormalized;
+		currentFace.normal = absNormalNormalized;
 }
 
 
@@ -617,39 +742,45 @@ main( int argc, char **argv )
       fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
 #endif
 
+    char* fileName;
     if(argc == 1) {
-    			std::cout << "You must specify an SMF file" << std::endl;
-    		}
-    		else {
-    			char* fileName = argv[1];
-    			std::cout << "Filename is: " << argv[1] << std::endl;
-    			readSMF(fileName);
-    			populatePointsAndNormalsArrays();
+    	fileName = "bound-bunny_200.smf";
+	}
+	else {
+		fileName = argv[1];
+	}
+	readSMF(fileName);
+	populatePointsAndNormalsArrays();
 
-    			std::cout << "Press: 1 - To increase camera height" << std::endl;
-    			std::cout << "Press: 2 - To decrease camera height" << std::endl;
-    			std::cout << "Press: 3 - To increase orbit radius" << std::endl;
-    			std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
-    			std::cout << "Press: 5 - To increase cylinder angle (rotate camera)" << std::endl;
-    			std::cout << "Press: 6 - To decrease cylinder angle (rotate counterclockwise)" << std::endl;
-    			std::cout << "Press: 7 - To switch to perspective projection mode (default)" << std::endl;
-    			std::cout << "Press: 8 - To switch to parallel projection mode" << std::endl;
-    			std::cout << "Press: q - To exit the program" << std::endl;
+	std::cout << "Press: 1 - To increase camera height" << std::endl;
+	std::cout << "Press: 2 - To decrease camera height" << std::endl;
+	std::cout << "Press: q - To increase light height" << std::endl;
+	std::cout << "Press: w - To decrease light height" << std::endl;
+	std::cout << "Press: 3 - To increase orbit radius" << std::endl;
+	std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
+	std::cout << "Press: e - To increase light radius" << std::endl;
+	std::cout << "Press: r - To decrease light radius" << std::endl;
+	std::cout << "Press: 5 - To increase camera angle (rotate camera)" << std::endl;
+	std::cout << "Press: 6 - To decrease camera angle (rotate counterclockwise)" << std::endl;
+	std::cout << "Press: t - To increase light angle (rotate camera)" << std::endl;
+	std::cout << "Press: y - To decrease light angle (rotate counterclockwise)" << std::endl;
+	std::cout << "Press: 7 - To enable perspective projection mode" << std::endl;
+	std::cout << "Press: 8 - To enable parallel projection mode (default)" << std::endl;
+	std::cout << "Press: g - To enable Gouraud shading" << std::endl;
+	std::cout << "Press: p - To enable Phong shading" << std::endl;
+	std::cout << "Press: a - To select material 1 (reflects green, highly specular)" << std::endl;
+	std::cout << "Press: s - To select material 2 (reflects dark blue, low specular)" << std::endl;
+	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;
+
+	std::cout << "Press: x - To exit the program" << std::endl;
 
 
-    		}
+	glutInitWindowSize( w, h );
+	initMainWindow();
+	glutDisplayFunc( displayMainWindow );
+	glutKeyboardFunc( keyboard );
+	glutIdleFunc(idle);
 
-	    glutInitWindowSize( w, h );
-	    initMainWindow();
-	    glutDisplayFunc( displayMainWindow );
-	    glutKeyboardFunc( keyboard );
-		glutIdleFunc(idle);
-
-
-
-
-
-
-	    glutMainLoop();
-	    return 0;
+	glutMainLoop();
+	return 0;
 }
