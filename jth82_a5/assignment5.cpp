@@ -76,6 +76,16 @@ vec3 radians(vec3 degrees) {
         return (M_PI * degrees) / 180;
 }
 
+vec4 vAbs(vec4 input) {
+	vec4 absVec = vec4(std::abs(input.x),std::abs(input.y),
+			std::abs(input.z),1.0);
+	return absVec;
+}
+
+void printVector(vec4 vIn) {
+	printf("(%f, %f, %f)\n",vIn.x,vIn.y,vIn.z);
+}
+
 void
 initMainWindow( void )
 {
@@ -159,9 +169,9 @@ void calculateEyeVector() {
 	// http://gamedev.stackexchange.com/questions/5766/camera-rotation-using-angles
 	float X, Y, Z;
 
-	X = Rho * sin(radians(Phi)) * cos(radians(Theta));
-	Y = Rho * cos(radians(Phi)) + Height;
-	Z = Rho * sin(radians(Phi)) * sin(radians(Theta));
+	X = Rho * cos(radians(Theta));
+	Y = Height;
+	Z = Rho * sin(radians(Theta));
 
 	EyeVector.x = X;
 	EyeVector.y = Y;
@@ -194,7 +204,7 @@ displayMainWindow( void )
    }
 
 
-   calculateEyeVector2();
+   calculateEyeVector();
 
    // Camera matrix
    mat4 View = LookAt(
@@ -282,18 +292,14 @@ keyboard( unsigned char key, int x, int y )
     case '5' :
     	// Increase phi
     	pressed = true;
-    	Phi += PhiDelta;
-    	if(Phi >= 360) {
-    		Phi = 360;
-    	}
+    	Theta += 10;
+
     	break;
     case '6' :
     	// Decrease phi
     	pressed = true;
-    	Phi -= PhiDelta;
-    	if(Phi <= 0) {
-    		Phi = 0;
-    	}
+    	Theta -= 10;
+
     	break;
     case '7' :
     	// Set perspective projection
@@ -314,7 +320,7 @@ keyboard( unsigned char key, int x, int y )
     }
     if(pressed) {
 
-    	calculateEyeVector2();
+    	calculateEyeVector();
 
         glutSetWindow(mainWindow);
         glutPostRedisplay();
@@ -406,24 +412,29 @@ void readSMF(char* fileName) {
 				 */
 
 				vec4 U = vertex2 - vertex1;
-				vec4 V = vertex3 - vertex1;
+				vec4 V = vertex3 - vertex2;
 
-				float normalX = (U.y*V.z) - (U.z*V.y);
-				float normalY = (U.z*V.x) - (U.x*V.z);
-				float normalZ = (U.x*V.y) - (U.y*V.x);
+				vec4 crossVector = cross(U,V);
 
-				float normalDenominator = sqrt((normalX*normalX) + (normalY*normalY) + (normalZ*normalZ));
-				normalX = normalX / normalDenominator;
-				normalY = normalY / normalDenominator;
-				normalZ = normalZ  / normalDenominator;
+				vec4 normalNormalized = normalize(crossVector);
 
-				//printf("Color is: %f, %f, %f\n",normalX,normalY,normalZ);
+				vec4 absNormalNormalized = vAbs(normalNormalized);
 
-				vec4 normalNormalized = vec4(normalX,normalY,normalZ,1.0);
+					printf("Cross product ");
+					printVector(crossVector);
+					printf("Normalized vector ");
+					printVector(normalNormalized);
+					printf("Absolute value vector ");
+					printVector(absNormalNormalized);
+					printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
+					printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
+					printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
 
-				colors[currentOffset] = normalNormalized;
-				colors[currentOffset + 1] = normalNormalized;
-				colors[currentOffset + 2] = normalNormalized;
+					printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
+
+				colors[currentOffset] = absNormalNormalized;
+				colors[currentOffset + 1] = absNormalNormalized;
+				colors[currentOffset + 2] = absNormalNormalized;
 				totalPoints += 3;
 			}
 
@@ -462,7 +473,7 @@ main( int argc, char **argv )
 	    initMainWindow();
 	    glutDisplayFunc( displayMainWindow );
 	    glutKeyboardFunc( keyboard );
-		glutIdleFunc(idle);
+		//glutIdleFunc(idle);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 

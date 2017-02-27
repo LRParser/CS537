@@ -89,7 +89,7 @@ std::vector<Face> smfFaces;
 vec4 points[10000];
 vec4 normals[10000];
 
-vec3 EyeVector = vec3(1.0f,1.0f,3.0f);
+vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
 vec4 modelCentroid;
 
@@ -190,6 +190,7 @@ void calculateEyeVector2() {
 	EyeVector.x = X;
 	EyeVector.y = Y;
 	EyeVector.z = Z;
+	EyeVector.w = 0;
 
 	X = LightRadius * cos(radians(LightTheta));
 	Y = LightHeight;
@@ -198,6 +199,7 @@ void calculateEyeVector2() {
 	L_position.x = X;
 	L_position.y = Y;
 	L_position.z = Z;
+	L_position.w = 0;
 
 	if(debug) {
 		printf("Eye Vector\n");
@@ -245,7 +247,6 @@ initMainWindow( void )
 
     // Load shaders and use the resulting shader program
     GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
-    //  glUseProgram( program );  // This is called in InitShader
 
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
@@ -255,7 +256,7 @@ initMainWindow( void )
 
     GLuint vNormal = glGetAttribLocation( program, "vNormal" );
     glEnableVertexAttribArray( vNormal );
-    glVertexAttribPointer( vNormal, 4, GL_FLOAT, GL_FALSE, 0,
+    glVertexAttribPointer( vNormal, 4, GL_FLOAT, GL_TRUE, 0,
                            BUFFER_OFFSET(sizeof(normals)) );
 
     modelCentroid = calculateModelCentroid();
@@ -276,6 +277,7 @@ initMainWindow( void )
     glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+    //glEnable(GL_DEPTH_TEST);
 
     glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
     glFlush();
@@ -289,14 +291,13 @@ displayMainWindow( void )
 {
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-   glEnable(GL_DEPTH_TEST);
 
    mat4 Projection;
    if(isPerspective) {
-	   Projection = Perspective(45.0f, 4.0f/3.0f, 0.1f, 100.0f);
+	   Projection = Perspective(45.0f, 1.0f, 0.1f, 100.0f);
    }
    else {
-	   Projection = Ortho(left,right,bottom,top,near,far);
+	   Projection = Ortho(left,right,bottom,top,-0.001f,100.f);
 
    }
 
@@ -305,13 +306,13 @@ displayMainWindow( void )
    // Camera matrix
    mat4 View = LookAt(
 	EyeVector,
-	vec3(0,0,0),
-	vec3(0,1,0)
+	vec4(0,0,0,1),
+	vec4(0,1,0,0)
 
        );
 
    // Move model to the origin mat4(1.0f);
-   mat4 Model = Translate(modelCentroid);
+   mat4 Model = Translate(-1 * modelCentroid);
 
    TransformMatrix = Projection * View * Model;
 
@@ -327,7 +328,7 @@ displayMainWindow( void )
    glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
    glUniform1f(m_shininess,M_shininess);
    glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform4fv(cameraPosition,1,vec4(EyeVector,1.0));
+   glUniform4fv(cameraPosition,1,EyeVector);
    glUniform1f(m_shininess,M_shininess);
    glUniform1f(isGouraud,IsGouraud);
 
@@ -337,12 +338,6 @@ displayMainWindow( void )
 
 }
 
-
-void reshape(GLsizei w, GLsizei h) {
-	windowWidth = w;
-	windowHeight = h;
-	glViewport(0,0,windowWidth,windowHeight);
-}
 
 int max(int int1, int int2) {
 	if(int1>int2) {
@@ -376,28 +371,22 @@ keyboard( unsigned char key, int x, int y )
 
     case '1' :
     	// Increase Height
-    	pressed = true;
     	Height += HeightDelta;
     	break;
     case '2' :
     	// Decrease height
-    	pressed = true;
     	Height -= HeightDelta;
     	break;
     case 'q' :
     	// Increase Height
-    	pressed = true;
     	LightHeight += HeightDelta;
     	break;
     case 'w' :
     	// Decrease height
-    	pressed = true;
     	LightHeight -= HeightDelta;
     	break;
     case '3' :
     	// Increase orbit radius / distance of camera
-    	pressed = true;
-
 		Radius += RadiusDelta;
 		if(Radius >= 360) {
 			Radius = 360;
@@ -409,7 +398,6 @@ keyboard( unsigned char key, int x, int y )
 
     	break;
     case '4' :
-    	pressed = true;
 		Radius -= RadiusDelta;
 		if(Radius <= 1) {
 			Radius = 1;
@@ -422,7 +410,6 @@ keyboard( unsigned char key, int x, int y )
     case 'e' :
 		// Increase orbit radius / distance of light
     	LightRadius += RadiusDelta;
-    	//LightRadius = LightRadius % 20;
     	if(debug) {
     		printf("LightRadius is: %d\n",LightRadius);
     	}
@@ -432,7 +419,6 @@ keyboard( unsigned char key, int x, int y )
 	case 'r' :
 		// Increase orbit radius / distance of light
     	LightRadius -= RadiusDelta;
-    	//LightRadius = LightRadius % 20;
     	if(debug) {
     		printf("LightRadius is: %d\n",LightRadius);
     	}
@@ -476,7 +462,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightTheta is: %d\n",LightTheta);
     	}
-    	pressed = true;
 
     	break;
     case '7' :
@@ -488,21 +473,18 @@ keyboard( unsigned char key, int x, int y )
     	break;
     case '8' :
     	isPerspective = false;
-    	pressed = true;
     	break;
     case 'g' :
     	IsGouraud = .6;
     	if(debug) {
     		printf("Gouraud shading mode\n");
     	}
-    	pressed = true;
     	break;
     case 'p' :
     	IsGouraud = .4;
     	if(debug) {
     		printf("Phong shading mode\n");
     	}
-    	pressed = true;
     	break;
     case 'a' :
     	if(debug) {
@@ -515,7 +497,6 @@ keyboard( unsigned char key, int x, int y )
     	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
     	M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
     	M_reflect_specular = vec4(1.0,1,1.0,1.0);
-    	pressed = true;
 
     	break;
 
@@ -555,13 +536,9 @@ keyboard( unsigned char key, int x, int y )
 		break;
 
     }
-    if(pressed) {
 
-    	calculateEyeVector2();
-
-        glutPostRedisplay();
-    }
-
+	calculateEyeVector2();
+	glutPostRedisplay();
 
 }
 
@@ -636,18 +613,14 @@ void populatePointsAndNormalsArrays() {
 		points[currentOffset + 1] = vertex2;
 		points[currentOffset + 2] = vertex3;
 
-		// For now, do coloring in application. Will move to shader
-
 		normals[currentOffset] = calculateVertexNormal(currentFace.firstVertexIndex);
 		normals[currentOffset + 1] = calculateVertexNormal(currentFace.secondVertexIndex);
 		normals[currentOffset + 2] = calculateVertexNormal(currentFace.thirdVertexIndex);
 
-
-
 	}
 }
 
-void calculateFaceColor(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
+void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
 		// See p 272
 		vec4 U = vertex2 - vertex1;
 		vec4 V = vertex3 - vertex2;
@@ -706,7 +679,7 @@ int readSMF(char* fileName) {
 					vec4 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
 					f.thirdVertex = thirdVertex;
 
-					calculateFaceColor(firstVertex,secondVertex,thirdVertex,f);
+					calculateFaceNormal(firstVertex,secondVertex,thirdVertex,f);
 
 					vertexFaceMapping[f.firstVertexIndex].push_back(f);
 					vertexFaceMapping[f.secondVertexIndex].push_back(f);
@@ -775,11 +748,12 @@ main( int argc, char **argv )
 	std::cout << "Press: x - To exit the program" << std::endl;
 
 
-	glutInitWindowSize( w, h );
 	initMainWindow();
+
 	glutDisplayFunc( displayMainWindow );
 	glutKeyboardFunc( keyboard );
-	glutIdleFunc(idle);
+
+	//glEnable(GL_DEPTH_TEST);
 
 	glutMainLoop();
 	return 0;
