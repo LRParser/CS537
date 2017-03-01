@@ -24,7 +24,7 @@ public:
 	vec4 normal;
 };
 
-bool debug = false;
+bool debug = true;
 
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
