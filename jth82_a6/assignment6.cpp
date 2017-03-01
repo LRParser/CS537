@@ -68,12 +68,9 @@ GLuint isGouraud;
 bool isPerspective = true;
 
 // For Ortho coordinates
-float left = -1.0f;
-float right = 1.0f;
-float bottom = -1.0f;
-float top = 1.0f;
-float near = 0.0f;
-float far = 10.0f;
+GLfloat  left = -4.0, right = 4.0;
+GLfloat  bottom = -3.0, top = 5.0;
+GLfloat  near = -10.0, far = 10.0;
 
 float IsGouraud = .6; // >.5 is true, otherwise false
 
@@ -758,7 +755,7 @@ main( int argc, char **argv )
 	glutDisplayFunc( displayMainWindow );
 	glutKeyboardFunc( keyboard );
 
-	//glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 
 	glutMainLoop();
 	return 0;
