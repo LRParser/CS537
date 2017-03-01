@@ -21,9 +21,17 @@ typedef Angel::vec4 point3;
 
 bool debug = true;
 
-const int NumPoints = 16 * 4;
-vec3 points[NumPoints];
-vec3 normals[NumPoints];
+const int NumPoints = 16;
+vec4 points[NumPoints];
+vec4 normals[NumPoints];
+
+/*
+vec3 controlPoints[4] = {
+        vec3( -.40, -.40, 0.0), vec3( -.20, .40, 0.0),
+        vec3(.20, -.40, 0.0), vec3(.40, .40, 0.0) };
+*/
+GLuint Projection;
+
 
 vec3 controlPoints[16] = {
 		vec3(0.0, 0.0, 0.0),
@@ -43,6 +51,7 @@ vec3 controlPoints[16] = {
 		vec3(4.0, 6.0, 1.3 ),
 		vec3(6.0, 6.0, -0.2)
 };
+
 
 color4 L_ambient = vec4(1.0,1,0.1,1);
 color4 L_diffuse = vec4(1.0,1,0.1,1);
@@ -68,11 +77,50 @@ GLfloat  near = -10.0, far = 10.0;
 
 float IsGouraud = .6; // >.5 is true, otherwise false
 
+
+
 void printVector(vec3 vIn) {
 	printf("(%f, %f, %f)\n",vIn.x,vIn.y,vIn.z);
 }
 
 
+void printVector(vec4 vIn) {
+	printf("(%f, %f, %f)\n",vIn.x,vIn.y,vIn.z);
+}
+
+void
+keyboard( unsigned char key, int x, int y )
+{
+	switch(key) {
+		case 'q':
+			exit(0);
+			break;
+	}
+}
+
+void
+reshape( int width, int height )
+{
+    glViewport( 0, 0, width, height );
+
+    GLfloat  left = -4.0, right = 4.0;
+    GLfloat  bottom = -3.0, top = 5.0;
+    GLfloat  zNear = -10.0, zFar = 10.0;
+
+    GLfloat  aspect = GLfloat(width)/height;
+
+    if ( aspect > 0 ) {
+	left *= aspect;
+	right *= aspect;
+    }
+    else {
+	bottom /= aspect;
+	top /= aspect;
+    }
+
+    mat4 projection = Ortho( left, right, bottom, top, zNear, zFar );
+    glUniformMatrix4fv( Projection, 1, GL_TRUE, projection );
+}
 
 void
 initMainWindow( void )
@@ -84,32 +132,46 @@ initMainWindow( void )
     glGenVertexArrays( 1, vao );
     glBindVertexArray( vao[0] );
 
-    // Draw Bezier Curve
+
+
+
+    // Draw Bezier Patch; each has 16 vertices
+
+
+
     float N = NumPoints;
     float d = 1.0/(N-1.0);
     float u, uu;
     for(int i = 0; i < N; i++) {
+
+
+
+
     	u = i*d;
     	uu = 1.0-u;
-    	for(int j=0;j<2;j++) {
-    		points[i][j] = controlPoints[0][j]*uu*uu*uu
-    				+ 3.0*controlPoints[1][j]*uu*uu*u
-					+ 3.0*controlPoints[2][j]*uu*u*u
-					+ 3.0*controlPoints[3][j]*u*u*u;
-    	}
+
+    	printf("Control point x, y is: %f,%f\n",controlPoints[1].x,controlPoints[1].y);
+
+		points[i].x = controlPoints[0].x*uu*uu*uu
+				+ 3.0*controlPoints[1].x*uu*uu*u
+				+ 3.0*controlPoints[2].x*uu*u*u
+				+ 3.0*controlPoints[3].x*u*u*u;
+
+		points[i].y = controlPoints[0].y*uu*uu*uu
+				+ 3.0*controlPoints[1].y*uu*uu*u
+				+ 3.0*controlPoints[2].y*uu*u*u
+				+ 3.0*controlPoints[3].y*u*u*u;
+
+		printf("(Setting point: x is %f, y is %f)\n",points[i].x,points[i].y);
+
     }
 
     // Print points and normals info
 	if(debug) {
 		for(int i = 0; i < NumPoints; i++) {
-			vec3 currentPoint = points[i];
+			vec4 currentPoint = points[i];
 			printf("(Point)");
 			printVector(currentPoint);
-		}
-		for(int i = 0; i < NumPoints; i++) {
-			vec3 currentNormal = normals[i];
-			printf("(Normal)");
-			printVector(currentNormal);
 		}
 	}
 
@@ -124,7 +186,7 @@ initMainWindow( void )
         sizeof(normals), normals );
 
     // Load shaders and use the resulting shader program
-    GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
+    GLuint program = InitShader( "vshaderBezier.glsl", "fShaderBezier.glsl" );
 
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
@@ -138,12 +200,14 @@ initMainWindow( void )
                            BUFFER_OFFSET(sizeof(normals)) );
 
 
+
+    // glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
+
+    Projection = glGetUniformLocation( program, "Projection" );
+
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); // white background
 
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-
-    glDrawArrays( GL_LINE_STRIP, 0, NumPoints );
-    glFlush();
 
 }
 
@@ -151,8 +215,7 @@ void
 displayMainWindow( void )
 {
 
-   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+   glClear( GL_COLOR_BUFFER_BIT);
    glDrawArrays( GL_TRIANGLES, 0, NumPoints );
 
    glutSwapBuffers();
@@ -173,7 +236,7 @@ main( int argc, char **argv )
 #endif
     glutInitWindowSize( 500, 500 );
 
-    glutCreateWindow( "Assignment 6" );
+    glutCreateWindow( "Bezier Curve" );
 #ifndef __APPLE__
     GLenum err = glewInit();
 
@@ -189,7 +252,9 @@ main( int argc, char **argv )
 	initMainWindow();
 
 	glutDisplayFunc( displayMainWindow );
-	// glutKeyboardFunc( keyboard );
+    glutReshapeFunc( reshape );
+
+	glutKeyboardFunc( keyboard );
 
 	glEnable(GL_DEPTH_TEST);
 

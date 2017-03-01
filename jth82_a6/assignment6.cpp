@@ -64,7 +64,7 @@ GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflec
 GLuint cameraPosition;
 GLuint isGouraud;
 
-// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+// Projection matrix : 45° Field of View, 1:1 ratio, display range : 0.1 unit <-> 100 units
 bool isPerspective = true;
 
 // For Ortho coordinates

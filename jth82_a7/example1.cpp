@@ -10,12 +10,12 @@ typedef GLfloat     point3[3];
 #include "patches.h"
 
 
-const int NumTimesToSubdivide = 3;
+const int NumTimesToSubdivide = 5;
 const int PatchesPerSubdivision = 4;
 const int NumQuadsPerPatch =
     (int)pow( PatchesPerSubdivision, NumTimesToSubdivide );
 const int NumTriangles =
-    ( NumTeapotPatches * NumQuadsPerPatch * 2 /* triangles / quad */ );
+    ( NumHWPatches * NumQuadsPerPatch * 2 /* triangles / quad */ );
 const int NumVertices =
     ( NumTriangles * 3 /* vertices / triangle */ );
 
@@ -118,18 +118,19 @@ divide_patch( point4 p[4][4], int count )
 void
 init( void )
 {
-    for ( int n = 0; n < NumTeapotPatches; n++ ) {
+    for ( int n = 0; n < NumHWPatches; n++ ) {
 	point4  patch[4][4];
 
 	// Initialize each patch's control point data
 	for ( int i = 0; i < 4; ++i ) {
 	    for ( int j = 0; j < 4; ++j ) {
-		point3& v = vertices[indices[n][i][j]];
+		point3& v = vertices2[indices2[n][i][j]];
 		patch[i][j] = point4( v[X], v[Y], v[Z], 1.0 );
 	    }
 	}
 
 	// Subdivide the patch
+	// draw_patch(patch);
         divide_patch( patch, NumTimesToSubdivide );
     }
 
@@ -220,7 +221,7 @@ main( int argc, char *argv[] )
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
 #endif
-    glutInitWindowSize( 512, 512 );
+    glutInitWindowSize( 1000, 1000 );
 
     glutCreateWindow( "teapot" );
 

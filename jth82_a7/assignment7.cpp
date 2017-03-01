@@ -651,6 +651,8 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 }
 
 
+
+
 int readSMF(char* fileName) {
 
 
