@@ -277,7 +277,6 @@ initMainWindow( void )
     glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    //glEnable(GL_DEPTH_TEST);
 
     glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
     glFlush();
@@ -635,6 +634,8 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 
 		vec4 customNormal = crossVector / customLength;
 
+		vec4 absCustomNormal = vAbs(customNormal);
+
 		if(debug) {
 			printf("Cross product ");
 			printVector(crossVector);
@@ -649,7 +650,7 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
 		}
 
-		currentFace.normal = customNormal;
+		currentFace.normal = absCustomNormal;
 }
 
 
