@@ -631,6 +631,10 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 
 		vec4 absNormalNormalized = vAbs(normalNormalized);
 
+		double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
+
+		vec4 customNormal = crossVector / customLength;
+
 		if(debug) {
 			printf("Cross product ");
 			printVector(crossVector);
@@ -645,7 +649,7 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
 		}
 
-		currentFace.normal = absNormalNormalized;
+		currentFace.normal = customNormal;
 }
 
 
@@ -701,7 +705,7 @@ main( int argc, char **argv )
 	//glEnable( GL_DEPTH_TEST );
     glutInit( &argc, argv );
 #ifdef __APPLE__
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE );
+    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
 #endif

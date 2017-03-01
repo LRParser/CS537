@@ -47,11 +47,11 @@ vec3 ScaleFactors = vec3(1.0f, 1.0f, 1.0f);
 vec3  RotationFactors = vec3(0.0f,0.0f,0.0f);
 vec3  TranslationFactors = vec3(0.0f,0.0f,0.0f);
 
-vec3 EyeVector = vec3(1.0f,1.0f,3.0f);
+vec4 EyeVector = vec4(1.0f,1.0f,3.0f,0.0f);
 
 float Rho = 4.0; // Radius in degrees
 float Phi = 90; // Zenith angle in degrees
-float Theta = 1; // Longitude angle in degrees
+float Theta = 10; // Longitude angle in degrees
 float Height = 0;
 
 float RadiusDelta = 1;
@@ -128,7 +128,6 @@ initMainWindow( void )
     transformMatrix = glGetUniformLocation(program, "transformMatrix");
 
 
-    glEnable( GL_DEPTH_TEST );
 
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); // black background
 
@@ -416,14 +415,31 @@ void readSMF(char* fileName) {
 
 				vec4 crossVector = cross(U,V);
 
+
+
+
 				vec4 normalNormalized = normalize(crossVector);
+
+				vec4 myNormal = crossVector / length(crossVector);
 
 				vec4 absNormalNormalized = vAbs(normalNormalized);
 
-					printf("Cross product ");
+				double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
+
+				vec4 customNormal = crossVector / customLength;
+
+				vec4 absCustomNormal = vAbs(customNormal);
+
+					printf("Cross vector ");
 					printVector(crossVector);
 					printf("Normalized vector ");
 					printVector(normalNormalized);
+					printf("Custom normalized vector ");
+					printVector(myNormal);
+					printf("Length vector ");
+					printf("%f\n",length(crossVector));
+					printf("Custom length ");
+					printf("%f\n",customLength);
 					printf("Absolute value vector ");
 					printVector(absNormalNormalized);
 					printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
@@ -432,9 +448,9 @@ void readSMF(char* fileName) {
 
 					printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
 
-				colors[currentOffset] = absNormalNormalized;
-				colors[currentOffset + 1] = absNormalNormalized;
-				colors[currentOffset + 2] = absNormalNormalized;
+				colors[currentOffset] = absCustomNormal; // absNormalNormalized;
+				colors[currentOffset + 1] = absCustomNormal; // absNormalNormalized;
+				colors[currentOffset + 2] = absCustomNormal; // absNormalNormalized;
 				totalPoints += 3;
 			}
 
@@ -454,11 +470,10 @@ main( int argc, char **argv )
 
     glutInit( &argc, argv );
 #ifdef __APPLE__
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE );
+    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
 #endif
-    glutInitWindowSize( 500, 500 );
 
     mainWindow = glutCreateWindow( "Assignment 5" );
 
@@ -474,8 +489,9 @@ main( int argc, char **argv )
 	    glutDisplayFunc( displayMainWindow );
 	    glutKeyboardFunc( keyboard );
 		//glutIdleFunc(idle);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
+		//glEnable(GL_CULL_FACE);
+		//glCullFace(GL_BACK);
+	    glEnable( GL_DEPTH_TEST );
 
 
 		if(argc == 1) {
