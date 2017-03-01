@@ -44,18 +44,24 @@ float patch[4][4][3] = {
 };
 
 
-vec4 getBernsteinFactors(float u) {
+float getBernsteinFactor(float u, int sub) {
 	float uu = 1-u;
 	float val1 = uu * uu * uu;
 	float val2 = 3 * u * uu * uu;
 	float val3 = 3 * u * u * uu;
 	float val4 = u * u * u;
-	vec4 returnVec = vec4();
-	returnVec[0] = val1;
-	returnVec[1] = val2;
-	returnVec[2] = val3;
-	returnVec[3] = val4;
-	return returnVec;
+	if(sub == 1) {
+		return val1;
+	}
+	else if(sub == 2) {
+		return val2;
+	}
+	else if(sub == 3) {
+		return val3;
+	}
+	else {
+		return val4;
+	}
 }
 
 
@@ -81,28 +87,37 @@ vec3 calcPoint(float u, vec3 controlPoints[4]) {
 
 vec4 calcPatchPoints() {
 
-	for(int u = 0; u < 1; u++) {
+	for(int u = 0; u < 10; u++) {
 
-		float uParam = u / 10;
+		float uParam = (float) u / 10.0f;
 
-		for(int v = 0; v < 1; v++) {
+		for(int v = 0; v < 10; v++) {
 
-			float vParam = v / 10;
-			vec4 bernsteinsForU = getBernsteinFactors(u);
-			vec4 bernsteinsForV = getBernsteinFactors(v);
+			float vParam = (float) v / 10.0f;
+
+
+			vec4 pointSum = vec4(0,0,0,0);
 
 			for(int i = 0; i < 4; i++) {
 
+				float bernsteinForU = getBernsteinFactor(uParam,i);
+
 				for(int j = 0; j < 4; j++) {
+
+					float bernsteinForJ = getBernsteinFactor(vParam,j);
 
 					float controlX = patch[i][j][0];
 					float controlY = patch[i][j][1];
 					float controlZ = patch[i][j][2];
 					vec4 controlPoint = vec4(controlX,controlY,controlZ,0);
-					vec4 newPoint = dot(dot(bernsteinsForU,bernsteinsForV),controlPoint);
-					printf("v %f %f %f\n",newPoint.x,newPoint.y,newPoint.z);
+					float weight = bernsteinForU * bernsteinForJ;
+					pointSum += weight * controlPoint;
+
 				}
 			}
+
+			printf("v %f %f %f\n",pointSum.x,pointSum.y,pointSum.z);
+
 
 		}
 
