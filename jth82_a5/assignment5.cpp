@@ -140,7 +140,7 @@ initMainWindow( void )
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+    glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
     glFlush();
 
     // glutSwapBuffers();
@@ -219,7 +219,7 @@ displayMainWindow( void )
 
    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
 
-    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+    glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
     glFlush();
 
     glutSwapBuffers();

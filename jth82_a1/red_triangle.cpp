@@ -38,6 +38,7 @@ init( void )
     glVertexAttribPointer( loc, 2, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(0) );
 
+    glPointSize(10.0f);
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); // white background
 }
 
@@ -47,7 +48,7 @@ void
 display( void )
 {
     glClear( GL_COLOR_BUFFER_BIT );     // clear the window
-    glDrawArrays( GL_TRIANGLES, 0, NumPoints );    // draw the points
+    glDrawArrays( GL_POINTS, 0, NumPoints );    // draw the points
     glFlush();
 }
 

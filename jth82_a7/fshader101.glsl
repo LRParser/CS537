@@ -1,10 +1,8 @@
-
 #version 150
 
-out vec4 fColor;
+out vec4 FragColor;
 
-void main() 
-{ 
-  fColor = vec4( 0.0, 0.0, 0.0, 1.0 );
-} 
-
+void main()
+{
+    FragColor = vec4( 0.0, 0.0, 1.0, 1.0 );
+}

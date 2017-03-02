@@ -95,7 +95,6 @@ vec4 calcPatchPoints() {
 
 			float vParam = (float) v / 10.0f;
 
-
 			vec4 pointSum = vec4(0,0,0,0);
 
 			for(int i = 0; i < 4; i++) {
@@ -130,21 +129,7 @@ main( int argc, char **argv )
 
 
 
-	/* Working code for Bezier Curve calculation
-	// Sample at 20 points along curve in range [0..1]
-	vec3 controlPoints[4] = {
-			vec3(0.0,0.0,0.0),
-			vec3(.25f,1.0,0.0),
-			vec3(.7f,.9f,0.0),
-			vec3(1.0f,0.0f,0.0)
-	};
 
-	for(int i = 1; i < 21; i++) {
-		float u = (float)i/20;
-		vec3 y = calcPoint(u,controlPoints);
-		printf("%f,%f\n",y.x,y.y);
-	}
-	*/
 
 	calcPatchPoints();
 
