@@ -15,9 +15,10 @@
 #include <iterator>
 #define DEBUG 1
 
-const int uRange = 10;
-const int vRange = 10;
-vec4 quads[uRange][vRange];
+const int N = 10;
+const int uRange = N;
+const int vRange = N;
+vec4 quads[N][N];
 
 
 float patch[4][4][3] = {
@@ -97,7 +98,7 @@ void calcPatchPoints() {
 
 		for(int v = 0; v < vRange; v++) {
 
-			float vParam = (float) v / (float)vRange;
+			float vParam = (float) v / (float)vRange ;
 
 			vec4 pointSum = vec4(0,0,0,0);
 
@@ -123,7 +124,7 @@ void calcPatchPoints() {
 
 			quads[u][v] = pointSum;
 
-			printf("%f, %f\n",pointSum.x,pointSum.y);
+			// printf("%f, %f\n",pointSum.x,pointSum.y);
 
 
 		}
@@ -131,17 +132,47 @@ void calcPatchPoints() {
 	}
 }
 
+// Print vertex in SMF format
+void printVertex(vec4 vertex) {
+	printf("v %f %f %f\n",vertex.x,vertex.y,vertex.z);
+}
+
 int
 main( int argc, char **argv )
 {
 	calcPatchPoints();
 
-	// Iterate thru u,v
-	for(int u = 0; u < 10; u++) {
+	int faceNum = 1;
+	int vertexNum = 1;
 
-		for(int v=0; v < 10; v++) {
-			printf("u index: %d, v index: %d\n",u,v);
-			printf("%f, %f\n",quads[u][v].x,quads[u][v].y);
+	// Iterate thru i,j - e.g., u,v
+	for(int i = 0; i < N - 1; i++) {
+
+		for(int j=0; j < N - 1; j++) {
+
+			// First triangle
+			vec4 vertex1 =  quads[i][j];
+			vec4 vertex2 = quads[i+1][j];
+			vec4 vertex3 = quads[j+1][i];
+
+			// Second triangle
+			vec4 vertex4 = quads[i+1][j];
+			vec4 vertex5 = quads[j+1][i+1];
+			vec4 vertex6 = quads[i][j+1];
+
+			printVertex(vertex1);
+			printVertex(vertex2);
+			printVertex(vertex3);
+
+			// Print face info for triangle 1
+			printf("f %d %d %d\n",vertexNum++,vertexNum++,vertexNum++);
+
+			printVertex(vertex4);
+			printVertex(vertex5);
+			printVertex(vertex6);
+			// Print face info for triangle 2
+			printf("f %d %d %d\n",vertexNum++,vertexNum++,vertexNum++);
+
 
 		}
 	}
