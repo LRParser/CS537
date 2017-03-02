@@ -15,6 +15,10 @@
 #include <iterator>
 #define DEBUG 1
 
+const int uRange = 10;
+const int vRange = 10;
+vec4 quads[uRange][vRange];
+
 
 float patch[4][4][3] = {
 		{
@@ -85,15 +89,15 @@ vec3 calcPoint(float u, vec3 controlPoints[4]) {
 }
 
 
-vec4 calcPatchPoints() {
+void calcPatchPoints() {
 
-	for(int u = 0; u < 10; u++) {
+	for(int u = 0; u < uRange; u++) {
 
-		float uParam = (float) u / 10.0f;
+		float uParam = (float) u / (float)uRange;
 
-		for(int v = 0; v < 10; v++) {
+		for(int v = 0; v < vRange; v++) {
 
-			float vParam = (float) v / 10.0f;
+			float vParam = (float) v / (float)vRange;
 
 			vec4 pointSum = vec4(0,0,0,0);
 
@@ -115,7 +119,11 @@ vec4 calcPatchPoints() {
 				}
 			}
 
-			printf("v %f %f %f\n",pointSum.x,pointSum.y,pointSum.z);
+			// printf("v %f %f %f\n",pointSum.x,pointSum.y,pointSum.z);
+
+			quads[u][v] = pointSum;
+
+			printf("%f, %f\n",pointSum.x,pointSum.y);
 
 
 		}
@@ -126,12 +134,17 @@ vec4 calcPatchPoints() {
 int
 main( int argc, char **argv )
 {
-
-
-
-
-
 	calcPatchPoints();
+
+	// Iterate thru u,v
+	for(int u = 0; u < 10; u++) {
+
+		for(int v=0; v < 10; v++) {
+			printf("u index: %d, v index: %d\n",u,v);
+			printf("%f, %f\n",quads[u][v].x,quads[u][v].y);
+
+		}
+	}
 
 
 	return 0;
