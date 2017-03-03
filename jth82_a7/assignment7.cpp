@@ -10,7 +10,7 @@
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
-int N = 4;
+int N = 10;
 const int uRange = N;
 const int vRange = N;
 
@@ -106,7 +106,8 @@ float Radius = 18.0;
 int Theta = 90; // Longitude angle in degrees
 int LightTheta = 190;
 int LightRadius = -91;
-float Height, LightHeight = 3;
+float Height = 3;
+float LightHeight = 3;
 
 float RadiusDelta = 1;
 int Delta = 5;
@@ -549,10 +550,14 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 			printf("Final Color is: %f, %f, %f, %f\n",absCustomNormal.x,absCustomNormal.y,absCustomNormal.z,absCustomNormal.w);
 
 			printf("Invalid cross vector");
+			currentFace.normal = vec4(0.33,0.33,0.33,1.0f);
+
 //			exit(0);
 		}
+		else {
 
 		currentFace.normal = absCustomNormal;
+		}
 }
 
 int readPatchFile(char* fileName) {
@@ -688,6 +693,7 @@ void reinitializeArrays() {
 	for(int i = 0; i < 10000; i++) {
 		points[i] = vec4(0,0,0,0);
 		normals[i] = vec4(0,0,0,0);
+		smfVertices[i] = vec4(0,0,0,0);
 	}
 
 	for(int i = 0; i < 4; i++) {
@@ -695,11 +701,14 @@ void reinitializeArrays() {
 			patch[i][j] = vec4(0,0,0,0);
 		}
 	}
+
+	vertexFaceMapping.clear();
+	smfFaces.clear();
 }
 
 void drawWindowAtSelectedSample() {
 
-	// reinitializeArrays();
+	reinitializeArrays();
 
 	// Convert the 16 control vertices into a 4 by 4 array
 	parseControlVerticesToPatch();
@@ -710,7 +719,14 @@ void drawWindowAtSelectedSample() {
 
 	populatePointsAndNormalsArrays();
 
-	initMainWindow();
+	//initMainWindow();
+
+    glBufferSubData( GL_ARRAY_BUFFER, 0,
+        sizeof(points), points );
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
+        sizeof(normals), normals );
+
+    modelCentroid = calculateModelCentroid();
 
 	glutPostRedisplay();
 }
@@ -907,12 +923,12 @@ keyboard( unsigned char key, int x, int y )
     	}
 
     	L_ambient = vec4(1.0,1.0,1.0,1.0);
-    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
+    	L_diffuse = vec4(1.0,1.0,1.0,1.0);
     	L_specular = vec4(.5,.5,.5,1);
 
-    	M_reflect_ambient = vec4(0.5,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(0.5,1,0.0,1.0);
-    	M_reflect_specular = vec4(1.0,1,1.0,1.0);
+    	M_reflect_ambient = vec4(0.3,.3,.3,1.0);
+    	M_reflect_diffuse = vec4(0.4,.4,.4,1.0);
+    	M_reflect_specular = vec4(0.3,.3,.3,1.0);
 
     	FlatShading = 0.6;
 
@@ -927,6 +943,10 @@ keyboard( unsigned char key, int x, int y )
     	Delta = 5;
     	HeightDelta = .1;
     	ParallelDelta = 2;
+
+    	calculateModelCentroid();
+
+    	N = 10;
 
     	break;
 
@@ -960,42 +980,47 @@ keyboard( unsigned char key, int x, int y )
     case '-' :
     	printf("Increase control point x axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].x = controlVertices[selectedPointIdx].x + 0.2;
+    	controlVertices[selectedPointIdx].x += 1;
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
-    	printf("Resampling done\n");
+
+    	printf("Point movement done\n");
 
     	break;
     case '=' :
     	printf("Decrease control point x axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].x = controlVertices[selectedPointIdx].x - 0.2;
+    	controlVertices[selectedPointIdx].x = controlVertices[selectedPointIdx].x - 1;
     	drawWindowAtSelectedSample();
-    	printf("Resampling done\n");
+    	printf("Point movement done\n");
     	break;
     case '[' :
     	printf("Increase control point y axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].y = controlVertices[selectedPointIdx].y + 0.2;
+    	controlVertices[selectedPointIdx].y = controlVertices[selectedPointIdx].y + 1;
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;
     case ']' :
     	printf("Decrease control point y axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].y = controlVertices[selectedPointIdx].y + 0.2;
+    	controlVertices[selectedPointIdx].y = controlVertices[selectedPointIdx].y + 1;
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;
     case '{' :
     	printf("Increase control point z axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	controlVertices[selectedPointIdx].z += 1;
+
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;
     case '}' :
     	printf("Decrease control point z axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	controlVertices[selectedPointIdx].z -= 1;
+
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;
