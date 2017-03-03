@@ -16,6 +16,8 @@ const int vRange = N;
 
 int totalRead = 0;
 
+int selectedPointIdx = 0;
+
 class Face {
 public:
 	int faceIdx;
@@ -28,7 +30,7 @@ public:
 	vec4 normal;
 };
 
-bool debug = true;
+bool debug = false;
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
 
@@ -88,7 +90,7 @@ std::vector<Face> smfFaces;
 
 vec4 points[10000];
 vec4 normals[10000];
-vec4 vertices[10000];
+vec4 controlVertices[10000];
 vec4 patch[4][4];
 vec4 interpolatedPoints[10][10];
 
@@ -605,7 +607,7 @@ int readPatchFile(char* fileName) {
 	while (infile >> a >> b >> c)
 	{
 		vec4 vertex = vec4(a,b,c,1.0);
-		vertices[numVertices++] = vertex;
+		controlVertices[numVertices++] = vertex;
 	}
 
 	return numVertices;
@@ -622,7 +624,7 @@ void initPointsAtSelectedSample(char* patchName, char* smfName) {
 	int idx = 0;
 	for(int i=0; i < 4; i++) {
 		for(int j=0; j<4; j++) {
-			vec4 vertex = vertices[idx++];
+			vec4 vertex = controlVertices[idx++];
 			patch[i][j] = vertex;
 		}
 	}
@@ -686,7 +688,7 @@ void drawWindowAtSelectedSample() {
 
 		memset(points, 0, sizeof(points));
 		memset(normals, 0, sizeof(normals));
-		memset(vertices, 0, sizeof(vertices));
+		memset(controlVertices, 0, sizeof(controlVertices));
 		memset(patch, 0, sizeof(patch));
 		memset(interpolatedPoints, 0, sizeof(interpolatedPoints));
 
@@ -696,7 +698,7 @@ void drawWindowAtSelectedSample() {
 		int idx = 0;
 		for(int i=0; i < 4; i++) {
 			for(int j=0; j<4; j++) {
-				vec4 vertex = vertices[idx++];
+				vec4 vertex = controlVertices[idx++];
 				patch[i][j] = vertex;
 			}
 		}
@@ -889,11 +891,11 @@ keyboard( unsigned char key, int x, int y )
     	}
     	L_ambient = vec4(1.0,1.0,1.0,1.0);
     	L_diffuse = vec4(1.0,1.0,1.0,0.5);
-    	L_specular = vec4(.5,.5,.5,1);
+    	L_specular = vec4(1.0,.5,.5,1);
 
-    	M_reflect_ambient = vec4(0.2,.1,.7,1.0);
-    	M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
-    	M_reflect_specular = vec4(0.1,.6,.1,1.0);
+    	M_reflect_ambient = vec4(0.7,.3,.7,1.0);
+    	M_reflect_diffuse = vec4(0.2,.6,.2,1.0);
+    	M_reflect_specular = vec4(0.1,.1,.1,1.0);
     	pressed = true;
 
     	break;
@@ -944,6 +946,54 @@ keyboard( unsigned char key, int x, int y )
     		N = 5;
     	}
     	printf("Decrease resolution to %d\n",N);
+    	drawWindowAtSelectedSample();
+    	printf("Resampling done\n");
+    	break;
+
+    case 'n' :
+    	selectedPointIdx++;
+    	selectedPointIdx = selectedPointIdx % 16;
+    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	break;
+
+    case '-' :
+    	printf("Increase control point x axis\n");
+    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	controlVertices[selectedPointIdx].x = controlVertices[selectedPointIdx].x + 0.2;
+    	drawWindowAtSelectedSample();
+    	printf("Resampling done\n");
+
+    	break;
+    case '=' :
+    	printf("Decrease control point x axis\n");
+    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	controlVertices[selectedPointIdx].x = controlVertices[selectedPointIdx].x - 0.2;
+    	drawWindowAtSelectedSample();
+    	printf("Resampling done\n");
+    	break;
+    case '[' :
+    	printf("Increase control point y axis\n");
+    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	controlVertices[selectedPointIdx].y = controlVertices[selectedPointIdx].y + 0.2;
+    	drawWindowAtSelectedSample();
+    	printf("Resampling done\n");
+    	break;
+    case ']' :
+    	printf("Decrease control point y axis\n");
+    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	controlVertices[selectedPointIdx].y = controlVertices[selectedPointIdx].y + 0.2;
+    	drawWindowAtSelectedSample();
+    	printf("Resampling done\n");
+    	break;
+    case '{' :
+    	printf("Increase control point z axis\n");
+    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	drawWindowAtSelectedSample();
+    	printf("Resampling done\n");
+    	break;
+    case '}' :
+    	printf("Decrease control point z axis\n");
+    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;

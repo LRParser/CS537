@@ -19,7 +19,7 @@ const int N = 20;
 const int uRange = N;
 const int vRange = N;
 
-vec4 vertices[10000];
+vec4 controlVertices[10000];
 vec4 patch[4][4];
 int totalRead = 0;
 
@@ -117,7 +117,7 @@ int readPatchFile(char* fileName) {
 	while (infile >> a >> b >> c)
 	{
 		vec4 vertex = vec4(a,b,c,1.0);
-		vertices[numVertices++] = vertex;
+		controlVertices[numVertices++] = vertex;
 	}
 
 	return numVertices;
@@ -133,7 +133,7 @@ main( int argc, char **argv )
 	int idx = 0;
 	for(int i=0; i < 4; i++) {
 		for(int j=0; j<4; j++) {
-			vec4 vertex = vertices[idx++];
+			vec4 vertex = controlVertices[idx++];
 			patch[i][j] = vertex;
 		}
 	}
