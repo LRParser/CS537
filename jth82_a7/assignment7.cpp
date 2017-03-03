@@ -10,15 +10,11 @@
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
-const int N = 20;
+int N = 10;
 const int uRange = N;
 const int vRange = N;
 
-vec4 vertices[10000];
-vec4 patch[4][4];
 int totalRead = 0;
-
-vec4 interpolatedPoints[N][N];
 
 class Face {
 public:
@@ -35,6 +31,8 @@ public:
 bool debug = true;
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
+
+
 
 mat4 TransformMatrix;
 GLuint transformMatrix;
@@ -56,12 +54,12 @@ vec4 materialSpecularReflectionProperties[3];
 
 
 color4 L_ambient = vec4(1.0,1.0,1.0,1.0);
-color4 L_diffuse = vec4(1.0,1.0,1.0,0.5);
+color4 L_diffuse = vec4(1.0,1.0,1.0,1.0);
 color4 L_specular = vec4(.5,.5,.5,1);
 
-color4 M_reflect_ambient = vec4(0.5,1,0.0,1.0);
-color4 M_reflect_diffuse = vec4(0.5,1,0.0,1.0);
-color4 M_reflect_specular = vec4(1.0,1,1.0,1.0);
+color4 M_reflect_ambient = vec4(0.3,.3,.3,1.0);
+color4 M_reflect_diffuse = vec4(0.4,.4,.4,1.0);
+color4 M_reflect_specular = vec4(0.3,.3,.3,1.0);
 
 float M_shininess = 10;
 
@@ -90,6 +88,9 @@ std::vector<Face> smfFaces;
 
 vec4 points[10000];
 vec4 normals[10000];
+vec4 vertices[10000];
+vec4 patch[4][4];
+vec4 interpolatedPoints[10][10];
 
 vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
@@ -432,235 +433,6 @@ int min(int int1, int int2) {
 	}
 }
 
-void
-keyboard( unsigned char key, int x, int y )
-{
-	// Define six keys for increasing and decreasing the X,Y,Z components of the current transformation.
-	// The cube should only be transformed with each key stroke.
-	bool pressed = false;
-
-	// We either manipulate ScaleFactor, RotationFactor, or TranslateFactor, depending on current operation
-
-    switch ( key ) {
-
-
-    case '1' :
-    	// Increase Height
-    	Height += HeightDelta;
-    	break;
-    case '2' :
-    	// Decrease height
-    	Height -= HeightDelta;
-    	break;
-    case 'q' :
-    	// Increase Height
-    	LightHeight += HeightDelta;
-    	break;
-    case 'w' :
-    	// Decrease height
-    	LightHeight -= HeightDelta;
-    	break;
-    case '3' :
-    	// Increase orbit radius / distance of camera
-		Radius += RadiusDelta;
-		if(Radius >= 360) {
-			Radius = 360;
-		}
-
-		near += ParallelDelta;
-		far += ParallelDelta;
-
-
-    	break;
-    case '4' :
-		Radius -= RadiusDelta;
-		if(Radius <= 1) {
-			Radius = 1;
-		}
-
-		near -= ParallelDelta;
-		far -= ParallelDelta;
-
-    	break;
-    case 'e' :
-		// Increase orbit radius / distance of light
-    	LightRadius += RadiusDelta;
-    	if(debug) {
-    		printf("LightRadius is: %d\n",LightRadius);
-    	}
-    	pressed = true;
-        break;
-
-	case 'r' :
-		// Increase orbit radius / distance of light
-    	LightRadius -= RadiusDelta;
-    	if(debug) {
-    		printf("LightRadius is: %d\n",LightRadius);
-    	}
-    	pressed = true;
-        break;
-
-
-		break;
-    case '5' :
-    	// Rotate counterclockwise
-    	Theta += 5;
-    	Theta = Theta % 360;
-    	if(debug) {
-    		printf("Theta is: %d\n",Theta);
-    	}
-    	pressed = true;
-
-    	break;
-    case '6' :
-    	Theta -= 5;
-    	Theta = Theta % 360;
-    	if(debug) {
-    		printf("Theta is: %d\n",Theta);
-    	}
-    	pressed = true;
-
-    	break;
-    case 't' :
-    	// Rotate counterclockwise
-    	LightTheta += 5;
-    	LightTheta = LightTheta % 360;
-    	if(debug) {
-    		printf("LightTheta is: %d\n",LightTheta);
-    	}
-    	pressed = true;
-
-    	break;
-    case 'y' :
-    	LightTheta -= 5;
-    	LightTheta = LightTheta % 360;
-    	if(debug) {
-    		printf("LightTheta is: %d\n",LightTheta);
-    	}
-
-    	break;
-    case '7' :
-    	// Set perspective projection
-    	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-    	isPerspective = true;
-
-    	pressed = true;
-    	break;
-    case '8' :
-    	isPerspective = false;
-    	break;
-    case 'g' :
-    	IsGouraud = .6;
-    	if(debug) {
-    		printf("Gouraud shading mode\n");
-    	}
-    	break;
-    case 'p' :
-    	IsGouraud = .4;
-    	if(debug) {
-    		printf("Phong shading mode\n");
-    	}
-    	break;
-    case 'f' :
-    	FlatShading = .6;
-    	if(debug) {
-    		printf("Turned on flat shading\n");
-    	}
-    	break;
-    case 'v' :
-    	FlatShading = .4;
-    	if(debug) {
-    		printf("Turned off flat shading\n");
-    	}
-    	break;
-    case 'a' :
-    	if(debug) {
-    		printf("Material 1 selected");
-    	}
-
-    	L_ambient = vec4(1.0,1.0,1.0,1.0);
-    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
-    	L_specular = vec4(.5,.5,.5,1);
-
-    	M_reflect_ambient = vec4(0.5,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(0.5,1,0.0,1.0);
-    	M_reflect_specular = vec4(1.0,1,1.0,1.0);
-
-    	break;
-
-    case 's' :
-    	if(debug) {
-    		printf("Material 2 selected");
-    	}
-    	L_ambient = vec4(1.0,1.0,1.0,1.0);
-    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
-    	L_specular = vec4(.5,.5,.5,1);
-
-    	M_reflect_ambient = vec4(1.0,0,1.0,1.0);
-    	M_reflect_diffuse = vec4(1.0,.4,0.0,1.0);
-    	M_reflect_specular = vec4(0.0,.4,.4,1.0);
-    	pressed = true;
-
-    	break;
-
-    case 'd' :
-    	if(debug) {
-    		printf("Material 3 selected");
-    	}
-    	L_ambient = vec4(1.0,1.0,1.0,1.0);
-    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
-    	L_specular = vec4(.5,.5,.5,1);
-
-    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(1.0,1,0.0,1.0);
-    	M_reflect_specular = vec4(1.0,1,.5,1.0);
-    	pressed = true;
-
-    	break;
-
-    case 'z':
-    	if(debug) {
-    		printf("Reset all values\n");
-    	}
-
-    	L_ambient = vec4(1.0,1,0.0,1);
-    	L_diffuse = vec4(0.0,1,0.0,1);
-    	L_specular = vec4(1.0,1.0,1.0,1);
-
-    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
-    	M_reflect_specular = vec4(1.0,1,1.0,1.0);
-
-    	FlatShading = 0.6;
-
-    	Radius = 18.0;
-    	Theta = 90; // Longitude angle in degrees
-    	LightTheta = 190;
-    	LightRadius = -91;
-    	Height = 3;
-		LightHeight = 3;
-
-    	RadiusDelta = 1;
-    	Delta = 5;
-    	HeightDelta = .1;
-    	ParallelDelta = 2;
-
-    	break;
-
-
-	case 'x':
-		// Exit
-		exit( EXIT_SUCCESS );
-		break;
-
-    }
-
-	calculateEyeVector2();
-	glutPostRedisplay();
-
-}
-
-
 void idle() {
 
 
@@ -842,7 +614,7 @@ int readPatchFile(char* fileName) {
 }
 
 
-void readPatchFileAndPrintSMF(char* patchName, char* smfName) {
+void initPointsAtSelectedSample(char* patchName, char* smfName) {
 
 	readPatchFile(patchName);
 
@@ -852,13 +624,6 @@ void readPatchFileAndPrintSMF(char* patchName, char* smfName) {
 		for(int j=0; j<4; j++) {
 			vec4 vertex = vertices[idx++];
 			patch[i][j] = vertex;
-		}
-	}
-
-	// Print the dynamically loaded patch array
-	for(int i=0; i < 4; i++) {
-		for(int j=0;j<4;j++) {
-			vec4 vertex = patch[i][j];
 		}
 	}
 
@@ -915,6 +680,287 @@ void readPatchFileAndPrintSMF(char* patchName, char* smfName) {
 	  ofs.close();
 }
 
+void drawWindowAtSelectedSample() {
+	char* patchFileName = "patchPoints.txt";
+		char* smfName = "interpolatedBezier.smf";
+
+		memset(points, 0, sizeof(points));
+		memset(normals, 0, sizeof(normals));
+		memset(vertices, 0, sizeof(vertices));
+		memset(patch, 0, sizeof(patch));
+		memset(interpolatedPoints, 0, sizeof(interpolatedPoints));
+
+		initPointsAtSelectedSample(patchFileName,smfName);
+
+		// Convert the 16 control vertices into a 4 by 4 array
+		int idx = 0;
+		for(int i=0; i < 4; i++) {
+			for(int j=0; j<4; j++) {
+				vec4 vertex = vertices[idx++];
+				patch[i][j] = vertex;
+			}
+		}
+
+		// Interpolate as desired and write out an SMF
+
+		readSMF(smfName);
+
+		populatePointsAndNormalsArrays();
+
+		initMainWindow();
+
+		glutPostRedisplay();
+}
+
+void
+keyboard( unsigned char key, int x, int y )
+{
+	// Define six keys for increasing and decreasing the X,Y,Z components of the current transformation.
+	// The cube should only be transformed with each key stroke.
+	bool pressed = false;
+
+	// We either manipulate ScaleFactor, RotationFactor, or TranslateFactor, depending on current operation
+
+    switch ( key ) {
+
+
+    case '1' :
+    	// Increase Height
+    	Height += HeightDelta;
+    	break;
+    case '2' :
+    	// Decrease height
+    	Height -= HeightDelta;
+    	break;
+    case 'q' :
+    	// Increase Height
+    	LightHeight += HeightDelta;
+    	break;
+    case 'w' :
+    	// Decrease height
+    	LightHeight -= HeightDelta;
+    	break;
+    case '3' :
+    	// Increase orbit radius / distance of camera
+		Radius += RadiusDelta;
+		if(Radius >= 360) {
+			Radius = 360;
+		}
+
+		near += ParallelDelta;
+		far += ParallelDelta;
+
+
+    	break;
+    case '4' :
+		Radius -= RadiusDelta;
+		if(Radius <= 1) {
+			Radius = 1;
+		}
+
+		near -= ParallelDelta;
+		far -= ParallelDelta;
+
+    	break;
+    case 'e' :
+		// Increase orbit radius / distance of light
+    	LightRadius += RadiusDelta;
+    	if(debug) {
+    		printf("LightRadius is: %d\n",LightRadius);
+    	}
+    	pressed = true;
+        break;
+
+	case 'r' :
+		// Increase orbit radius / distance of light
+    	LightRadius -= RadiusDelta;
+    	if(debug) {
+    		printf("LightRadius is: %d\n",LightRadius);
+    	}
+    	pressed = true;
+        break;
+
+
+		break;
+    case '5' :
+    	// Rotate counterclockwise
+    	Theta += 5;
+    	Theta = Theta % 360;
+    	if(debug) {
+    		printf("Theta is: %d\n",Theta);
+    	}
+    	pressed = true;
+
+    	break;
+    case '6' :
+    	Theta -= 5;
+    	Theta = Theta % 360;
+    	if(debug) {
+    		printf("Theta is: %d\n",Theta);
+    	}
+    	pressed = true;
+
+    	break;
+    case 't' :
+    	// Rotate counterclockwise
+    	LightTheta += 5;
+    	LightTheta = LightTheta % 360;
+    	if(debug) {
+    		printf("LightTheta is: %d\n",LightTheta);
+    	}
+    	pressed = true;
+
+    	break;
+    case 'y' :
+    	LightTheta -= 5;
+    	LightTheta = LightTheta % 360;
+    	if(debug) {
+    		printf("LightTheta is: %d\n",LightTheta);
+    	}
+
+    	break;
+    case '7' :
+    	// Set perspective projection
+    	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+    	isPerspective = true;
+
+    	pressed = true;
+    	break;
+    case '8' :
+    	isPerspective = false;
+    	break;
+    case 'g' :
+    	IsGouraud = .6;
+    	if(debug) {
+    		printf("Gouraud shading mode\n");
+    	}
+    	break;
+    case 'p' :
+    	IsGouraud = .4;
+    	if(debug) {
+    		printf("Phong shading mode\n");
+    	}
+    	break;
+    case 'f' :
+    	FlatShading = .6;
+    	if(debug) {
+    		printf("Turned on flat shading\n");
+    	}
+    	break;
+    case 'v' :
+    	FlatShading = .4;
+    	if(debug) {
+    		printf("Turned off flat shading\n");
+    	}
+    	break;
+    case 'a' :
+    	if(debug) {
+    		printf("Material 1 selected");
+    	}
+
+    	L_ambient = vec4(1.0,1.0,1.0,1.0);
+    	L_diffuse = vec4(1.0,1.0,1.0,1.0);
+    	L_specular = vec4(.5,.5,.5,1);
+
+    	M_reflect_ambient = vec4(0.3,.3,.3,1.0);
+    	M_reflect_diffuse = vec4(0.4,.4,.4,1.0);
+    	M_reflect_specular = vec4(0.3,.3,.3,1.0);
+
+
+    	break;
+
+    case 's' :
+    	if(debug) {
+    		printf("Material 2 selected");
+    	}
+    	L_ambient = vec4(1.0,1.0,1.0,1.0);
+    	L_diffuse = vec4(1.0,1.0,1.0,1.0);
+    	L_specular = vec4(.5,.5,.5,1);
+
+    	M_reflect_ambient = vec4(0.2,.1,.7,1.0);
+    	M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
+    	M_reflect_specular = vec4(0.1,.6,.1,1.0);
+
+    	break;
+
+    case 'd' :
+    	if(debug) {
+    		printf("Material 3 selected");
+    	}
+    	L_ambient = vec4(1.0,1.0,1.0,1.0);
+    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
+    	L_specular = vec4(.5,.5,.5,1);
+
+    	M_reflect_ambient = vec4(0.2,.1,.7,1.0);
+    	M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
+    	M_reflect_specular = vec4(0.1,.6,.1,1.0);
+    	pressed = true;
+
+    	break;
+
+    case 'z':
+    	if(debug) {
+    		printf("Reset all values\n");
+    	}
+
+    	L_ambient = vec4(1.0,1.0,1.0,1.0);
+    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
+    	L_specular = vec4(.5,.5,.5,1);
+
+    	M_reflect_ambient = vec4(0.5,1,0.0,1.0);
+    	M_reflect_diffuse = vec4(0.5,1,0.0,1.0);
+    	M_reflect_specular = vec4(1.0,1,1.0,1.0);
+
+    	FlatShading = 0.6;
+
+    	Radius = 18.0;
+    	Theta = 90; // Longitude angle in degrees
+    	LightTheta = 190;
+    	LightRadius = -91;
+    	Height = 3;
+		LightHeight = 3;
+
+    	RadiusDelta = 1;
+    	Delta = 5;
+    	HeightDelta = .1;
+    	ParallelDelta = 2;
+
+    	break;
+
+    case 'j':
+    	N += 5;
+    	if (N >= 100) {
+    		N = 100;
+    	}
+    	printf("Increase resolution to %d\n",N);
+    	drawWindowAtSelectedSample();
+    	printf("Resampling done\n");
+
+    	break;
+
+    case 'k' :
+    	N -= 5;
+    	if(N <= 5) {
+    		N = 5;
+    	}
+    	printf("Decrease resolution to %d\n",N);
+    	drawWindowAtSelectedSample();
+    	printf("Resampling done\n");
+    	break;
+
+	case 'x':
+		// Exit
+		exit( EXIT_SUCCESS );
+		break;
+
+    }
+
+	calculateEyeVector2();
+	glutPostRedisplay();
+
+}
+
+
 int
 main( int argc, char **argv )
 {
@@ -936,25 +982,7 @@ main( int argc, char **argv )
 #endif
 
 
-	char* patchFileName = "patchPoints.txt";
-	char* smfName = "interpolatedBezier.smf";
-
-	readPatchFileAndPrintSMF(patchFileName,smfName);
-
-	// Convert the 16 control vertices into a 4 by 4 array
-	int idx = 0;
-	for(int i=0; i < 4; i++) {
-		for(int j=0; j<4; j++) {
-			vec4 vertex = vertices[idx++];
-			patch[i][j] = vertex;
-		}
-	}
-
-	// Interpolate as desired and write out an SMF
-
-	readSMF(smfName);
-
-	populatePointsAndNormalsArrays();
+    drawWindowAtSelectedSample();
 
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;
@@ -972,16 +1000,17 @@ main( int argc, char **argv )
 	std::cout << "Press: 8 - To enable parallel projection mode (default)" << std::endl;
 	std::cout << "Press: g - To enable Gouraud shading" << std::endl;
 	std::cout << "Press: p - To enable Phong shading" << std::endl;
-	std::cout << "Press: f - To enable flat shading (default)" << std::endl;
-	std::cout << "Press: v - To disable flat shading" << std::endl;
 	std::cout << "Press: a - To select material 1 (reflects green, highly specular)" << std::endl;
 	std::cout << "Press: s - To select material 2 (reflects dark blue, low specular)" << std::endl;
 	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;
+	std::cout << "Press: f - To enable flat shading (default)" << std::endl;
+	std::cout << "Press: v - To disable flat shading" << std::endl;
+	std::cout << "Press: w - To reset the view" << std::endl;
+	std::cout << "Press: j - To increase the sampling by 5 (e.g., from 10x10 default to 15x15)" << std::endl;
+	std::cout << "Press: k - To decrease the sampling by 5 (e.g., from 10x10 default to 5x5)" << std::endl;
+
 
 	std::cout << "Press: x - To exit the program" << std::endl;
-
-
-	initMainWindow();
 
 	glutDisplayFunc( displayMainWindow );
 	glutKeyboardFunc( keyboard );
