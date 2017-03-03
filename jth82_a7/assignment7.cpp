@@ -1,5 +1,3 @@
-// Make a 3D cube
-
 #include "Angel.h"
 #include <math.h>
 #include <fstream>
@@ -12,7 +10,22 @@
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
+class Face {
+public:
+	int faceIdx;
+	int firstVertexIndex;
+	int secondVertexIndex;
+	int thirdVertexIndex;
+	vec4 firstVertex;
+	vec4 secondVertex;
+	vec4 thirdVertex;
+	vec4 normal;
+};
+
 bool debug = true;
+
+
+std::map<int,std::vector<Face> > vertexFaceMapping;
 
 mat4 TransformMatrix;
 GLuint transformMatrix;
@@ -20,7 +33,7 @@ GLuint transformMatrix;
 // Uniforms for lighting
 // Light properties
 
-point4 L_position = point4(0,5,5,1);
+point4 L_position = point4(0,5,10,1);
 
 // Material properties
 
@@ -35,12 +48,12 @@ vec4 materialDiffuseReflectionProperties[3];
 vec4 materialSpecularReflectionProperties[3];
 
 
-color4 L_ambient = vec4(0.0,1,0.0,1);
-color4 L_diffuse = vec4(0.0,1,0.0,1);
-color4 L_specular = vec4(1.0,1.0,1.0,1);
+color4 L_ambient = vec4(1.0,1.0,1.0,1.0);
+color4 L_diffuse = vec4(1.0,1.0,1.0,0.5);
+color4 L_specular = vec4(.5,.5,.5,1);
 
-color4 M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-color4 M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
+color4 M_reflect_ambient = vec4(0.5,1,0.0,1.0);
+color4 M_reflect_diffuse = vec4(0.5,1,0.0,1.0);
 color4 M_reflect_specular = vec4(1.0,1,1.0,1.0);
 
 float M_shininess = 10;
@@ -49,7 +62,7 @@ GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflec
 GLuint cameraPosition;
 GLuint isGouraud;
 
-// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+// Projection matrix : 45° Field of View, 1:1 ratio, display range : 0.1 unit <-> 100 units
 bool isPerspective = true;
 
 // For Ortho coordinates
@@ -63,18 +76,19 @@ float IsGouraud = .6; // >.5 is true, otherwise false
 // Copied from Lecture 8 slides as described in assignment
 
 const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
-int NumVerticesUsed = 0;
+int NumVerticesUsed = 24;
 
 vec4 smfVertices[NumVertices];
+std::vector<Face> smfFaces;
 
-vec4 points[100];
-vec4 normals[100];
+vec4 points[10000];
+vec4 normals[10000];
 
 vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
 vec4 modelCentroid;
 
-float Radius = 10.0;
+float Radius = 15.0;
 int Theta = 90; // Longitude angle in degrees
 int LightTheta = -345;
 int LightRadius = -1;
@@ -90,11 +104,6 @@ int mainWindow;
 int w = 500;
 int h = 500;
 int border = 50;
-
-vec2 tVertices[6] = {
-    vec2(-.75,-.75), vec2(-.75,0),vec2(0,-.75),
-    vec2(-.75,0 ), vec2(0,-.75), vec2( 0, 0 )
-};
 
 
 vec4 defaultColor = vec4(.5,0,0,0);
@@ -159,96 +168,6 @@ vec3 sin(vec3 angles) {
         return angles;
 }
 
-float patch[4][4][3] = {
-		{
-			{ 0.0, 0.0, 0.0 },
-			{ 2.0, 0.0, 1.5},
-			{ 4.0, 0.0, 2.9 },
-			{ 6.0, 0.0, 0.0 }
-		},
-		{
-			{ 0.0, 2.0, 1.1 },
-			{ 2.0, 2.0, 3.9 },
-			{ 4.0, 2.0, 3.1 },
-			{ 6.0, 2.0, 0.7 }
-		},
-		{
-			{ 0.0, 4.0, -0.5},
-			{ 2.0, 4.0, 2.6 },
-			{ 4.0, 4.0, 2.4 },
-			{ 6.0, 4.0, 0.4 }
-		},
-		{
-			{ 0.0, 6.0, 0.3 },
-			{ 2.0, 6.0, -1.1},
-			{ 4.0, 6.0, 1.3 },
-			{ 6.0, 6.0, -0.2}
-		}
-};
-
-
-float getBernsteinFactor(float u, int sub) {
-	float uu = 1-u;
-	float val1 = uu * uu * uu;
-	float val2 = 3 * u * uu * uu;
-	float val3 = 3 * u * u * uu;
-	float val4 = u * u * u;
-	if(sub == 1) {
-		return val1;
-	}
-	else if(sub == 2) {
-		return val2;
-	}
-	else if(sub == 3) {
-		return val3;
-	}
-	else {
-		return val4;
-	}
-}
-
-vec4 calcPatchPoints() {
-
-	for(int u = 0; u < 10; u++) {
-
-		float uParam = (float) u / 10.0f;
-
-		for(int v = 0; v < 10; v++) {
-
-			float vParam = (float) v / 10.0f;
-
-			vec4 pointSum = vec4(0,0,0,0);
-
-			for(int i = 0; i < 4; i++) {
-
-				float bernsteinForU = getBernsteinFactor(uParam,i);
-
-				for(int j = 0; j < 4; j++) {
-
-					float bernsteinForJ = getBernsteinFactor(vParam,j);
-
-					float controlX = patch[i][j][0];
-					float controlY = patch[i][j][1];
-					float controlZ = patch[i][j][2];
-					vec4 controlPoint = vec4(controlX,controlY,controlZ,1);
-					float weight = bernsteinForU * bernsteinForJ;
-					pointSum += weight * controlPoint;
-
-				}
-			}
-
-
-			points[NumVerticesUsed] = pointSum;
-			normals[NumVerticesUsed] = vec4(.3,.3,.3,0);
-			NumVerticesUsed++;
-			printf("v %f %f %f\n",pointSum.x,pointSum.y,pointSum.z);
-
-
-		}
-
-	}
-}
-
 
 
 void calculateEyeVector2() {
@@ -285,39 +204,6 @@ void calculateEyeVector2() {
 
 }
 
-void initOld() {
-	// Specify the vertices for a triangle
-	    vec2 vertices[6] = {
-	        vec2(-.75,-.75), vec2(-.75,0),vec2(0,-.75),
-	        vec2(-.75,0 ), vec2(0,-.75), vec2( 0, 0 )
-	    };
-
-	    // Create a vertex array object
-	    GLuint vao[1];
-	    glGenVertexArrays( 1, vao );
-	    glBindVertexArray( vao[0] );
-
-
-	    // Create and initialize a buffer object
-	    GLuint buffer;
-	    glGenBuffers( 1, &buffer );
-	    glBindBuffer( GL_ARRAY_BUFFER, buffer );
-	    glBufferData( GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW );
-
-	    // Load shaders and use the resulting shader program
-	    GLuint program = InitShader( "vshader101.glsl", "fshader101.glsl" );
-	    //  glUseProgram( program );  // This is called in InitShader
-
-	    // Initialize the vertex position attribute from the vertex shader
-	    GLuint loc = glGetAttribLocation( program, "vPosition" );
-	    glEnableVertexAttribArray( loc );
-	    glVertexAttribPointer( loc, 2, GL_FLOAT, GL_FALSE, 0,
-	                           BUFFER_OFFSET(0) );
-
-	    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // white background
-
-}
-
 
 
 void
@@ -330,39 +216,32 @@ initMainWindow( void )
     glGenVertexArrays( 1, vao );
     glBindVertexArray( vao[0] );
 
-
-    calcPatchPoints();
-
     // Print points and normals info
 	if(debug) {
 		for(int i = 0; i < NumVerticesUsed; i++) {
 			vec4 currentPoint = points[i];
-			printf("%f %f %f\n",currentPoint.x,currentPoint.y,currentPoint.z);
-			//printVector(currentPoint);
+			printf("(Point)");
+			printVector(currentPoint);
 		}
-
+		for(int i = 0; i < NumVerticesUsed; i++) {
+			vec4 currentNormal = normals[i];
+			printf("(Normal)");
+			printVector(currentNormal);
+		}
 	}
 
-	/*
     GLuint buffer;
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
-*/
-    GLuint buffer;
-    glGenBuffers( 1, &buffer );
-    glBindBuffer( GL_ARRAY_BUFFER, buffer );
-    glBufferData( GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW );
-
-    /*
     glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
        sizeof(normals), NULL, GL_STATIC_DRAW );
     glBufferSubData( GL_ARRAY_BUFFER, 0,
         sizeof(points), points );
     glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
         sizeof(normals), normals );
-*/
+
     // Load shaders and use the resulting shader program
-    GLuint program = InitShader( "vshader101.glsl", "fshader101.glsl" );
+    GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
 
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
@@ -370,12 +249,12 @@ initMainWindow( void )
     glVertexAttribPointer( vPosition, 4, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(0) );
 
-/*
     GLuint vNormal = glGetAttribLocation( program, "vNormal" );
     glEnableVertexAttribArray( vNormal );
     glVertexAttribPointer( vNormal, 4, GL_FLOAT, GL_TRUE, 0,
                            BUFFER_OFFSET(sizeof(normals)) );
 
+    modelCentroid = calculateModelCentroid();
 
     transformMatrix = glGetUniformLocation(program, "transformMatrix");
     l_ambient = glGetUniformLocation(program, "l_ambient");
@@ -390,48 +269,24 @@ initMainWindow( void )
 	isGouraud = glGetUniformLocation(program, "isGouraud");
 
 
-    modelCentroid = calculateModelCentroid();
-*/
-
-    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // white background
+    glClearColor( 0.2, 0.2, 0.2, 0.2 ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-    glPointSize(10.0f);
 
-    //glDrawArrays( GL_LINE_STRIP, 0, 100 );
-    //glFlush();
+    glPointSize(20.0f);
+    // glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+    glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
 
-}
-
-void displayOld() {
-    glClear( GL_COLOR_BUFFER_BIT );     // clear the window
-    glDrawArrays( GL_TRIANGLES, 0, 100 );    // draw the points
     glFlush();
+
 }
+
+
 
 void
 displayMainWindow( void )
 {
-	   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	   glDrawArrays(GL_TRIANGLES, 0, 100);
-
-
-	   /*
-    glBegin(GL_POINTS); //starts drawing of points
-    for(int i = 0; i < 100; i++) {
-      glVertex3f(points[i].x,points[i].y,0.0f);//upper-right corner
-      //glVertex3f(-1.0f,-1.0f,0.0f);//lower-left corner
-    }
-    glEnd();//end drawing of points
-*/
-	/*
-	   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	    glDrawArrays( GL_LINE_STRIP, 0, 100 );
-
-	   glutSwapBuffers();
-*/
-	/*
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    mat4 Projection;
@@ -458,7 +313,6 @@ displayMainWindow( void )
 
    TransformMatrix = Projection * View * Model;
 
-   /*
    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
    glUniform4fv(l_ambient, 1, L_ambient);
    glUniform4fv(l_diffuse, 1, L_diffuse);
@@ -476,9 +330,9 @@ displayMainWindow( void )
    glUniform1f(isGouraud,IsGouraud);
 
    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+   glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
 
-   */
-	   glutSwapBuffers();
+   glutSwapBuffers();
 
 }
 
@@ -681,8 +535,8 @@ keyboard( unsigned char key, int x, int y )
 
     }
 
-	// calculateEyeVector2();
-	// glutPostRedisplay();
+	calculateEyeVector2();
+	glutPostRedisplay();
 
 }
 
@@ -693,27 +547,180 @@ void idle() {
 }
 
 
+//----------------------------------------------------------------------------
+
+
+
+// Find all triangles incident to this vertex
+
+/* For HW6, we need to:
+ * find the average of the normals of the triangles incident to the vertex. See Lecture 10, slide 53.
+ */
+vec4 calculateVertexNormal(int vertexIdx) {
+
+    std::vector<Face> incidentFaces = vertexFaceMapping.at(vertexIdx);
+    vec4 vertexNormal;
+    vec4 incidentFacesColorsSum;
+
+	int incidentFacesCount = 0;
+
+
+	std::vector<Face>::iterator it;
+	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
+		printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
+		printVector(it->normal);
+		if(std::isnan(it->normal.x)) {
+			// We weren't able to calculate the normal. Set it to default color
+			it->normal = normalize(defaultColor);
+		}
+		printVector(incidentFacesColorsSum);
+		incidentFacesColorsSum += it->normal;
+		printf("New sum is: ");
+		printVector(incidentFacesColorsSum);
+		incidentFacesCount++;
+	}
+
+	if(debug) {
+		printf("Colors sum to: ");
+		printVector(incidentFacesColorsSum);
+		std::cout << "Incident faces count for vertex: " << vertexIdx << " is: " << incidentFacesCount << std::endl;
+		std::cout << "Incident faces average: ";
+	}
+
+
+	vertexNormal = incidentFacesColorsSum / incidentFacesCount;
+
+	if(debug) {
+		printf("Average color is");
+		printVector(vertexNormal);
+
+	}
+
+	return vertexNormal;
+
+
+
+
+}
+
+
+void populatePointsAndNormalsArrays() {
+	for(int i = 0; i < smfFaces.size(); i++) {
+		Face currentFace = smfFaces.at(i);
+
+		vec4 vertex1 = currentFace.firstVertex;
+
+		vec4 vertex2 = currentFace.secondVertex;
+
+		vec4 vertex3 = currentFace.thirdVertex;
+
+		int currentOffset = i * 3;
+
+		points[currentOffset] = vertex1;
+		points[currentOffset + 1] = vertex2;
+		points[currentOffset + 2] = vertex3;
+
+		normals[currentOffset] = calculateVertexNormal(currentFace.firstVertexIndex);
+		normals[currentOffset + 1] = calculateVertexNormal(currentFace.secondVertexIndex);
+		normals[currentOffset + 2] = calculateVertexNormal(currentFace.thirdVertexIndex);
+
+	}
+}
+
+void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
+		// See p 272
+		vec4 U = vertex2 - vertex1;
+		vec4 V = vertex3 - vertex2;
+
+		vec4 crossVector = cross(U,V);
+
+		vec4 normalNormalized = normalize(crossVector);
+
+		vec4 absNormalNormalized = vAbs(normalNormalized);
+
+		double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
+
+		vec4 customNormal = crossVector / customLength;
+
+		vec4 absCustomNormal = vAbs(customNormal);
+
+		if(debug) {
+			printf("Cross product ");
+			printVector(crossVector);
+			printf("Normalized vector ");
+			printVector(normalNormalized);
+			printf("Absolute value vector ");
+			printVector(absNormalNormalized);
+			printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
+			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
+			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
+
+			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
+		}
+
+		currentFace.normal = absCustomNormal;
+}
+
+
+int readSMF(char* fileName) {
+
+
+	// Read in the SMF file
+			std::ifstream infile(fileName);
+
+			char a;
+			float b, c, d;
+			int numSmfVertices = 0;
+			int numSmfFaces = 0;
+			while (infile >> a >> b >> c >> d)
+			{
+				if(a == 'v') {
+					smfVertices[numSmfVertices] = vec4(b,c,d,1);
+					numSmfVertices++;
+				}
+				else if(a == 'f') {
+
+					Face f;
+					f.faceIdx = numSmfFaces + 1; // faces are 1-indexed
+					f.firstVertexIndex = int(b);
+					f.secondVertexIndex = int(c);
+					f.thirdVertexIndex = int(d);
+					vec4 firstVertex = smfVertices[f.firstVertexIndex - 1];
+					f.firstVertex = firstVertex;
+					vec4 secondVertex = smfVertices[f.secondVertexIndex - 1];
+					f.secondVertex = secondVertex;
+					vec4 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
+					f.thirdVertex = thirdVertex;
+
+					calculateFaceNormal(firstVertex,secondVertex,thirdVertex,f);
+
+					vertexFaceMapping[f.firstVertexIndex].push_back(f);
+					vertexFaceMapping[f.secondVertexIndex].push_back(f);
+					vertexFaceMapping[f.thirdVertexIndex].push_back(f);
+
+					smfFaces.push_back(f);
+					numSmfFaces++;
+				}
+			}
+
+			NumVerticesUsed = numSmfFaces * 3;
+
+			return numSmfFaces;
+}
 
 int
 main( int argc, char **argv )
 {
 	//glEnable( GL_DEPTH_TEST );
-    bool old = false;
-
     glutInit( &argc, argv );
 #ifdef __APPLE__
-    if(old) {
-        glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA ); //
-    }
-    else {
-    	glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
-    }
+    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
 #endif
     glutInitWindowSize( 500, 500 );
 
-    mainWindow = glutCreateWindow( "Assignment 7" );
+    mainWindow = glutCreateWindow( "Assignment 6" );
 #ifndef __APPLE__
     GLenum err = glewInit();
 
@@ -721,10 +728,16 @@ main( int argc, char **argv )
       fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
 #endif
 
+    char* fileName;
+    if(argc == 1) {
+    	fileName = "bound-bunny_200.smf";
+	}
+	else {
+		fileName = argv[1];
+	}
+	readSMF(fileName);
+	populatePointsAndNormalsArrays();
 
-
-
-    /*
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;
 	std::cout << "Press: q - To increase light height" << std::endl;
@@ -746,23 +759,14 @@ main( int argc, char **argv )
 	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;
 
 	std::cout << "Press: x - To exit the program" << std::endl;
-*/
 
-	if(old) {
-    initOld();
 
-	glutDisplayFunc( displayOld );
-	}
-	else {
-		initMainWindow();
-		glutDisplayFunc( displayMainWindow );
+	initMainWindow();
 
-	}
-	//glutKeyboardFunc( keyboard );
+	glutDisplayFunc( displayMainWindow );
+	glutKeyboardFunc( keyboard );
 
-	if(!old) {
-		glEnable(GL_DEPTH_TEST);
-	}
+	glEnable(GL_DEPTH_TEST);
 
 	glutMainLoop();
 	return 0;
