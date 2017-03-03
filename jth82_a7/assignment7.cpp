@@ -30,7 +30,7 @@ public:
 	vec4 normal;
 };
 
-bool debug = true;
+bool debug = false;
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
 
@@ -58,9 +58,9 @@ color4 L_ambient = vec4(1.0,1.0,1.0,1.0);
 color4 L_diffuse = vec4(1.0,1.0,1.0,1.0);
 color4 L_specular = vec4(.5,.5,.5,1);
 
-color4 M_reflect_ambient = vec4(0.3,.3,.3,1.0);
-color4 M_reflect_diffuse = vec4(0.4,.4,.4,1.0);
-color4 M_reflect_specular = vec4(0.3,.3,.3,1.0);
+color4 M_reflect_ambient = vec4(0.2,.1,.7,1.0);
+color4 M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
+color4 M_reflect_specular = vec4(0.1,.6,.1,1.0);
 
 float M_shininess = 10;
 
@@ -77,7 +77,7 @@ GLfloat  left = -4.0, right = 4.0;
 GLfloat  bottom = -3.0, top = 5.0;
 GLfloat  near = -10.0, far = 10.0;
 
-float IsGouraud = .6; // >.5 is true, otherwise false
+float IsGouraud = .4; // >.5 is true, otherwise false
 float FlatShading = .6; // >.5 is true, otherwise false
 
 
@@ -94,6 +94,9 @@ std::vector<Face> smfFaces;
 
 vec4 points[defaultSize];
 vec4 normals[defaultSize];
+
+vec4 lineBufferData[6];
+
 vec4 controlVertices[defaultSize];
 vec4 patch[4][4];
 vec4 interpolatedPoints[10][10];
@@ -261,19 +264,40 @@ void calculateEyeVector2() {
 	L_position.z = Z;
 	L_position.w = 0;
 
-	if(debug) {
-		// printf("Eye Vector\n");
-		// printVector(EyeVector);
-	}
-
-
 }
 
+void setLineBufferData() {
+    // X axis
+    lineBufferData[0] = vec4(0,0,0,1);
+    lineBufferData[1] = vec4(10,0,0,1);
+
+    // Y axis
+    lineBufferData[2] = vec4(0,0,0,1);
+    lineBufferData[3] = vec4(0,10,0,1);
+
+    // Z axis
+    lineBufferData[4] = vec4(0,0,0,1);
+    lineBufferData[5] = vec4(0,0,10,1);
+}
+
+void printPointsAndNormals() {
+	for(int i = 0; i < NumVerticesUsed; i++) {
+		vec4 currentPoint = points[i];
+		printf("(Point)");
+		printVector(currentPoint);
+	}
+	for(int i = 0; i < NumVerticesUsed; i++) {
+		vec4 currentNormal = normals[i];
+		printf("(Normal)");
+		printVector(currentNormal);
+	}
+}
 
 
 void
 initMainWindow( void )
 {
+
 
 
     // Create a vertex array object
@@ -283,27 +307,23 @@ initMainWindow( void )
 
     // Print points and normals info
 	if(debug) {
-		for(int i = 0; i < NumVerticesUsed; i++) {
-			vec4 currentPoint = points[i];
-			// printf("(Point)");
-			// printVector(currentPoint);
-		}
-		for(int i = 0; i < NumVerticesUsed; i++) {
-			vec4 currentNormal = normals[i];
-			// printf("(Normal)");
-			// printVector(currentNormal);
-		}
+		printPointsAndNormals();
 	}
 
     GLuint buffer;
     glGenBuffers( 1, &buffer );
     glBindBuffer( GL_ARRAY_BUFFER, buffer );
     glBufferData( GL_ARRAY_BUFFER, sizeof(points) +
-       sizeof(normals), NULL, GL_STATIC_DRAW );
+       sizeof(normals) + sizeof(lineBufferData), NULL, GL_STATIC_DRAW );
     glBufferSubData( GL_ARRAY_BUFFER, 0,
         sizeof(points), points );
     glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
         sizeof(normals), normals );
+
+    setLineBufferData();
+    glBufferSubData( GL_ARRAY_BUFFER, sizeof(points) + sizeof(normals),
+        sizeof(lineBufferData), lineBufferData );
+
 
     // Load shaders and use the resulting shader program
     GLuint program = InitShader( "vshader21.glsl", "fshader21.glsl" );
@@ -342,9 +362,16 @@ initMainWindow( void )
 
     printf("Num Vertices Used: %d\n",NumVerticesUsed);
 
+
     glPointSize(20.0f);
+    glLineWidth(20.0f);
     glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
     glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
+    glDrawArrays( GL_LINES, 2* defaultSize, 6 );
+
+
+
+
 
     glFlush();
 
@@ -399,10 +426,14 @@ displayMainWindow( void )
    glUniform1f(isGouraud,IsGouraud);
    glUniform1f(flatShading,FlatShading);
 
-   glClearColor( 0.2, 0.2, 0.2, 0.2 ); // grey background
+   glClearColor( 0.6, 0.6, 0.6, 1.0 ); // grey background
+
 
    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
    glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
+   glDrawArrays( GL_LINES, 2*defaultSize, 6 );
+
+
 
    glutSwapBuffers();
 
@@ -495,7 +526,9 @@ vec4 calculateVertexNormal(int vertexIdx) {
 
 void populatePointsAndNormalsArrays() {
 
-	printf("smfFaces.size() is %d\n",smfFaces.size());
+	if(debug) {
+		printf("smfFaces.size() is %d\n",smfFaces.size());
+	}
 
 	for(int i = 0; i < smfFaces.size(); i++) {
 		Face currentFace = smfFaces.at(i);
@@ -532,11 +565,7 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 
 		vec4 absCustomNormal = vAbs(customNormal);
 
-		if(debug) {
-
-		}
-
-		if(std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z)) {
+		if(debug && (std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z))) {
 
 			printf("Issue for face at index: %d \n",currentFace.faceIdx);
 
@@ -552,7 +581,6 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 			printf("Invalid cross vector");
 			currentFace.normal = vec4(0.33,0.33,0.33,1.0f);
 
-//			exit(0);
 		}
 		else {
 
@@ -719,8 +747,6 @@ void drawWindowAtSelectedSample() {
 
 	populatePointsAndNormalsArrays();
 
-	//initMainWindow();
-
     glBufferSubData( GL_ARRAY_BUFFER, 0,
         sizeof(points), points );
     glBufferSubData( GL_ARRAY_BUFFER, sizeof(points),
@@ -850,12 +876,16 @@ keyboard( unsigned char key, int x, int y )
     	break;
     case 'g' :
     	IsGouraud = .6;
+    	FlatShading = .4;
+
     	if(debug) {
     		printf("Gouraud shading mode\n");
     	}
     	break;
     case 'p' :
     	IsGouraud = .4;
+    	FlatShading = .4;
+
     	if(debug) {
     		printf("Phong shading mode\n");
     	}
@@ -881,9 +911,11 @@ keyboard( unsigned char key, int x, int y )
     	L_diffuse = vec4(1.0,1.0,1.0,1.0);
     	L_specular = vec4(.5,.5,.5,1);
 
-    	M_reflect_ambient = vec4(0.3,.3,.3,1.0);
-    	M_reflect_diffuse = vec4(0.4,.4,.4,1.0);
-    	M_reflect_specular = vec4(0.3,.3,.3,1.0);
+    	M_reflect_ambient = vec4(0.2,.1,.7,1.0);
+    	M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
+    	M_reflect_specular = vec4(0.1,.6,.1,1.0);
+
+
 
 
     	break;
@@ -896,9 +928,9 @@ keyboard( unsigned char key, int x, int y )
     	L_diffuse = vec4(1.0,1.0,1.0,1.0);
     	L_specular = vec4(.5,.5,.5,1);
 
-    	M_reflect_ambient = vec4(0.2,.1,.7,1.0);
-    	M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
-    	M_reflect_specular = vec4(0.1,.6,.1,1.0);
+    	M_reflect_ambient = vec4(0.3,.3,.3,1.0);
+    	M_reflect_diffuse = vec4(0.4,.4,.4,1.0);
+    	M_reflect_specular = vec4(0.3,.3,.3,1.0);
 
     	break;
 
@@ -926,9 +958,9 @@ keyboard( unsigned char key, int x, int y )
     	L_diffuse = vec4(1.0,1.0,1.0,1.0);
     	L_specular = vec4(.5,.5,.5,1);
 
-    	M_reflect_ambient = vec4(0.3,.3,.3,1.0);
-    	M_reflect_diffuse = vec4(0.4,.4,.4,1.0);
-    	M_reflect_specular = vec4(0.3,.3,.3,1.0);
+    	M_reflect_ambient = vec4(0.2,.1,.7,1.0);
+    	M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
+    	M_reflect_specular = vec4(0.1,.6,.1,1.0);
 
     	FlatShading = 0.6;
 
@@ -951,7 +983,7 @@ keyboard( unsigned char key, int x, int y )
     	break;
 
     case 'j':
-    	N += 5;
+    	N += 1;
     	if (N >= 100) {
     		N = 100;
     	}
@@ -962,9 +994,9 @@ keyboard( unsigned char key, int x, int y )
     	break;
 
     case 'k' :
-    	N -= 5;
-    	if(N <= 5) {
-    		N = 5;
+    	N -= 1;
+    	if(N <= 0) {
+    		N = 1;
     	}
     	printf("Decrease resolution to %d\n",N);
     	drawWindowAtSelectedSample();
@@ -990,21 +1022,24 @@ keyboard( unsigned char key, int x, int y )
     case '=' :
     	printf("Decrease control point x axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].x = controlVertices[selectedPointIdx].x - 1;
+    	controlVertices[selectedPointIdx].x -= 1;
+    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Point movement done\n");
     	break;
     case '[' :
     	printf("Increase control point y axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].y = controlVertices[selectedPointIdx].y + 1;
+    	controlVertices[selectedPointIdx].y += 1;
+    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;
     case ']' :
     	printf("Decrease control point y axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].y = controlVertices[selectedPointIdx].y + 1;
+    	controlVertices[selectedPointIdx].y -= 1;
+    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;
@@ -1012,7 +1047,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Increase control point z axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].z += 1;
-
+    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;
@@ -1020,7 +1055,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Decrease control point z axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].z -= 1;
-
+    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
     	break;
@@ -1073,33 +1108,44 @@ main( int argc, char **argv )
 
     initMainWindow();
 
-	std::cout << "Press: 1 - To increase camera height" << std::endl;
-	std::cout << "Press: 2 - To decrease camera height" << std::endl;
+
+    	std::cout << "Press: w - To reset the view" << std::endl;
+    	std::cout << "Press: j - To increase the sampling by 1 (e.g., from 10x10 default to 11x11)" << std::endl;
+    	std::cout << "Press: k - To decrease the sampling by 5 (e.g., from 10x10 default to 9x9)" << std::endl;
+    	std::cout << "Press: 1 - To increase camera height" << std::endl;
+    	std::cout << "Press: 2 - To decrease camera height" << std::endl;
+    	std::cout << "Press: 3 - To increase orbit radius" << std::endl;
+		std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
+		std::cout << "Press: 5 - To increase camera angle (rotate camera)" << std::endl;
+		std::cout << "Press: 6 - To decrease camera angle (rotate counterclockwise)" << std::endl;
+		std::cout << "Press: x - To exit the program" << std::endl;
+
+
+		// Commenting out commands not needed for program
+		/*
+        std::cout << "Press: f - To enable flat shading (default)" << std::endl;
+        std::cout << "Press: v - To disable flat shading" << std::endl;
+    	std::cout << "Press: g - To enable Gouraud shading" << std::endl;
+    	std::cout << "Press: p - To enable Phong shading" << std::endl;
+
+
 	std::cout << "Press: q - To increase light height" << std::endl;
 	std::cout << "Press: w - To decrease light height" << std::endl;
-	std::cout << "Press: 3 - To increase orbit radius" << std::endl;
-	std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
+
 	std::cout << "Press: e - To increase light radius" << std::endl;
 	std::cout << "Press: r - To decrease light radius" << std::endl;
-	std::cout << "Press: 5 - To increase camera angle (rotate camera)" << std::endl;
-	std::cout << "Press: 6 - To decrease camera angle (rotate counterclockwise)" << std::endl;
+
 	std::cout << "Press: t - To increase light angle (rotate camera)" << std::endl;
 	std::cout << "Press: y - To decrease light angle (rotate counterclockwise)" << std::endl;
 	std::cout << "Press: 7 - To enable perspective projection mode" << std::endl;
 	std::cout << "Press: 8 - To enable parallel projection mode (default)" << std::endl;
-	std::cout << "Press: g - To enable Gouraud shading" << std::endl;
-	std::cout << "Press: p - To enable Phong shading" << std::endl;
+
 	std::cout << "Press: a - To select material 1 (reflects green, highly specular)" << std::endl;
 	std::cout << "Press: s - To select material 2 (reflects dark blue, low specular)" << std::endl;
 	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;
-	std::cout << "Press: f - To enable flat shading (default)" << std::endl;
-	std::cout << "Press: v - To disable flat shading" << std::endl;
-	std::cout << "Press: w - To reset the view" << std::endl;
-	std::cout << "Press: j - To increase the sampling by 5 (e.g., from 10x10 default to 15x15)" << std::endl;
-	std::cout << "Press: k - To decrease the sampling by 5 (e.g., from 10x10 default to 5x5)" << std::endl;
+	*/
 
 
-	std::cout << "Press: x - To exit the program" << std::endl;
 
 	glutDisplayFunc( displayMainWindow );
 	glutKeyboardFunc( keyboard );
