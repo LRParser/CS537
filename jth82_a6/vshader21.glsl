@@ -32,7 +32,7 @@ void main()
 		c_diffuse = vProduct(l_diffuse, m_reflect_diffuse)*d;
 	}
 	else {
-		c_diffuse = vec4(0,0,0,1);
+		c_diffuse = vec4(0.2,0.2,0.2,1);
 	}
 
 

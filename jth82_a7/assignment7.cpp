@@ -10,6 +10,16 @@
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
+const int N = 20;
+const int uRange = N;
+const int vRange = N;
+
+vec4 vertices[10000];
+vec4 patch[4][4];
+int totalRead = 0;
+
+vec4 interpolatedPoints[N][N];
+
 class Face {
 public:
 	int faceIdx;
@@ -24,7 +34,6 @@ public:
 
 bool debug = true;
 
-
 std::map<int,std::vector<Face> > vertexFaceMapping;
 
 mat4 TransformMatrix;
@@ -36,8 +45,6 @@ GLuint transformMatrix;
 point4 L_position = point4(0,5,10,1);
 
 // Material properties
-
-
 
 vec4 materialAmbientLightProperties[3];
 vec4 materialDiffuseLightProperties[3];
@@ -61,6 +68,7 @@ float M_shininess = 10;
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
 GLuint cameraPosition;
 GLuint isGouraud;
+GLuint flatShading;
 
 // Projection matrix : 45° Field of View, 1:1 ratio, display range : 0.1 unit <-> 100 units
 bool isPerspective = true;
@@ -71,11 +79,10 @@ GLfloat  bottom = -3.0, top = 5.0;
 GLfloat  near = -10.0, far = 10.0;
 
 float IsGouraud = .6; // >.5 is true, otherwise false
+float FlatShading = .6; // >.5 is true, otherwise false
 
 
-// Copied from Lecture 8 slides as described in assignment
-
-const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
+const int NumVertices = 10000;
 int NumVerticesUsed = 24;
 
 vec4 smfVertices[NumVertices];
@@ -88,11 +95,11 @@ vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
 vec4 modelCentroid;
 
-float Radius = 15.0;
+float Radius = 18.0;
 int Theta = 90; // Longitude angle in degrees
-int LightTheta = -345;
-int LightRadius = -1;
-float Height, LightHeight = 1;
+int LightTheta = 190;
+int LightRadius = -91;
+float Height, LightHeight = 3;
 
 float RadiusDelta = 1;
 int Delta = 5;
@@ -117,6 +124,73 @@ float radians(float degrees) {
 
 void printVector(vec4 vIn) {
 	printf("(%f, %f, %f)\n",vIn.x,vIn.y,vIn.z);
+}
+
+float getBernsteinFactor(float u, int sub) {
+	float uu = 1-u;
+	float val1 = uu * uu * uu;
+	float val2 = 3 * u * uu * uu;
+	float val3 = 3 * u * u * uu;
+	float val4 = u * u * u;
+	if(sub == 1) {
+		return val1;
+	}
+	else if(sub == 2) {
+		return val2;
+	}
+	else if(sub == 3) {
+		return val3;
+	}
+	else {
+		return val4;
+	}
+}
+
+void calcPatchPoints() {
+
+	for(int u = 0; u < uRange; u++) {
+
+		float uParam = (float) u / (float)uRange;
+
+		for(int v = 0; v < vRange; v++) {
+
+			float vParam = (float) v / (float)vRange ;
+
+			vec4 pointSum = vec4(0,0,0,0);
+
+			for(int i = 0; i < 4; i++) {
+
+				float bernsteinForU = getBernsteinFactor(uParam,i);
+
+				for(int j = 0; j < 4; j++) {
+
+					float bernsteinForV = getBernsteinFactor(vParam,j);
+
+					float controlX = patch[i][j].x;
+					float controlY = patch[i][j].y;
+					float controlZ = patch[i][j].z;
+					vec4 controlPoint = vec4(controlX,controlY,controlZ,0);
+					float weight = bernsteinForU * bernsteinForV;
+					pointSum += weight * controlPoint;
+				}
+			}
+
+			interpolatedPoints[u][v] = pointSum;
+		} // end v loop
+
+	} // end u loop
+
+
+} // end method
+
+
+// Used for SMF-format printing
+void printVertex(vec4 vertex, std::ofstream& of) {
+	of << "v" << " " << (double) vertex.x << " " << (double) vertex.y << " " << (double) vertex.z << "\n";
+}
+
+void printFace(int vertex1, int vertex2, int vertex3, std::ofstream& of) {
+	of << "f" << " " << vertex1 << " " << vertex2<< " " << vertex3 << "\n";
 }
 
 vec4 vProduct(vec4 a, vec4 b) {
@@ -267,9 +341,11 @@ initMainWindow( void )
 	m_shininess = glGetUniformLocation(program, "m_shininess");
 	cameraPosition = glGetUniformLocation(program, "cameraPosition");
 	isGouraud = glGetUniformLocation(program, "isGouraud");
+	flatShading = glGetUniformLocation(program, "flatShading");
+
+    glClearColor( 0.2, 0.2, 0.2, 0.2 ); // grey background
 
 
-    glClearColor( 0.2, 0.2, 0.2, 0.2 ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
@@ -328,6 +404,7 @@ displayMainWindow( void )
    glUniform4fv(cameraPosition,1,EyeVector);
    glUniform1f(m_shininess,M_shininess);
    glUniform1f(isGouraud,IsGouraud);
+   glUniform1f(flatShading,FlatShading);
 
    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
    glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
@@ -484,16 +561,29 @@ keyboard( unsigned char key, int x, int y )
     		printf("Phong shading mode\n");
     	}
     	break;
+    case 'f' :
+    	FlatShading = .6;
+    	if(debug) {
+    		printf("Turned on flat shading\n");
+    	}
+    	break;
+    case 'v' :
+    	FlatShading = .4;
+    	if(debug) {
+    		printf("Turned off flat shading\n");
+    	}
+    	break;
     case 'a' :
     	if(debug) {
     		printf("Material 1 selected");
     	}
-    	L_ambient = vec4(1.0,1,0.0,1);
-    	L_diffuse = vec4(0.0,1,0.0,1);
-    	L_specular = vec4(1.0,1.0,1.0,1);
 
-    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
+    	L_ambient = vec4(1.0,1.0,1.0,1.0);
+    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
+    	L_specular = vec4(.5,.5,.5,1);
+
+    	M_reflect_ambient = vec4(0.5,1,0.0,1.0);
+    	M_reflect_diffuse = vec4(0.5,1,0.0,1.0);
     	M_reflect_specular = vec4(1.0,1,1.0,1.0);
 
     	break;
@@ -502,9 +592,9 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 2 selected");
     	}
-    	L_ambient = vec4(1.0,1,1,1);
-    	L_diffuse = vec4(0.0,0,1.0,1);
-    	L_specular = vec4(0.0,1.0,1.0,1);
+    	L_ambient = vec4(1.0,1.0,1.0,1.0);
+    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
+    	L_specular = vec4(.5,.5,.5,1);
 
     	M_reflect_ambient = vec4(1.0,0,1.0,1.0);
     	M_reflect_diffuse = vec4(1.0,.4,0.0,1.0);
@@ -517,9 +607,9 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 3 selected");
     	}
-    	L_ambient = vec4(1.0,1,1,1);
-    	L_diffuse = vec4(0.0,0,1.0,1);
-    	L_specular = vec4(0.0,1.0,1.0,1);
+    	L_ambient = vec4(1.0,1.0,1.0,1.0);
+    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
+    	L_specular = vec4(.5,.5,.5,1);
 
     	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
     	M_reflect_diffuse = vec4(1.0,1,0.0,1.0);
@@ -527,6 +617,36 @@ keyboard( unsigned char key, int x, int y )
     	pressed = true;
 
     	break;
+
+    case 'z':
+    	if(debug) {
+    		printf("Reset all values\n");
+    	}
+
+    	L_ambient = vec4(1.0,1,0.0,1);
+    	L_diffuse = vec4(0.0,1,0.0,1);
+    	L_specular = vec4(1.0,1.0,1.0,1);
+
+    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
+    	M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
+    	M_reflect_specular = vec4(1.0,1,1.0,1.0);
+
+    	FlatShading = 0.6;
+
+    	Radius = 18.0;
+    	Theta = 90; // Longitude angle in degrees
+    	LightTheta = 190;
+    	LightRadius = -91;
+    	Height = 3;
+		LightHeight = 3;
+
+    	RadiusDelta = 1;
+    	Delta = 5;
+    	HeightDelta = .1;
+    	ParallelDelta = 2;
+
+    	break;
+
 
 	case 'x':
 		// Exit
@@ -634,10 +754,6 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 
 		vec4 crossVector = cross(U,V);
 
-		vec4 normalNormalized = normalize(crossVector);
-
-		vec4 absNormalNormalized = vAbs(normalNormalized);
-
 		double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
 
 		vec4 customNormal = crossVector / customLength;
@@ -648,14 +764,13 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 			printf("Cross product ");
 			printVector(crossVector);
 			printf("Normalized vector ");
-			printVector(normalNormalized);
 			printf("Absolute value vector ");
-			printVector(absNormalNormalized);
+
 			printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
 			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
 			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
 
-			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
+			printf("Final Color is: %f, %f, %f, %f\n",absCustomNormal.x,absCustomNormal.y,absCustomNormal.z,absCustomNormal.w);
 		}
 
 		currentFace.normal = absCustomNormal;
@@ -708,6 +823,98 @@ int readSMF(char* fileName) {
 			return numSmfFaces;
 }
 
+int readPatchFile(char* fileName) {
+
+	// Read in the patch file
+	std::ifstream infile(fileName);
+
+	float a, b, c;
+	int numVertices = 0;
+	while (infile >> a >> b >> c)
+	{
+		vec4 vertex = vec4(a,b,c,1.0);
+		vertices[numVertices++] = vertex;
+	}
+
+	return numVertices;
+
+	infile.close();
+}
+
+
+void readPatchFileAndPrintSMF(char* patchName, char* smfName) {
+
+	readPatchFile(patchName);
+
+	// Convert the 16 control vertices into a 4 by 4 array
+	int idx = 0;
+	for(int i=0; i < 4; i++) {
+		for(int j=0; j<4; j++) {
+			vec4 vertex = vertices[idx++];
+			patch[i][j] = vertex;
+		}
+	}
+
+	// Print the dynamically loaded patch array
+	for(int i=0; i < 4; i++) {
+		for(int j=0;j<4;j++) {
+			vec4 vertex = patch[i][j];
+		}
+	}
+
+	calcPatchPoints();
+
+	int vertexNum = 1;
+
+	std::ofstream ofs (smfName, std::ofstream::out);
+
+
+	// Write out all interpolated points in SMF format
+	for(int i = 0; i <= N - 1; i++) {
+
+			for(int j=0; j <= N - 1; j++) {
+
+				// First triangle
+				vec4 vertex1 =  patch[i][j]; // 1
+				vec4 vertex2 = patch[i+1][j]; // 2
+				vec4 vertex3 = patch[j+1][i]; // 3
+
+				// Second triangle
+				vec4 vertex4 = patch[i+1][j]; // 4 == 2, not 1
+				vec4 vertex5 = patch[j+1][i+1]; // 5
+				vec4 vertex6 = patch[i][j+1]; // 6
+
+				printVertex(vertex1,ofs);
+				printVertex(vertex2,ofs);
+				printVertex(vertex3,ofs);
+
+				int vertexNum1 = vertexNum;
+				int vertexNum2 = vertexNum + 1;
+				int vertexNum3 = vertexNum + 2;
+
+				// Print face info for triangle 1
+				printFace(vertexNum1,vertexNum2,vertexNum3, ofs);
+
+				vertexNum += 3;
+
+				int vertexNum4 = vertexNum;
+				int vertexNum5 = vertexNum + 1;
+				int vertexNum6 = vertexNum + 2;
+
+				printVertex(vertex4,ofs);
+				printVertex(vertex5,ofs);
+				printVertex(vertex6,ofs);
+				// Print face info for triangle 2
+				printFace(vertexNum4,vertexNum5,vertexNum6, ofs);
+
+				vertexNum += 3;
+
+			}
+		}
+
+	  ofs.close();
+}
+
 int
 main( int argc, char **argv )
 {
@@ -720,7 +927,7 @@ main( int argc, char **argv )
 #endif
     glutInitWindowSize( 500, 500 );
 
-    mainWindow = glutCreateWindow( "Assignment 6" );
+    mainWindow = glutCreateWindow( "Assignment 7" );
 #ifndef __APPLE__
     GLenum err = glewInit();
 
@@ -728,14 +935,25 @@ main( int argc, char **argv )
       fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
 #endif
 
-    char* fileName;
-    if(argc == 1) {
-    	fileName = "bound-bunny_200.smf";
+
+	char* patchFileName = "patchPoints.txt";
+	char* smfName = "interpolatedBezier.smf";
+
+	readPatchFileAndPrintSMF(patchFileName,smfName);
+
+	// Convert the 16 control vertices into a 4 by 4 array
+	int idx = 0;
+	for(int i=0; i < 4; i++) {
+		for(int j=0; j<4; j++) {
+			vec4 vertex = vertices[idx++];
+			patch[i][j] = vertex;
+		}
 	}
-	else {
-		fileName = argv[1];
-	}
-	readSMF(fileName);
+
+	// Interpolate as desired and write out an SMF
+
+	readSMF(smfName);
+
 	populatePointsAndNormalsArrays();
 
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
@@ -754,6 +972,8 @@ main( int argc, char **argv )
 	std::cout << "Press: 8 - To enable parallel projection mode (default)" << std::endl;
 	std::cout << "Press: g - To enable Gouraud shading" << std::endl;
 	std::cout << "Press: p - To enable Phong shading" << std::endl;
+	std::cout << "Press: f - To enable flat shading (default)" << std::endl;
+	std::cout << "Press: v - To disable flat shading" << std::endl;
 	std::cout << "Press: a - To select material 1 (reflects green, highly specular)" << std::endl;
 	std::cout << "Press: s - To select material 2 (reflects dark blue, low specular)" << std::endl;
 	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;

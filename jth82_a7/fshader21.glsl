@@ -12,6 +12,7 @@ uniform vec4 l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diff
 uniform vec4 cameraPosition;
 uniform float m_shininess;
 uniform float isGouraud;
+uniform float flatShading;
 
 
 vec4 vProduct(vec4 a, vec4 b) {
@@ -50,7 +51,12 @@ void main()
 		}
 
 
-		FragColor = c_diffuse + c_specular; // vec4(1.0,1.0,1.0,1.0); //
+		if(flatShading > 0.5) {
+			FragColor = c_ambient + c_diffuse;
+		}
+		else {
+			FragColor = c_ambient + c_diffuse + c_specular; // vec4(1.0,1.0,1.0,1.0); //
+		}
 		}
 	else {
 	    FragColor = color;

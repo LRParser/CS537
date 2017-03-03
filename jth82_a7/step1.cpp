@@ -129,7 +129,7 @@ main( int argc, char **argv )
 
 	readPatchFile("patchPoints.txt");
 
-	// Convert the 16 vertices into a 4 by 4 array
+	// Convert the 16 control vertices into a 4 by 4 array
 	int idx = 0;
 	for(int i=0; i < 4; i++) {
 		for(int j=0; j<4; j++) {
@@ -145,18 +145,14 @@ main( int argc, char **argv )
 		}
 	}
 
-	int vertexNum = 1;
+	calcPatchPoints();
 
-	// Print just far corners of patch
-	// printPatchCorners(vertexNum,patch);
+	int vertexNum = 1;
 
 	// Print all interpolated points
 	for(int i = 0; i <= N - 1; i++) {
 
 			for(int j=0; j <= N - 1; j++) {
-
-				// printf("i, j pair: (%d,%d)\n",i,j);
-
 
 				// First triangle
 				vec4 vertex1 =  patch[i][j]; // 1
