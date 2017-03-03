@@ -15,7 +15,7 @@
 #include <iterator>
 #define DEBUG 1
 
-const int N = 10;
+const int N = 20;
 const int uRange = N;
 const int vRange = N;
 

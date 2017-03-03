@@ -35,7 +35,7 @@ GLuint transformMatrix;
 // Uniforms for lighting
 // Light properties
 
-point4 L_position = point4(0,5,5,1);
+point4 L_position = point4(0,5,10,1);
 
 // Material properties
 
@@ -50,12 +50,12 @@ vec4 materialDiffuseReflectionProperties[3];
 vec4 materialSpecularReflectionProperties[3];
 
 
-color4 L_ambient = vec4(0.0,1,0.0,1);
-color4 L_diffuse = vec4(0.0,1,0.0,1);
-color4 L_specular = vec4(1.0,1.0,1.0,1);
+color4 L_ambient = vec4(1.0,1.0,1.0,1.0);
+color4 L_diffuse = vec4(1.0,1.0,1.0,0.5);
+color4 L_specular = vec4(.5,.5,.5,1);
 
-color4 M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-color4 M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
+color4 M_reflect_ambient = vec4(0.5,1,0.0,1.0);
+color4 M_reflect_diffuse = vec4(0.5,1,0.0,1.0);
 color4 M_reflect_specular = vec4(1.0,1,1.0,1.0);
 
 float M_shininess = 10;
@@ -90,7 +90,7 @@ vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
 vec4 modelCentroid;
 
-float Radius = 10.0;
+float Radius = 15.0;
 int Theta = 90; // Longitude angle in degrees
 int LightTheta = -345;
 int LightRadius = -1;
@@ -271,11 +271,14 @@ initMainWindow( void )
 	isGouraud = glGetUniformLocation(program, "isGouraud");
 
 
-    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
+    glClearColor( 0.2, 0.2, 0.2, 0.2 ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+    glPointSize(20.0f);
+    // glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+    glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
+
     glFlush();
 
 }
@@ -329,6 +332,7 @@ displayMainWindow( void )
    glUniform1f(isGouraud,IsGouraud);
 
    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+   glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
 
    glutSwapBuffers();
 
@@ -567,6 +571,10 @@ vec4 calculateVertexNormal(int vertexIdx) {
 	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
 		printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
 		printVector(it->normal);
+		if(std::isnan(it->normal.x)) {
+			// We weren't able to calculate the normal. Set it to default color
+			it->normal = normalize(defaultColor);
+		}
 		printVector(incidentFacesColorsSum);
 		incidentFacesColorsSum += it->normal;
 		printf("New sum is: ");
