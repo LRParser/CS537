@@ -10,7 +10,7 @@
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
-int N = 10;
+int N = 4;
 const int uRange = N;
 const int vRange = N;
 
@@ -30,10 +30,9 @@ public:
 	vec4 normal;
 };
 
-bool debug = false;
+bool debug = true;
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
-
 
 
 mat4 TransformMatrix;
@@ -82,15 +81,20 @@ float IsGouraud = .6; // >.5 is true, otherwise false
 float FlatShading = .6; // >.5 is true, otherwise false
 
 
-const int NumVertices = 10000;
+const int defaultSize = 100000;
+const int NumVertices = defaultSize;
+
+// Is set in calcPatchPointsAndAssociateToFaces, and used in initMainWindow
 int NumVerticesUsed = 24;
 
 vec4 smfVertices[NumVertices];
 std::vector<Face> smfFaces;
 
-vec4 points[10000];
-vec4 normals[10000];
-vec4 controlVertices[10000];
+
+
+vec4 points[defaultSize];
+vec4 normals[defaultSize];
+vec4 controlVertices[defaultSize];
 vec4 patch[4][4];
 vec4 interpolatedPoints[10][10];
 
@@ -186,14 +190,12 @@ void calcPatchPoints() {
 
 } // end method
 
-
-// Used for SMF-format printing
-void printVertex(vec4 vertex, std::ofstream& of) {
-	of << "v" << " " << (double) vertex.x << " " << (double) vertex.y << " " << (double) vertex.z << "\n";
+void printVertex(vec4 vertex) {
+	printf("v %f %f %f\n",vertex.x,vertex.y,vertex.z);
 }
 
-void printFace(int vertex1, int vertex2, int vertex3, std::ofstream& of) {
-	of << "f" << " " << vertex1 << " " << vertex2<< " " << vertex3 << "\n";
+void printFace(int vertex1, int vertex2, int vertex3) {
+	printf("f %d %d %d\n",vertex1,vertex2,vertex3);
 }
 
 vec4 vProduct(vec4 a, vec4 b) {
@@ -216,34 +218,19 @@ vec4 calculateModelCentroid() {
 	vec4 sumOfAllPoints;
 	for(int i = 0; i < NumVerticesUsed; i++) {
 		if(debug) {
-			printf("[Point]");
-			printVector(points[i]);
+			//printf("[Point]");
+			//printVector(points[i]);
 		}
 		sumOfAllPoints += points[i];
 	}
 	vec4 centroid = (sumOfAllPoints) / NumVerticesUsed;
 	if(debug) {
-		printf("Model centroid");
-		printVector(centroid);
+		//printf("Model centroid");
+		//printVector(centroid);
 	}
 	return centroid;
 }
 
-vec3 cos(vec3 angles) {
-        angles.x = cos(angles.x);
-        angles.y = cos(angles.y);
-        angles.z = cos(angles.z);
-
-        return angles;
-}
-
-vec3 sin(vec3 angles) {
-        angles.x = sin(angles.x);
-        angles.y = sin(angles.y);
-        angles.z = sin(angles.z);
-
-        return angles;
-}
 
 
 
@@ -274,8 +261,8 @@ void calculateEyeVector2() {
 	L_position.w = 0;
 
 	if(debug) {
-		printf("Eye Vector\n");
-		printVector(EyeVector);
+		// printf("Eye Vector\n");
+		// printVector(EyeVector);
 	}
 
 
@@ -297,13 +284,13 @@ initMainWindow( void )
 	if(debug) {
 		for(int i = 0; i < NumVerticesUsed; i++) {
 			vec4 currentPoint = points[i];
-			printf("(Point)");
-			printVector(currentPoint);
+			// printf("(Point)");
+			// printVector(currentPoint);
 		}
 		for(int i = 0; i < NumVerticesUsed; i++) {
 			vec4 currentNormal = normals[i];
-			printf("(Normal)");
-			printVector(currentNormal);
+			// printf("(Normal)");
+			// printVector(currentNormal);
 		}
 	}
 
@@ -352,8 +339,10 @@ initMainWindow( void )
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
+    printf("Num Vertices Used: %d\n",NumVerticesUsed);
+
     glPointSize(20.0f);
-    // glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
+    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
     glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
 
     glFlush();
@@ -409,6 +398,8 @@ displayMainWindow( void )
    glUniform1f(isGouraud,IsGouraud);
    glUniform1f(flatShading,FlatShading);
 
+   glClearColor( 0.2, 0.2, 0.2, 0.2 ); // grey background
+
    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
    glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
 
@@ -461,16 +452,22 @@ vec4 calculateVertexNormal(int vertexIdx) {
 
 	std::vector<Face>::iterator it;
 	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
-		printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
-		printVector(it->normal);
+		if(debug) {
+			printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
+			printVector(it->normal);
+		}
 		if(std::isnan(it->normal.x)) {
 			// We weren't able to calculate the normal. Set it to default color
 			it->normal = normalize(defaultColor);
 		}
-		printVector(incidentFacesColorsSum);
+		if(debug) {
+			printVector(incidentFacesColorsSum);
+		}
 		incidentFacesColorsSum += it->normal;
-		printf("New sum is: ");
-		printVector(incidentFacesColorsSum);
+		if(debug) {
+			printf("New sum is: ");
+			printVector(incidentFacesColorsSum);
+		}
 		incidentFacesCount++;
 	}
 
@@ -492,13 +489,13 @@ vec4 calculateVertexNormal(int vertexIdx) {
 
 	return vertexNormal;
 
-
-
-
 }
 
 
 void populatePointsAndNormalsArrays() {
+
+	printf("smfFaces.size() is %d\n",smfFaces.size());
+
 	for(int i = 0; i < smfFaces.size(); i++) {
 		Face currentFace = smfFaces.at(i);
 
@@ -535,66 +532,27 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 		vec4 absCustomNormal = vAbs(customNormal);
 
 		if(debug) {
+
+		}
+
+		if(std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z)) {
+
+			printf("Issue for face at index: %d \n",currentFace.faceIdx);
+
 			printf("Cross product ");
 			printVector(crossVector);
-			printf("Normalized vector ");
-			printf("Absolute value vector ");
 
 			printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
 			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
 			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
 
 			printf("Final Color is: %f, %f, %f, %f\n",absCustomNormal.x,absCustomNormal.y,absCustomNormal.z,absCustomNormal.w);
+
+			printf("Invalid cross vector");
+//			exit(0);
 		}
 
 		currentFace.normal = absCustomNormal;
-}
-
-
-int readSMF(char* fileName) {
-
-
-	// Read in the SMF file
-			std::ifstream infile(fileName);
-
-			char a;
-			float b, c, d;
-			int numSmfVertices = 0;
-			int numSmfFaces = 0;
-			while (infile >> a >> b >> c >> d)
-			{
-				if(a == 'v') {
-					smfVertices[numSmfVertices] = vec4(b,c,d,1);
-					numSmfVertices++;
-				}
-				else if(a == 'f') {
-
-					Face f;
-					f.faceIdx = numSmfFaces + 1; // faces are 1-indexed
-					f.firstVertexIndex = int(b);
-					f.secondVertexIndex = int(c);
-					f.thirdVertexIndex = int(d);
-					vec4 firstVertex = smfVertices[f.firstVertexIndex - 1];
-					f.firstVertex = firstVertex;
-					vec4 secondVertex = smfVertices[f.secondVertexIndex - 1];
-					f.secondVertex = secondVertex;
-					vec4 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
-					f.thirdVertex = thirdVertex;
-
-					calculateFaceNormal(firstVertex,secondVertex,thirdVertex,f);
-
-					vertexFaceMapping[f.firstVertexIndex].push_back(f);
-					vertexFaceMapping[f.secondVertexIndex].push_back(f);
-					vertexFaceMapping[f.thirdVertexIndex].push_back(f);
-
-					smfFaces.push_back(f);
-					numSmfFaces++;
-				}
-			}
-
-			NumVerticesUsed = numSmfFaces * 3;
-
-			return numSmfFaces;
 }
 
 int readPatchFile(char* fileName) {
@@ -616,10 +574,105 @@ int readPatchFile(char* fileName) {
 }
 
 
-void initPointsAtSelectedSample(char* patchName, char* smfName) {
+void calcPatchPointsAndAssociateToFaces() {
 
-	readPatchFile(patchName);
+	int vertexNum = 1;
 
+	int numSmfVertices = 0;
+	int numSmfFaces = 0;
+
+
+	// Calculate all interpolated points and store the smfVertices and smfFaces
+	for(int i = 0; i <= N - 1; i++) {
+
+			for(int j=0; j <= N - 1; j++) {
+
+				// First triangle
+				vec4 vertex1 =  patch[i][j]; // 1
+				vec4 vertex2 = patch[i+1][j]; // 2
+				vec4 vertex3 = patch[i][j+1]; // 3
+
+				// Second triangle
+				vec4 vertex4 = patch[i+1][j]; // 4 == 2, not 1
+				vec4 vertex5 = patch[i+1][j+1]; // 5
+				vec4 vertex6 = patch[i][j+1]; // 6
+
+				smfVertices[numSmfVertices] = vertex1;
+				numSmfVertices++;
+
+				smfVertices[numSmfVertices] = vertex2;
+				numSmfVertices++;
+
+				smfVertices[numSmfVertices] = vertex3;
+				numSmfVertices++;
+
+				int vertexNum1 = vertexNum;
+				int vertexNum2 = vertexNum + 1;
+				int vertexNum3 = vertexNum + 2;
+
+				Face f;
+				f.faceIdx = numSmfFaces + 1; // faces are 1-indexed
+				f.firstVertexIndex = vertexNum1;
+				f.secondVertexIndex = vertexNum2;
+				f.thirdVertexIndex = vertexNum3;
+				vec4 firstVertex = smfVertices[f.firstVertexIndex - 1];
+				f.firstVertex = firstVertex;
+				vec4 secondVertex = smfVertices[f.secondVertexIndex - 1];
+				f.secondVertex = secondVertex;
+				vec4 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
+				f.thirdVertex = thirdVertex;
+
+				calculateFaceNormal(firstVertex,secondVertex,thirdVertex,f);
+
+				vertexFaceMapping[f.firstVertexIndex].push_back(f);
+				vertexFaceMapping[f.secondVertexIndex].push_back(f);
+				vertexFaceMapping[f.thirdVertexIndex].push_back(f);
+
+				smfFaces.push_back(f);
+				numSmfFaces++;
+
+				vertexNum += 3;
+
+				smfVertices[numSmfVertices] = vertex4;
+				numSmfVertices++;
+
+				smfVertices[numSmfVertices] = vertex5;
+				numSmfVertices++;
+
+				smfVertices[numSmfVertices] = vertex6;
+				numSmfVertices++;
+
+				int vertexNum4 = vertexNum;
+				int vertexNum5 = vertexNum + 1;
+				int vertexNum6 = vertexNum + 2;
+
+				// Second face
+				Face g;
+				g.faceIdx = numSmfFaces + 1; // faces are 1-indexed
+				g.firstVertexIndex = vertexNum4;
+				g.secondVertexIndex = vertexNum5;
+				g.thirdVertexIndex = vertexNum6;
+				g.firstVertex = vertex4;
+				g.secondVertex = vertex5;
+				g.thirdVertex = vertex6;
+
+				calculateFaceNormal(vertexNum4,vertexNum5,vertexNum6,g);
+				vertexFaceMapping[g.firstVertexIndex].push_back(g);
+				vertexFaceMapping[g.secondVertexIndex].push_back(g);
+				vertexFaceMapping[g.thirdVertexIndex].push_back(g);
+
+				smfFaces.push_back(g);
+
+				vertexNum += 3;
+				numSmfFaces++;
+
+			}
+		}
+
+	NumVerticesUsed = numSmfFaces * 3;
+}
+
+void parseControlVerticesToPatch() {
 	// Convert the 16 control vertices into a 4 by 4 array
 	int idx = 0;
 	for(int i=0; i < 4; i++) {
@@ -628,90 +681,38 @@ void initPointsAtSelectedSample(char* patchName, char* smfName) {
 			patch[i][j] = vertex;
 		}
 	}
+}
 
-	calcPatchPoints();
+void reinitializeArrays() {
+	// Reset all arrays
+	for(int i = 0; i < 10000; i++) {
+		points[i] = vec4(0,0,0,0);
+		normals[i] = vec4(0,0,0,0);
+	}
 
-	int vertexNum = 1;
-
-	std::ofstream ofs (smfName, std::ofstream::out);
-
-
-	// Write out all interpolated points in SMF format
-	for(int i = 0; i <= N - 1; i++) {
-
-			for(int j=0; j <= N - 1; j++) {
-
-				// First triangle
-				vec4 vertex1 =  patch[i][j]; // 1
-				vec4 vertex2 = patch[i+1][j]; // 2
-				vec4 vertex3 = patch[j+1][i]; // 3
-
-				// Second triangle
-				vec4 vertex4 = patch[i+1][j]; // 4 == 2, not 1
-				vec4 vertex5 = patch[j+1][i+1]; // 5
-				vec4 vertex6 = patch[i][j+1]; // 6
-
-				printVertex(vertex1,ofs);
-				printVertex(vertex2,ofs);
-				printVertex(vertex3,ofs);
-
-				int vertexNum1 = vertexNum;
-				int vertexNum2 = vertexNum + 1;
-				int vertexNum3 = vertexNum + 2;
-
-				// Print face info for triangle 1
-				printFace(vertexNum1,vertexNum2,vertexNum3, ofs);
-
-				vertexNum += 3;
-
-				int vertexNum4 = vertexNum;
-				int vertexNum5 = vertexNum + 1;
-				int vertexNum6 = vertexNum + 2;
-
-				printVertex(vertex4,ofs);
-				printVertex(vertex5,ofs);
-				printVertex(vertex6,ofs);
-				// Print face info for triangle 2
-				printFace(vertexNum4,vertexNum5,vertexNum6, ofs);
-
-				vertexNum += 3;
-
-			}
+	for(int i = 0; i < 4; i++) {
+		for(int j = 0; j < 4; j++) {
+			patch[i][j] = vec4(0,0,0,0);
 		}
-
-	  ofs.close();
+	}
 }
 
 void drawWindowAtSelectedSample() {
-	char* patchFileName = "patchPoints.txt";
-		char* smfName = "interpolatedBezier.smf";
 
-		memset(points, 0, sizeof(points));
-		memset(normals, 0, sizeof(normals));
-		memset(controlVertices, 0, sizeof(controlVertices));
-		memset(patch, 0, sizeof(patch));
-		memset(interpolatedPoints, 0, sizeof(interpolatedPoints));
+	// reinitializeArrays();
 
-		initPointsAtSelectedSample(patchFileName,smfName);
+	// Convert the 16 control vertices into a 4 by 4 array
+	parseControlVerticesToPatch();
 
-		// Convert the 16 control vertices into a 4 by 4 array
-		int idx = 0;
-		for(int i=0; i < 4; i++) {
-			for(int j=0; j<4; j++) {
-				vec4 vertex = controlVertices[idx++];
-				patch[i][j] = vertex;
-			}
-		}
+	// Interpolate as desired
 
-		// Interpolate as desired and write out an SMF
+	calcPatchPointsAndAssociateToFaces();
 
-		readSMF(smfName);
+	populatePointsAndNormalsArrays();
 
-		populatePointsAndNormalsArrays();
+	initMainWindow();
 
-		initMainWindow();
-
-		glutPostRedisplay();
+	glutPostRedisplay();
 }
 
 void
@@ -936,7 +937,7 @@ keyboard( unsigned char key, int x, int y )
     	}
     	printf("Increase resolution to %d\n",N);
     	drawWindowAtSelectedSample();
-    	printf("Resampling done\n");
+    	printf("Resampling done at resolution %d\n",N);
 
     	break;
 
@@ -947,7 +948,7 @@ keyboard( unsigned char key, int x, int y )
     	}
     	printf("Decrease resolution to %d\n",N);
     	drawWindowAtSelectedSample();
-    	printf("Resampling done\n");
+    	printf("Resampling done at resolution %d\n",N);
     	break;
 
     case 'n' :
@@ -960,6 +961,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Increase control point x axis\n");
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].x = controlVertices[selectedPointIdx].x + 0.2;
+    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
 
@@ -1014,7 +1016,6 @@ keyboard( unsigned char key, int x, int y )
 int
 main( int argc, char **argv )
 {
-	//glEnable( GL_DEPTH_TEST );
     glutInit( &argc, argv );
 #ifdef __APPLE__
     glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
@@ -1032,7 +1033,20 @@ main( int argc, char **argv )
 #endif
 
 
-    drawWindowAtSelectedSample();
+
+	char* patchFileName = "patchPoints.txt";
+	readPatchFile(patchFileName);
+
+	// Convert the 16 control vertices into a 4 by 4 array
+	parseControlVerticesToPatch();
+
+	// Interpolate as desired
+
+	calcPatchPointsAndAssociateToFaces();
+
+	populatePointsAndNormalsArrays();
+
+    initMainWindow();
 
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;

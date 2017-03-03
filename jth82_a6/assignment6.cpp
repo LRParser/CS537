@@ -636,6 +636,11 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 
 		vec4 crossVector = cross(U,V);
 
+		if(std::isnan(crossVector.x)) {
+			printf("Invalid cross vector");
+			exit(0);
+		}
+
 		vec4 normalNormalized = normalize(crossVector);
 
 		vec4 absNormalNormalized = vAbs(normalNormalized);

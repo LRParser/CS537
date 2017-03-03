@@ -22,6 +22,7 @@ vec4 vProduct(vec4 a, vec4 b) {
 void main()
 {
 
+	
 	if(isGouraud > .5f) {
 	// Computed ambient, diffuse and specular colors
 	vec4 c_ambient = vProduct(l_ambient,m_reflect_ambient);
@@ -61,6 +62,9 @@ void main()
 	else {
 		color = vec4(1.0,0.0,0.0,1.0);
 	}
+	
+	// color = vec4(1.0,0.0,0.0,1.0);
+
 
 	position = vPosition;
 	normal = vNormal;
