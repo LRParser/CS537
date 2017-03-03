@@ -18,36 +18,16 @@
 const int N = 10;
 const int uRange = N;
 const int vRange = N;
-vec4 quads[N][N];
 
+vec4 vertices[10000];
+vec4 patch[4][4];
+int totalRead = 0;
 
-float patch[4][4][3] = {
-		{
-			{ 0.0, 0.0, 0.0 },
-			{ 2.0, 0.0, 1.5},
-			{ 4.0, 0.0, 2.9 },
-			{ 6.0, 0.0, 0.0 }
-		},
-		{
-			{ 0.0, 2.0, 1.1 },
-			{ 2.0, 2.0, 3.9 },
-			{ 4.0, 2.0, 3.1 },
-			{ 6.0, 2.0, 0.7 }
-		},
-		{
-			{ 0.0, 4.0, -0.5},
-			{ 2.0, 4.0, 2.6 },
-			{ 4.0, 4.0, 2.4 },
-			{ 6.0, 4.0, 0.4 }
-		},
-		{
-			{ 0.0, 6.0, 0.3 },
-			{ 2.0, 6.0, -1.1},
-			{ 4.0, 6.0, 1.3 },
-			{ 6.0, 6.0, -0.2}
-		}
-};
+vec4 interpolatedPoints[N][N];
 
+void printVertex(vec4 vertex) {
+	printf("v %f %f %f\n",vertex.x,vertex.y,vertex.z);
+}
 
 float getBernsteinFactor(float u, int sub) {
 	float uu = 1-u;
@@ -69,25 +49,24 @@ float getBernsteinFactor(float u, int sub) {
 	}
 }
 
+int printPatchCorners(int startVertexNum, vec4 patch[4][4]) {
 
-// Take 4 control points, and u, provide output
-vec3 calcPoint(float u, vec3 controlPoints[4]) {
+	printVertex(patch[0][0]);
+	printVertex(patch[3][0]);
+	printVertex(patch[3][3]);
 
-	vec3 retVal;
-	float uu = (1 - u);
+	// Print face info for triangle 1
+	printf("f %d %d %d\n",startVertexNum++,startVertexNum++,startVertexNum++);
 
-	retVal.x = uu * uu * uu * controlPoints[0].x
-	+ 3 * u * uu * uu * controlPoints[1].x
-	+ 3 * u * u * uu * controlPoints[2].x
-	+ u * u * u * controlPoints[3].x;
+	printVertex(patch[0][0]);
+	printVertex(patch[3][3]);
+	printVertex(patch[0][3]);
+	// Print face info for triangle 2
+	printf("f %d %d %d\n",startVertexNum++,startVertexNum++,startVertexNum++);
 
-	retVal.y = uu * uu * uu * controlPoints[0].y
-	+ 3 * u * uu * uu * controlPoints[1].y
-	+ 3 * u * u * uu * controlPoints[2].y
-	+ u * u * u * controlPoints[3].y;
-
-	return retVal;
+	return startVertexNum;
 }
+
 
 
 void calcPatchPoints() {
@@ -108,75 +87,103 @@ void calcPatchPoints() {
 
 				for(int j = 0; j < 4; j++) {
 
-					float bernsteinForJ = getBernsteinFactor(vParam,j);
+					float bernsteinForV = getBernsteinFactor(vParam,j);
 
-					float controlX = patch[i][j][0];
-					float controlY = patch[i][j][1];
-					float controlZ = patch[i][j][2];
+					float controlX = patch[i][j].x;
+					float controlY = patch[i][j].y;
+					float controlZ = patch[i][j].z;
 					vec4 controlPoint = vec4(controlX,controlY,controlZ,0);
-					float weight = bernsteinForU * bernsteinForJ;
+					float weight = bernsteinForU * bernsteinForV;
 					pointSum += weight * controlPoint;
-
 				}
 			}
 
-			// printf("v %f %f %f\n",pointSum.x,pointSum.y,pointSum.z);
+			interpolatedPoints[u][v] = pointSum;
+		} // end v loop
 
-			quads[u][v] = pointSum;
-
-			// printf("%f, %f\n",pointSum.x,pointSum.y);
+	} // end u loop
 
 
-		}
-
-	}
-}
+} // end method
 
 // Print vertex in SMF format
-void printVertex(vec4 vertex) {
-	printf("v %f %f %f\n",vertex.x,vertex.y,vertex.z);
+int readPatchFile(char* fileName) {
+
+	// Read in the patch file
+	std::ifstream infile(fileName);
+
+	float a, b, c;
+	int numVertices = 0;
+	while (infile >> a >> b >> c)
+	{
+		vec4 vertex = vec4(a,b,c,1.0);
+		vertices[numVertices++] = vertex;
+	}
+
+	return numVertices;
 }
 
 int
 main( int argc, char **argv )
 {
-	calcPatchPoints();
 
-	int faceNum = 1;
-	int vertexNum = 1;
+	readPatchFile("patchPoints.txt");
 
-	// Iterate thru i,j - e.g., u,v
-	for(int i = 0; i < N - 1; i++) {
-
-		for(int j=0; j < N - 1; j++) {
-
-			// First triangle
-			vec4 vertex1 =  quads[i][j];
-			vec4 vertex2 = quads[i+1][j];
-			vec4 vertex3 = quads[j+1][i];
-
-			// Second triangle
-			vec4 vertex4 = quads[i+1][j];
-			vec4 vertex5 = quads[j+1][i+1];
-			vec4 vertex6 = quads[i][j+1];
-
-			printVertex(vertex1);
-			printVertex(vertex2);
-			printVertex(vertex3);
-
-			// Print face info for triangle 1
-			printf("f %d %d %d\n",vertexNum++,vertexNum++,vertexNum++);
-
-			printVertex(vertex4);
-			printVertex(vertex5);
-			printVertex(vertex6);
-			// Print face info for triangle 2
-			printf("f %d %d %d\n",vertexNum++,vertexNum++,vertexNum++);
-
-
+	// Convert the 16 vertices into a 4 by 4 array
+	int idx = 0;
+	for(int i=0; i < 4; i++) {
+		for(int j=0; j<4; j++) {
+			vec4 vertex = vertices[idx++];
+			patch[i][j] = vertex;
 		}
 	}
 
+	// Print the dynamically loaded patch array
+	for(int i=0; i < 4; i++) {
+		for(int j=0;j<4;j++) {
+			vec4 vertex = patch[i][j];
+		}
+	}
+
+	int vertexNum = 1;
+
+	// Print just far corners of patch
+	// printPatchCorners(vertexNum,patch);
+
+	// Print all interpolated points
+	for(int i = 0; i <= N - 1; i++) {
+
+			for(int j=0; j <= N - 1; j++) {
+
+				// printf("i, j pair: (%d,%d)\n",i,j);
+
+
+				// First triangle
+				vec4 vertex1 =  patch[i][j]; // 1
+				vec4 vertex2 = patch[i+1][j]; // 2
+				vec4 vertex3 = patch[j+1][i]; // 3
+
+				// Second triangle
+				vec4 vertex4 = patch[i+1][j]; // 4 == 2, not 1
+				vec4 vertex5 = patch[j+1][i+1]; // 5
+				vec4 vertex6 = patch[i][j+1]; // 6
+
+				printVertex(vertex1);
+				printVertex(vertex2);
+				printVertex(vertex3);
+
+				// Print face info for triangle 1
+				printf("f %d %d %d\n",vertexNum++,vertexNum++,vertexNum++);
+
+				printVertex(vertex4);
+				printVertex(vertex5);
+				printVertex(vertex6);
+				// Print face info for triangle 2
+				printf("f %d %d %d\n",vertexNum++,vertexNum++,vertexNum++);
+
+
+			}
+		}
 
 	return 0;
 }

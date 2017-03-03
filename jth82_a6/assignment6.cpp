@@ -565,7 +565,12 @@ vec4 calculateVertexNormal(int vertexIdx) {
 
 	std::vector<Face>::iterator it;
 	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
+		printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
+		printVector(it->normal);
+		printVector(incidentFacesColorsSum);
 		incidentFacesColorsSum += it->normal;
+		printf("New sum is: ");
+		printVector(incidentFacesColorsSum);
 		incidentFacesCount++;
 	}
 
