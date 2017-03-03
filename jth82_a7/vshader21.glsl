@@ -61,10 +61,6 @@ void main()
 	else {
 		color = vec4(1.0,0.0,0.0,1.0);
 	}
-
-	if(lColor.x > 0.0) {
-		color = vec4(1.0,0.0,0.0,1.0);
-	}
 	
 	position = vPosition;
 	normal = vNormal;

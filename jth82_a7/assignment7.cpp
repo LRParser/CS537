@@ -734,6 +734,20 @@ void reinitializeArrays() {
 	smfFaces.clear();
 }
 
+void printUsage() {
+	std::cout << "Press: w - To reset the view" << std::endl;
+	std::cout << "Press: j - To increase the sampling by 1 (e.g., from 10x10 default to 11x11)" << std::endl;
+	std::cout << "Press: k - To decrease the sampling by 5 (e.g., from 10x10 default to 9x9)" << std::endl;
+	std::cout << "Press: 1 - To increase camera height" << std::endl;
+	std::cout << "Press: 2 - To decrease camera height" << std::endl;
+	std::cout << "Press: 3 - To increase orbit radius" << std::endl;
+	std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
+	std::cout << "Press: 5 - To increase camera angle (rotate camera)" << std::endl;
+	std::cout << "Press: 6 - To decrease camera angle (rotate counterclockwise)" << std::endl;
+	std::cout << "Press: x - To exit the program" << std::endl;
+}
+
+
 void drawWindowAtSelectedSample() {
 
 	reinitializeArrays();
@@ -987,9 +1001,7 @@ keyboard( unsigned char key, int x, int y )
     	if (N >= 100) {
     		N = 100;
     	}
-    	printf("Increase resolution to %d\n",N);
     	drawWindowAtSelectedSample();
-    	printf("Resampling done at resolution %d\n",N);
 
     	break;
 
@@ -998,15 +1010,14 @@ keyboard( unsigned char key, int x, int y )
     	if(N <= 0) {
     		N = 1;
     	}
-    	printf("Decrease resolution to %d\n",N);
     	drawWindowAtSelectedSample();
-    	printf("Resampling done at resolution %d\n",N);
     	break;
 
     case 'n' :
     	selectedPointIdx++;
     	selectedPointIdx = selectedPointIdx % 16;
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
+    	printUsage();
     	break;
 
     case '-' :
@@ -1015,8 +1026,8 @@ keyboard( unsigned char key, int x, int y )
     	controlVertices[selectedPointIdx].x += 1;
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
-
     	printf("Point movement done\n");
+    	printUsage();
 
     	break;
     case '=' :
@@ -1026,6 +1037,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Point movement done\n");
+    	printUsage();
     	break;
     case '[' :
     	printf("Increase control point y axis\n");
@@ -1034,6 +1046,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
+    	printUsage();
     	break;
     case ']' :
     	printf("Decrease control point y axis\n");
@@ -1042,6 +1055,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
+    	printUsage();
     	break;
     case '{' :
     	printf("Increase control point z axis\n");
@@ -1050,6 +1064,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
+    	printUsage();
     	break;
     case '}' :
     	printf("Decrease control point z axis\n");
@@ -1058,6 +1073,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	drawWindowAtSelectedSample();
     	printf("Resampling done\n");
+    	printUsage();
     	break;
 
 	case 'x':
@@ -1071,7 +1087,6 @@ keyboard( unsigned char key, int x, int y )
 	glutPostRedisplay();
 
 }
-
 
 int
 main( int argc, char **argv )
@@ -1108,44 +1123,7 @@ main( int argc, char **argv )
 
     initMainWindow();
 
-
-    	std::cout << "Press: w - To reset the view" << std::endl;
-    	std::cout << "Press: j - To increase the sampling by 1 (e.g., from 10x10 default to 11x11)" << std::endl;
-    	std::cout << "Press: k - To decrease the sampling by 5 (e.g., from 10x10 default to 9x9)" << std::endl;
-    	std::cout << "Press: 1 - To increase camera height" << std::endl;
-    	std::cout << "Press: 2 - To decrease camera height" << std::endl;
-    	std::cout << "Press: 3 - To increase orbit radius" << std::endl;
-		std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
-		std::cout << "Press: 5 - To increase camera angle (rotate camera)" << std::endl;
-		std::cout << "Press: 6 - To decrease camera angle (rotate counterclockwise)" << std::endl;
-		std::cout << "Press: x - To exit the program" << std::endl;
-
-
-		// Commenting out commands not needed for program
-		/*
-        std::cout << "Press: f - To enable flat shading (default)" << std::endl;
-        std::cout << "Press: v - To disable flat shading" << std::endl;
-    	std::cout << "Press: g - To enable Gouraud shading" << std::endl;
-    	std::cout << "Press: p - To enable Phong shading" << std::endl;
-
-
-	std::cout << "Press: q - To increase light height" << std::endl;
-	std::cout << "Press: w - To decrease light height" << std::endl;
-
-	std::cout << "Press: e - To increase light radius" << std::endl;
-	std::cout << "Press: r - To decrease light radius" << std::endl;
-
-	std::cout << "Press: t - To increase light angle (rotate camera)" << std::endl;
-	std::cout << "Press: y - To decrease light angle (rotate counterclockwise)" << std::endl;
-	std::cout << "Press: 7 - To enable perspective projection mode" << std::endl;
-	std::cout << "Press: 8 - To enable parallel projection mode (default)" << std::endl;
-
-	std::cout << "Press: a - To select material 1 (reflects green, highly specular)" << std::endl;
-	std::cout << "Press: s - To select material 2 (reflects dark blue, low specular)" << std::endl;
-	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;
-	*/
-
-
+    printUsage();
 
 	glutDisplayFunc( displayMainWindow );
 	glutKeyboardFunc( keyboard );
