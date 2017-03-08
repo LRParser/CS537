@@ -20,57 +20,5 @@ vec4 vProduct(vec4 a, vec4 b) {
 
 void main()
 {
-
-	if(isGouraud < .5f) {
-		// Computed ambient, diffuse and specular colors
-		vec4 c_ambient = vProduct(l_ambient,m_reflect_ambient);
-
-		// If in Phong mode we set color to vNormal in vertex shader
-		float d = dot(normal, normalize(l_position));
-
-		vec4 c_diffuse;
-		if(d > 0) {
-			c_diffuse = vProduct(l_diffuse, m_reflect_diffuse)*d;
-		}
-		else {
-			c_diffuse = vec4(0,0,0,1);
-		}
-
-
-		vec4 viewDirection = (transformMatrix * position) - cameraPosition;
-
-
-		vec4 L = l_position - cameraPosition; // This position could be the centroid
-		                         // of the triangle
-		vec4 E = vec4(0,0,0,0) - position;
-
-
-		vec4 newNormal;
-		                         // N and E point in the "same" direction, i.e.
-		// the normal points away from the camera
-		if (dot(normal, E) > 0) {
-			newNormal = -1 * normal;
-		}
-
-
-		vec4 halfVector = normalize(l_position + viewDirection);
-
-		vec4 c_specular = vec4(0,0,0,0);
-		float s = dot(halfVector,newNormal);
-		if(s >0.0) {
-			c_specular = pow(s,m_shininess) * vProduct(l_specular,m_reflect_specular);
-		}
-		else {
-			c_specular = vec4(0,0,0,0);
-		}
-
-
-		FragColor = c_ambient + c_diffuse + c_specular; // vec4(1.0,1.0,1.0,1.0); //
-		}
-	else {
 	    FragColor = color;
-
-	}
-
-
 }

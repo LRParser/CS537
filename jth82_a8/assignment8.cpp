@@ -62,7 +62,6 @@ float M_shininess = 1;
 
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
 GLuint cameraPosition;
-GLuint isGouraud;
 
 // Projection matrix : 45° Field of View, 1:1 ratio, display range : 0.1 unit <-> 100 units
 bool isPerspective = true;
@@ -72,7 +71,6 @@ GLfloat  left = -4.0, right = 4.0;
 GLfloat  bottom = -3.0, top = 5.0;
 GLfloat  near = -10.0, far = 10.0;
 
-float IsGouraud = .6; // >.5 is true, otherwise false
 
 const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
 
@@ -102,14 +100,85 @@ float ParallelDelta = 2;
 
 int mainWindow;
 
-int w = 500;
-int h = 500;
-int border = 50;
-
+int windowWidth = 512;
+int windowHeight = 512;
 
 vec4 defaultColor = vec4(.5,0,0,0);
+vec4 defaultBackgroundColor = vec4(.2,.2,.2,.2);
 
-GLint windowHeight, windowWidth;
+/* Frame buffer IDs */
+GLuint fb, color_rb, depth_rb;
+GLuint shade1Solid, shade2Solid,shade3Solid;
+float Shade1Solid, Shade2Solid, Shade3Solid = 0.0;
+vec4 framebufferColors[10000];
+
+void initFrameBuffer() {
+	   //RGBA8 RenderBuffer, 24 bit depth RenderBuffer, 512x512
+	   glGenFramebuffers(1, &fb);
+	   glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+	   //Create and attach a color buffer
+	   glGenRenderbuffers(1, &color_rb);
+
+	   //We must bind color_rb before we call glRenderbufferStorage
+	   glBindRenderbuffer(GL_RENDERBUFFER, color_rb);
+
+	   //The storage format is RGBA8
+	   glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, windowWidth, windowHeight);
+
+	   //Attach color buffer to FBO
+	   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+	                                                 GL_RENDERBUFFER, color_rb);
+
+	   //-------------------------
+	   glGenRenderbuffers(1, &depth_rb);
+	   glBindRenderbuffer(GL_RENDERBUFFER, depth_rb);
+	   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, windowWidth, windowHeight);
+
+	   //-------------------------
+	   //Attach depth buffer to FBO
+	   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+							     GL_RENDERBUFFER, depth_rb);
+
+	   glEnable(GL_DEPTH_TEST);
+
+	   //-------------------------
+	   //and now you can render to the FBO (also called RenderBuffer)
+	   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fb);
+	   glClearColor(defaultBackgroundColor.x,defaultBackgroundColor.y,defaultBackgroundColor.z,defaultBackgroundColor.w);
+	   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	   //-------------------------
+	   glViewport(0, 0, windowWidth, windowHeight);
+
+	   // Set note as to which buffer is being used
+
+	   //-------------------------
+	   // Render into frame buffer
+	   //
+
+	   //     …
+
+	   // Set up to read from the renderbuffer and draw to window
+	   // system framebuffer
+
+	   glBindFramebuffer(GL_READ_FRAMEBUFFER, fb);
+
+	   //----------------
+	   //Bind 0, which means render to back buffer
+	   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+	   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	   // Do the copy
+
+	   glBlitFramebuffer(0, 0, 511, 511, 0, 0 , 511, 511,
+						GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+	   glutSwapBuffers();
+
+}
+
 
 
 float radians(float degrees) {
@@ -263,22 +332,26 @@ initMainWindow( void )
 	m_reflect_specular = glGetUniformLocation(program, "m_reflect_specular");
 	m_shininess = glGetUniformLocation(program, "m_shininess");
 	cameraPosition = glGetUniformLocation(program, "cameraPosition");
-	isGouraud = glGetUniformLocation(program, "isGouraud");
+	shade1Solid = glGetUniformLocation(program, "shade1Solid");
+	shade2Solid = glGetUniformLocation(program, "shade2Solid");
+	shade3Solid = glGetUniformLocation(program, "shade3Solid");
 
 
-    glClearColor( 0.2, 0.2, 0.2, 0.2 ); // black background
+    glClearColor( defaultBackgroundColor.x,defaultBackgroundColor.y,defaultBackgroundColor.z,defaultBackgroundColor.w ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
-
-    // glPointSize(20.0f);
-    // glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
-    // glDrawArrays( GL_POINTS, 0, shape1VertexCount );
 
     glFlush();
 
 }
 
+void mouse(int button, int state, int x, int y) {
+	if(state == GLUT_DOWN) {
+		printf("Click at: %d, %d\n",x,y);
+		glutPostRedisplay();
+	}
 
+}
 
 void
 displayMainWindow( void )
@@ -324,7 +397,9 @@ displayMainWindow( void )
    glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
    glUniform4fv(cameraPosition,1,EyeVector);
    glUniform1f(m_shininess,M_shininess);
-   glUniform1f(isGouraud,IsGouraud);
+   glUniform1f(shade1Solid,Shade1Solid);
+   glUniform1f(shade2Solid,Shade2Solid);
+   glUniform1f(shade3Solid,Shade3Solid);
 
    glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
    glDrawArrays( GL_TRIANGLES, shape1VertexCount , shape2VertexCount );
@@ -458,18 +533,6 @@ keyboard( unsigned char key, int x, int y )
     	break;
     case '8' :
     	isPerspective = false;
-    	break;
-    case 'g' :
-    	IsGouraud = .6;
-    	if(debug) {
-    		printf("Gouraud shading mode\n");
-    	}
-    	break;
-    case 'p' :
-    	IsGouraud = .4;
-    	if(debug) {
-    		printf("Phong shading mode\n");
-    	}
     	break;
     case 'a' :
     	if(debug) {
@@ -723,14 +786,15 @@ int readSMF(char* fileName, int xOffset) {
 int
 main( int argc, char **argv )
 {
-	//glEnable( GL_DEPTH_TEST );
     glutInit( &argc, argv );
 #ifdef __APPLE__
     glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
 #else
-    glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
+    glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 #endif
-    glutInitWindowSize( 500, 500 );
+    glutInitWindowSize( windowWidth, windowHeight );
+
+
 
     mainWindow = glutCreateWindow( "Assignment 8" );
 #ifndef __APPLE__
@@ -776,8 +840,7 @@ main( int argc, char **argv )
 	std::cout << "Press: y - To decrease light angle (rotate counterclockwise)" << std::endl;
 	std::cout << "Press: 7 - To enable perspective projection mode" << std::endl;
 	std::cout << "Press: 8 - To enable parallel projection mode (default)" << std::endl;
-	std::cout << "Press: g - To enable Gouraud shading" << std::endl;
-	std::cout << "Press: p - To enable Phong shading" << std::endl;
+
 	std::cout << "Press: a - To select material 1 (reflects green, highly specular)" << std::endl;
 	std::cout << "Press: s - To select material 2 (reflects dark blue, low specular)" << std::endl;
 	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;
@@ -789,8 +852,11 @@ main( int argc, char **argv )
 
 	glutDisplayFunc( displayMainWindow );
 	glutKeyboardFunc( keyboard );
+	glutMouseFunc(mouse);
 
 	glEnable(GL_DEPTH_TEST);
+
+	initFrameBuffer();
 
 	glutMainLoop();
 	return 0;
