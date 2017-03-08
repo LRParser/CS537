@@ -1,6 +1,6 @@
 LDLIBS = -lglut -lGLEW -lGL -lGLU
 
-name1 = assignment7
+name1 = assignment8
 
 CXXINCS = -Wall -pedantic -Iinclude 
 

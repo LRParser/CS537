@@ -24,7 +24,7 @@ public:
 	vec4 normal;
 };
 
-bool debug = true;
+bool debug = false;
 
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
@@ -74,11 +74,10 @@ GLfloat  near = -10.0, far = 10.0;
 
 float IsGouraud = .6; // >.5 is true, otherwise false
 
-
-// Copied from Lecture 8 slides as described in assignment
-
 const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
-int shape1VertexCount = 24;
+
+// End indices for shapes after calls to readSMF
+int shape1VertexCount, shape2VertexCount, shape3VertexCount = 0;
 
 vec4 smfVertices[NumVertices];
 std::vector<Face> smfFaces;
@@ -216,12 +215,12 @@ initMainWindow( void )
 
     // Print points and normals info
 	if(debug) {
-		for(int i = 0; i < shape1VertexCount; i++) {
+		for(int i = 0; i < shape3VertexCount; i++) {
 			vec4 currentPoint = points[i];
 			printf("(Point)");
 			printVector(currentPoint);
 		}
-		for(int i = 0; i < shape1VertexCount; i++) {
+		for(int i = 0; i < shape3VertexCount; i++) {
 			vec4 currentNormal = normals[i];
 			printf("(Normal)");
 			printVector(currentNormal);
@@ -271,9 +270,9 @@ initMainWindow( void )
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    glPointSize(20.0f);
+    // glPointSize(20.0f);
     // glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
-    glDrawArrays( GL_POINTS, 0, shape1VertexCount );
+    // glDrawArrays( GL_POINTS, 0, shape1VertexCount );
 
     glFlush();
 
@@ -328,6 +327,10 @@ displayMainWindow( void )
    glUniform1f(isGouraud,IsGouraud);
 
    glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
+   glDrawArrays( GL_TRIANGLES, shape1VertexCount , shape2VertexCount );
+   glDrawArrays( GL_TRIANGLES, shape1VertexCount + shape2VertexCount, shape3VertexCount);
+
+
 
    glutSwapBuffers();
 
@@ -355,11 +358,6 @@ int min(int int1, int int2) {
 void
 keyboard( unsigned char key, int x, int y )
 {
-	// Define six keys for increasing and decreasing the X,Y,Z components of the current transformation.
-	// The cube should only be transformed with each key stroke.
-	bool pressed = false;
-
-	// We either manipulate ScaleFactor, RotationFactor, or TranslateFactor, depending on current operation
 
     switch ( key ) {
 
@@ -408,7 +406,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightRadius is: %d\n",LightRadius);
     	}
-    	pressed = true;
         break;
 
 	case 'r' :
@@ -417,7 +414,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightRadius is: %d\n",LightRadius);
     	}
-    	pressed = true;
         break;
 
 
@@ -428,7 +424,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Theta is: %d\n",Theta);
     	}
-    	pressed = true;
 
     	break;
     case '6' :
@@ -436,7 +431,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Theta is: %d\n",Theta);
     	}
-    	pressed = true;
 
     	break;
     case 't' :
@@ -446,7 +440,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightTheta is: %d\n",LightTheta);
     	}
-    	pressed = true;
 
     	break;
     case 'y' :
@@ -462,7 +455,6 @@ keyboard( unsigned char key, int x, int y )
     	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
     	isPerspective = true;
 
-    	pressed = true;
     	break;
     case '8' :
     	isPerspective = false;
@@ -504,7 +496,6 @@ keyboard( unsigned char key, int x, int y )
     	M_reflect_ambient = vec4(1.0,0,1.0,1.0);
     	M_reflect_diffuse = vec4(1.0,.4,0.0,1.0);
     	M_reflect_specular = vec4(0.0,.4,.4,1.0);
-    	pressed = true;
 
     	break;
 
@@ -519,7 +510,6 @@ keyboard( unsigned char key, int x, int y )
     	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
     	M_reflect_diffuse = vec4(1.0,1,0.0,1.0);
     	M_reflect_specular = vec4(1.0,1,.5,1.0);
-    	pressed = true;
 
     	break;
 
@@ -562,16 +552,25 @@ vec4 calculateVertexNormal(int vertexIdx) {
 
 	std::vector<Face>::iterator it;
 	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
-		printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
-		printVector(it->normal);
-		if(std::isnan(it->normal.x)) {
+
+
+		if(debug) {
+			printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
+			printVector(it->normal);
+
+		}
+		if(debug && std::isnan(it->normal.x)) {
+
 			// We weren't able to calculate the normal. Set it to default color
 			it->normal = normalize(defaultColor);
+			printVector(incidentFacesColorsSum);
+			printf("New sum is: ");
+			printVector(incidentFacesColorsSum);
 		}
-		printVector(incidentFacesColorsSum);
+
+
 		incidentFacesColorsSum += it->normal;
-		printf("New sum is: ");
-		printVector(incidentFacesColorsSum);
+
 		incidentFacesCount++;
 	}
 
@@ -598,6 +597,7 @@ vec4 calculateVertexNormal(int vertexIdx) {
 
 }
 
+int currentPointsIdx = 0;
 
 void populatePointsAndNormalsArrays() {
 	for(int i = 0; i < smfFaces.size(); i++) {
@@ -609,17 +609,30 @@ void populatePointsAndNormalsArrays() {
 
 		vec4 vertex3 = currentFace.thirdVertex;
 
-		int currentOffset = i * 3;
 
-		points[currentOffset] = vertex1;
-		points[currentOffset + 1] = vertex2;
-		points[currentOffset + 2] = vertex3;
+		points[currentPointsIdx] = vertex1;
+		points[currentPointsIdx + 1] = vertex2;
+		points[currentPointsIdx + 2] = vertex3;
 
-		normals[currentOffset] = calculateVertexNormal(currentFace.firstVertexIndex);
-		normals[currentOffset + 1] = calculateVertexNormal(currentFace.secondVertexIndex);
-		normals[currentOffset + 2] = calculateVertexNormal(currentFace.thirdVertexIndex);
+		normals[currentPointsIdx] = calculateVertexNormal(currentFace.firstVertexIndex);
+		normals[currentPointsIdx + 1] = calculateVertexNormal(currentFace.secondVertexIndex);
+		normals[currentPointsIdx + 2] = calculateVertexNormal(currentFace.thirdVertexIndex);
+
+		currentPointsIdx += 3;
+
 
 	}
+}
+
+void reinitializeArrays() {
+	// Reset all arrays
+	for(int i = 0; i < 10000; i++) {
+		smfVertices[i] = vec4(0,0,0,0);
+	}
+
+
+	vertexFaceMapping.clear();
+	smfFaces.clear();
 }
 
 void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
@@ -629,7 +642,7 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 
 		vec4 crossVector = cross(U,V);
 
-		if(std::isnan(crossVector.x)) {
+		if(debug && std::isnan(crossVector.x)) {
 			printf("Invalid cross vector");
 			exit(0);
 		}
@@ -662,7 +675,7 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 }
 
 
-int readSMF(char* fileName) {
+int readSMF(char* fileName, int xOffset) {
 
 
 	// Read in the SMF file
@@ -670,12 +683,13 @@ int readSMF(char* fileName) {
 
 			char a;
 			float b, c, d;
-			int numSmfVertices = 0;
 			int numSmfFaces = 0;
+			int numSmfVertices = 0;
+
 			while (infile >> a >> b >> c >> d)
 			{
 				if(a == 'v') {
-					smfVertices[numSmfVertices] = vec4(b,c,d,1);
+					smfVertices[numSmfVertices] = vec4(b - xOffset,c,d,1);
 					numSmfVertices++;
 				}
 				else if(a == 'f') {
@@ -703,9 +717,7 @@ int readSMF(char* fileName) {
 				}
 			}
 
-			shape1VertexCount = numSmfFaces * 3;
-
-			return numSmfFaces;
+		return numSmfFaces * 3;
 }
 
 int
@@ -720,7 +732,7 @@ main( int argc, char **argv )
 #endif
     glutInitWindowSize( 500, 500 );
 
-    mainWindow = glutCreateWindow( "Assignment 6" );
+    mainWindow = glutCreateWindow( "Assignment 8" );
 #ifndef __APPLE__
     GLenum err = glewInit();
 
@@ -735,8 +747,20 @@ main( int argc, char **argv )
 	else {
 		fileName = argv[1];
 	}
-	readSMF(fileName);
+	shape1VertexCount = readSMF(fileName,0);
 	populatePointsAndNormalsArrays();
+	reinitializeArrays();
+
+	shape2VertexCount = readSMF(fileName,-3);
+	populatePointsAndNormalsArrays();
+	reinitializeArrays();
+
+	shape3VertexCount = readSMF(fileName,3);
+	populatePointsAndNormalsArrays();
+	reinitializeArrays();
+
+	printf("Vertex counts: %d, %d, %d\n",shape1VertexCount,shape2VertexCount,shape3VertexCount);
+
 
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;

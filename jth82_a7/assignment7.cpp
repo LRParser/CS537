@@ -85,7 +85,7 @@ const int defaultSize = 100000;
 const int NumVertices = defaultSize;
 
 // Is set in calcPatchPointsAndAssociateToFaces, and used in initMainWindow
-int NumVerticesUsed = 24;
+int shape1VertexCount = 24;
 
 vec4 smfVertices[NumVertices];
 std::vector<Face> smfFaces;
@@ -220,14 +220,14 @@ vec4 vScale(vec4 input, float scaleFactor) {
 
 vec4 calculateModelCentroid() {
 	vec4 sumOfAllPoints;
-	for(int i = 0; i < NumVerticesUsed; i++) {
+	for(int i = 0; i < shape1VertexCount; i++) {
 		if(debug) {
 			//printf("[Point]");
 			//printVector(points[i]);
 		}
 		sumOfAllPoints += points[i];
 	}
-	vec4 centroid = (sumOfAllPoints) / NumVerticesUsed;
+	vec4 centroid = (sumOfAllPoints) / shape1VertexCount;
 	if(debug) {
 		//printf("Model centroid");
 		//printVector(centroid);
@@ -281,12 +281,12 @@ void setLineBufferData() {
 }
 
 void printPointsAndNormals() {
-	for(int i = 0; i < NumVerticesUsed; i++) {
+	for(int i = 0; i < shape1VertexCount; i++) {
 		vec4 currentPoint = points[i];
 		printf("(Point)");
 		printVector(currentPoint);
 	}
-	for(int i = 0; i < NumVerticesUsed; i++) {
+	for(int i = 0; i < shape1VertexCount; i++) {
 		vec4 currentNormal = normals[i];
 		printf("(Normal)");
 		printVector(currentNormal);
@@ -360,13 +360,13 @@ initMainWindow( void )
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    printf("Num Vertices Used: %d\n",NumVerticesUsed);
+    printf("Num Vertices Used: %d\n",shape1VertexCount);
 
 
     glPointSize(20.0f);
     glLineWidth(20.0f);
-    glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
-    glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
+    glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
+    glDrawArrays( GL_POINTS, 0, shape1VertexCount );
     glDrawArrays( GL_LINES, 2* defaultSize, 6 );
 
 
@@ -429,8 +429,8 @@ displayMainWindow( void )
    glClearColor( 0.6, 0.6, 0.6, 1.0 ); // grey background
 
 
-   glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
-   glDrawArrays( GL_POINTS, 0, NumVerticesUsed );
+   glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
+   glDrawArrays( GL_POINTS, 0, shape1VertexCount );
    glDrawArrays( GL_LINES, 2*defaultSize, 6 );
 
 
@@ -702,7 +702,7 @@ void calcPatchPointsAndAssociateToFaces() {
 			}
 		}
 
-	NumVerticesUsed = numSmfFaces * 3;
+	shape1VertexCount = numSmfFaces * 3;
 }
 
 void parseControlVerticesToPatch() {
