@@ -1,4 +1,6 @@
-This assignment should be run on OS X.
+This assignment should be run on OS X via the command 'make run'
+A user can also type ./assignment8 once 'make all' has completed
+
 The view can be rotated via pressing 5 or 6, zoomed via 3 or 4, and panned up or down via 1 or 2.
 All values can be reset via pressing z
 Clicking on an object sets its color to a random color
