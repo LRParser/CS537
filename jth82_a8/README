@@ -1,0 +1,4 @@
+This assignment should be run on OS X.
+The view can be rotated via pressing 5 or 6, zoomed via 3 or 4, and panned up or down via 1 or 2.
+All values can be reset via pressing z
+Clicking on an object sets its color to a random color
