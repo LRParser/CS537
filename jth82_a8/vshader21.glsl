@@ -1,4 +1,4 @@
-#version 130
+#version 150
 
 in vec4 vPosition;
 in vec4 vNormal;
@@ -34,7 +34,6 @@ void main()
 		c_diffuse = vec4(0.2,0.2,0.2,1);
 	}
 
-
 	vec4 viewDirection = (transformMatrix * vPosition) - cameraPosition;
 	vec4 halfVector = normalize(l_position + viewDirection);
 
@@ -50,6 +49,8 @@ void main()
 	position = vPosition;
 	normal = vNormal;
 
+	color = c_ambient + c_diffuse + c_specular;
+	
 	if(shade1Solid > .4) {
 		color = vec4(1,0,0,1);
 	}
@@ -59,7 +60,6 @@ void main()
 	else if(shade3Solid > .4) {
 		color = vec4(0,0,1,1);
 	}
-
-	color = c_ambient + c_diffuse + c_specular;
+	
 	gl_Position =  transformMatrix * vPosition;
 }

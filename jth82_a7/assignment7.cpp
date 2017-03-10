@@ -55,7 +55,7 @@ vec4 materialSpecularReflectionProperties[3];
 
 
 color4 L_ambient = vec4(1.0,1.0,1.0,1.0);
-color4 L_diffuse = vec4(1.0,1.0,1.0,1.0);
+color4 L_diffuse = vec4(.2,.2,.2,1.0);
 color4 L_specular = vec4(.5,.5,.5,1);
 
 color4 M_reflect_ambient = vec4(0.2,.1,.7,1.0);

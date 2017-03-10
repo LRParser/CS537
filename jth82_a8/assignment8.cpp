@@ -58,6 +58,7 @@ color4 M_reflect_ambient = vec4(0.2,.2,1,1.0);
 color4 M_reflect_diffuse = vec4(0.3,1,.3,1.0);
 color4 M_reflect_specular = vec4(.1,.1,.1,1.0);
 
+
 float M_shininess = 1;
 
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
@@ -142,6 +143,7 @@ void initFrameBuffer() {
 
 	   glEnable(GL_DEPTH_TEST);
 
+
 	   //-------------------------
 	   //and now you can render to the FBO (also called RenderBuffer)
 	   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fb);
@@ -157,25 +159,35 @@ void initFrameBuffer() {
 	   // Render into frame buffer
 	   //
 
-	   //     …
+	   // Set first color
 
-	   // Set up to read from the renderbuffer and draw to window
-	   // system framebuffer
+	   glUniform1f(shade1Solid,0.6);
+	   glUniform1f(shade2Solid,0.0);
+	   glUniform1f(shade3Solid,0.0);
 
-	   glBindFramebuffer(GL_READ_FRAMEBUFFER, fb);
+	   glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
 
-	   //----------------
-	   //Bind 0, which means render to back buffer
+	   // Set second color
+
+	   glUniform1f(shade1Solid,0.0);
+	   glUniform1f(shade2Solid,0.6);
+	   glUniform1f(shade3Solid,0.0);
+
+	   glDrawArrays( GL_TRIANGLES, shape1VertexCount , shape2VertexCount );
+
+	   // Set third color
+
+	   glUniform1f(shade1Solid,0.0);
+	   glUniform1f(shade2Solid,0.0);
+	   glUniform1f(shade3Solid,0.6);
+
+	   glDrawArrays( GL_TRIANGLES, shape1VertexCount + shape2VertexCount, shape3VertexCount);
+
+	   glUniform1f(shade1Solid,0.0);
+	   glUniform1f(shade2Solid,0.0);
+	   glUniform1f(shade3Solid,0.0);
+
 	   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-	   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	   // Do the copy
-
-	   glBlitFramebuffer(0, 0, 511, 511, 0, 0 , 511, 511,
-						GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-	   glutSwapBuffers();
 
 }
 
@@ -222,30 +234,8 @@ vec4 calculateModelCentroid() {
 	return centroid;
 }
 
-vec3 cos(vec3 angles) {
-        angles.x = cos(angles.x);
-        angles.y = cos(angles.y);
-        angles.z = cos(angles.z);
-
-        return angles;
-}
-
-vec3 sin(vec3 angles) {
-        angles.x = sin(angles.x);
-        angles.y = sin(angles.y);
-        angles.z = sin(angles.z);
-
-        return angles;
-}
-
-
-
 void calculateEyeVector2() {
 
-	//	Recall that the Cartesian coordinates of a point (X, Y , Z) defined in cylindrical coordinates (θ, R(adius), H(eight)) is
-	//	X = R * cos(θ)
-	//	Y = R * sin(θ)
-	//	Z = H
 	float X, Y, Z;
 
 	X = Radius * cos(radians(Theta));
@@ -270,7 +260,33 @@ void calculateEyeVector2() {
 
 }
 
+void setMaterialProperties() {
+	// Set properties for each of 3 objects
 
+	materialAmbientLightProperties[0] = vec4(1.0,1.0,1.0,1.0);
+	materialDiffuseLightProperties[0] = vec4(1.0,1.0,1.0,0.5);
+	materialSpecularLightProperties[0] = vec4(.5,.5,.5,1);
+
+	materialAmbientReflectionProperties[0] = vec4(0.7,.6,.4,1.0);
+	materialDiffuseReflectionProperties[0] = vec4(0.2,.3,.4,1.0);
+	materialSpecularReflectionProperties[0] = vec4(.1,.1,.2,1.0);
+
+	materialAmbientLightProperties[1] = vec4(1.0,1.0,1.0,1.0);
+	materialDiffuseLightProperties[1] = vec4(1.0,1.0,1.0,.5);
+	materialSpecularLightProperties[1] = vec4(0.5,.5,.5,1);
+
+	materialAmbientReflectionProperties[1] = vec4(.2,.6,.4,1.0);
+	materialDiffuseReflectionProperties[1] = vec4(.7,.3,.4,1.0);
+	materialSpecularReflectionProperties[1] = vec4(.1,.1,.2,1.0);
+
+	materialAmbientLightProperties[2] = vec4(1.0,1.0,1.0,1.0);
+	materialDiffuseLightProperties[2] = vec4(1.0,1.0,1.0,.5);
+	materialSpecularLightProperties[2] = vec4(0.5,.5,.5,1);
+
+	materialAmbientReflectionProperties[2] = vec4(.1,.1,.2,1.0);
+	materialDiffuseReflectionProperties[2] = vec4(.2,.3,.4,1.0);
+	materialSpecularReflectionProperties[2] = vec4(.7,.6,.4,1.0);
+}
 
 void
 initMainWindow( void )
@@ -337,24 +353,51 @@ initMainWindow( void )
 	shade3Solid = glGetUniformLocation(program, "shade3Solid");
 
 
+	setMaterialProperties();
+
     glClearColor( defaultBackgroundColor.x,defaultBackgroundColor.y,defaultBackgroundColor.z,defaultBackgroundColor.w ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
     glFlush();
 
+    initFrameBuffer();
+
+}
+
+float r2() {
+	return (float)((float) rand() / RAND_MAX);
 }
 
 void mouse(int button, int state, int x, int y) {
 	if(state == GLUT_DOWN) {
-		printf("Click at: %d, %d\n",x,y);
+
+		int buffer_x_loc = x;
+		int buffer_y_loc = windowHeight - y;
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, fb);
+		GLubyte colorPicked[3];
+		glReadPixels(buffer_x_loc,buffer_y_loc,1,1,GL_RGB,GL_UNSIGNED_BYTE,colorPicked);
+
+		if(colorPicked[0] == 255) {
+			materialAmbientReflectionProperties[0] =  vec4(r2(),r2(),r2(),1.0);
+
+		}
+		else if(colorPicked[1] == 255) {
+			materialAmbientReflectionProperties[1] =  vec4(r2(),r2(),r2(),1.0);
+
+		}
+		else if(colorPicked[2] == 255) {
+			materialAmbientReflectionProperties[2] =  vec4(r2(),r2(),r2(),1.0);
+
+		}
 		glutPostRedisplay();
 	}
 
 }
 
 void
-displayMainWindow( void )
+displayMainWindow( bool isFrameBuffer )
 {
 
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -384,33 +427,76 @@ displayMainWindow( void )
    TransformMatrix = Projection * View * Model;
 
    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
-   glUniform4fv(l_ambient, 1, L_ambient);
-   glUniform4fv(l_diffuse, 1, L_diffuse);
-   glUniform4fv(l_specular, 1, L_specular);
+
+   glUniform4fv(cameraPosition,1,EyeVector);
+   glUniform1f(m_shininess,M_shininess);
    glUniform4fv(l_position, 1, L_position);
 
 
-   glUniform4fv(m_reflect_ambient, 1, M_reflect_ambient);
-   glUniform4fv(m_reflect_diffuse, 1, M_reflect_diffuse);
-   glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform1f(m_shininess,M_shininess);
-   glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform4fv(cameraPosition,1,EyeVector);
-   glUniform1f(m_shininess,M_shininess);
-   glUniform1f(shade1Solid,Shade1Solid);
-   glUniform1f(shade2Solid,Shade2Solid);
-   glUniform1f(shade3Solid,Shade3Solid);
+   if(!isFrameBuffer) {
+	   glUniform1f(shade1Solid,0.0);
+	   glUniform1f(shade2Solid,0.0);
+	   glUniform1f(shade3Solid,0.0);
 
-   glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
-   glDrawArrays( GL_TRIANGLES, shape1VertexCount , shape2VertexCount );
-   glDrawArrays( GL_TRIANGLES, shape1VertexCount + shape2VertexCount, shape3VertexCount);
+	   glUniform4fv(l_ambient, 1, materialAmbientLightProperties[0]);
+	   glUniform4fv(l_diffuse, 1, materialDiffuseLightProperties[0]);
+	   glUniform4fv(l_specular, 1, materialSpecularLightProperties[0]);
+	   glUniform4fv(m_reflect_ambient, 1, materialAmbientReflectionProperties[0]);
+	   glUniform4fv(m_reflect_diffuse, 1, materialDiffuseReflectionProperties[0]);
+	   glUniform4fv(m_reflect_specular, 1, materialSpecularReflectionProperties[0]);
+	   glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
 
 
+	   glUniform4fv(l_ambient, 1, materialAmbientLightProperties[1]);
+	   glUniform4fv(l_diffuse, 1, materialDiffuseLightProperties[1]);
+	   glUniform4fv(l_specular, 1, materialSpecularLightProperties[1]);
+	   glUniform4fv(m_reflect_ambient, 1, materialAmbientReflectionProperties[1]);
+	   glUniform4fv(m_reflect_diffuse, 1, materialDiffuseReflectionProperties[1]);
+	   glUniform4fv(m_reflect_specular, 1, materialSpecularReflectionProperties[1]);
+	   glDrawArrays( GL_TRIANGLES, shape1VertexCount , shape2VertexCount );
 
-   glutSwapBuffers();
+	   glUniform4fv(l_ambient, 1, materialAmbientLightProperties[2]);
+	   glUniform4fv(l_diffuse, 1, materialDiffuseLightProperties[2]);
+	   glUniform4fv(l_specular, 1, materialSpecularLightProperties[2]);
+	   glUniform4fv(m_reflect_ambient, 1, materialAmbientReflectionProperties[2]);
+	   glUniform4fv(m_reflect_diffuse, 1, materialDiffuseReflectionProperties[2]);
+	   glUniform4fv(m_reflect_specular, 1, materialSpecularReflectionProperties[2]);
+	   glDrawArrays( GL_TRIANGLES, shape1VertexCount + shape2VertexCount, shape3VertexCount);
+
+   }
+
+   if(isFrameBuffer) {
+	   glUniform1f(shade1Solid,0.6);
+	   glUniform1f(shade2Solid,0.0);
+	   glUniform1f(shade3Solid,0.0);
+	   glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
+   }
+
+   if(isFrameBuffer) {
+	   glUniform1f(shade1Solid,0.0);
+	   glUniform1f(shade2Solid,0.6);
+	   glUniform1f(shade3Solid,0.0);
+	   glDrawArrays( GL_TRIANGLES, shape1VertexCount , shape2VertexCount );
+   }
+
+   if(isFrameBuffer) {
+	   glUniform1f(shade1Solid,0.0);
+	   glUniform1f(shade2Solid,0.0);
+	   glUniform1f(shade3Solid,0.6);
+	   glDrawArrays( GL_TRIANGLES, shape1VertexCount + shape2VertexCount, shape3VertexCount);
+   }
+
+
 
 }
 
+void display() {
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		displayMainWindow(false);
+		glutSwapBuffers();
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fb);
+		displayMainWindow(true);
+}
 
 int max(int int1, int int2) {
 	if(int1>int2) {
@@ -445,14 +531,6 @@ keyboard( unsigned char key, int x, int y )
     	// Decrease height
     	Height -= HeightDelta;
     	break;
-    case 'q' :
-    	// Increase Height
-    	LightHeight += HeightDelta;
-    	break;
-    case 'w' :
-    	// Decrease height
-    	LightHeight -= HeightDelta;
-    	break;
     case '3' :
     	// Increase orbit radius / distance of camera
 		Radius += RadiusDelta;
@@ -462,8 +540,6 @@ keyboard( unsigned char key, int x, int y )
 
 		near += ParallelDelta;
 		far += ParallelDelta;
-
-
     	break;
     case '4' :
 		Radius -= RadiusDelta;
@@ -473,25 +549,6 @@ keyboard( unsigned char key, int x, int y )
 
 		near -= ParallelDelta;
 		far -= ParallelDelta;
-
-    	break;
-    case 'e' :
-		// Increase orbit radius / distance of light
-    	LightRadius += RadiusDelta;
-    	if(debug) {
-    		printf("LightRadius is: %d\n",LightRadius);
-    	}
-        break;
-
-	case 'r' :
-		// Increase orbit radius / distance of light
-    	LightRadius -= RadiusDelta;
-    	if(debug) {
-    		printf("LightRadius is: %d\n",LightRadius);
-    	}
-        break;
-
-
 		break;
     case '5' :
     	// Rotate counterclockwise
@@ -508,72 +565,29 @@ keyboard( unsigned char key, int x, int y )
     	}
 
     	break;
-    case 't' :
-    	// Rotate counterclockwise
-    	LightTheta += 5;
-    	LightTheta = LightTheta % 360;
-    	if(debug) {
-    		printf("LightTheta is: %d\n",LightTheta);
-    	}
 
-    	break;
-    case 'y' :
-    	LightTheta -= 5;
-    	LightTheta = LightTheta % 360;
-    	if(debug) {
-    		printf("LightTheta is: %d\n",LightTheta);
-    	}
 
     	break;
     case '7' :
-    	// Set perspective projection
-    	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
     	isPerspective = true;
-
     	break;
     case '8' :
     	isPerspective = false;
     	break;
-    case 'a' :
+
+    case 'z':
+    	// Reset all values
     	if(debug) {
-    		printf("Material 1 selected");
+    		printf("Reset all values\n");
     	}
-    	L_ambient = vec4(1.0,1,0.0,1);
-    	L_diffuse = vec4(0.0,1,0.0,1);
-    	L_specular = vec4(1.0,1.0,1.0,1);
 
-    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
-    	M_reflect_specular = vec4(1.0,1,1.0,1.0);
+    	setMaterialProperties();
 
-    	break;
+    	Radius = 15.0;
+    	Theta = 90; // Longitude angle in degrees
+    	Height = 1;
 
-    case 's' :
-    	if(debug) {
-    		printf("Material 2 selected");
-    	}
-    	L_ambient = vec4(1.0,1,1,1);
-    	L_diffuse = vec4(0.0,0,1.0,1);
-    	L_specular = vec4(0.0,1.0,1.0,1);
-
-    	M_reflect_ambient = vec4(1.0,0,1.0,1.0);
-    	M_reflect_diffuse = vec4(1.0,.4,0.0,1.0);
-    	M_reflect_specular = vec4(0.0,.4,.4,1.0);
-
-    	break;
-
-    case 'd' :
-    	if(debug) {
-    		printf("Material 3 selected");
-    	}
-    	L_ambient = vec4(1.0,1,1,1);
-    	L_diffuse = vec4(0.0,0,1.0,1);
-    	L_specular = vec4(0.0,1.0,1.0,1);
-
-    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(1.0,1,0.0,1.0);
-    	M_reflect_specular = vec4(1.0,1,.5,1.0);
-
+    	calculateModelCentroid();
     	break;
 
 	case 'x':
@@ -823,34 +837,19 @@ main( int argc, char **argv )
 	populatePointsAndNormalsArrays();
 	reinitializeArrays();
 
-	printf("Vertex counts: %d, %d, %d\n",shape1VertexCount,shape2VertexCount,shape3VertexCount);
-
-
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;
-	std::cout << "Press: q - To increase light height" << std::endl;
-	std::cout << "Press: w - To decrease light height" << std::endl;
-	std::cout << "Press: 3 - To increase orbit radius" << std::endl;
-	std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
-	std::cout << "Press: e - To increase light radius" << std::endl;
-	std::cout << "Press: r - To decrease light radius" << std::endl;
+	std::cout << "Press: 3 - To increase camera orbit radius" << std::endl;
+	std::cout << "Press: 4 - To decrease camera orbit radius" << std::endl;
 	std::cout << "Press: 5 - To increase camera angle (rotate camera)" << std::endl;
 	std::cout << "Press: 6 - To decrease camera angle (rotate counterclockwise)" << std::endl;
-	std::cout << "Press: t - To increase light angle (rotate camera)" << std::endl;
-	std::cout << "Press: y - To decrease light angle (rotate counterclockwise)" << std::endl;
-	std::cout << "Press: 7 - To enable perspective projection mode" << std::endl;
-	std::cout << "Press: 8 - To enable parallel projection mode (default)" << std::endl;
-
-	std::cout << "Press: a - To select material 1 (reflects green, highly specular)" << std::endl;
-	std::cout << "Press: s - To select material 2 (reflects dark blue, low specular)" << std::endl;
-	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;
-
+	std::cout << "Press: z - To reset all values" << std::endl;
 	std::cout << "Press: x - To exit the program" << std::endl;
 
 
 	initMainWindow();
 
-	glutDisplayFunc( displayMainWindow );
+	glutDisplayFunc( display );
 	glutKeyboardFunc( keyboard );
 	glutMouseFunc(mouse);
 
