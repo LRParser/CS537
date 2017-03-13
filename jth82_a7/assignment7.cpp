@@ -507,14 +507,6 @@ void reinitializeArrays() {
 		points[i] = vec3(0,0,0);
 		normals[i] = vec3(0,0,0);
 	}
-
-	for(int i = 0; i < 4; i++) {
-		for(int j = 0; j < 4; j++) {
-			patch[i][j] = vec3(0,0,0);
-		}
-	}
-
-
 }
 
 void printUsage() {
@@ -537,9 +529,6 @@ void drawWindowAtSelectedSample(int uRange, int vRange) {
 
 	reinitializeArrays();
 
-	// Convert the 16 control vertices into a 4 by 4 array
-	parseControlVerticesToPatch();
-
 	// Interpolate as desired
 
 	interpolatePatch(uRange, vRange);
@@ -554,6 +543,28 @@ void drawWindowAtSelectedSample(int uRange, int vRange) {
     modelCentroid = calculateModelCentroid();
 
 	glutPostRedisplay();
+}
+
+void setDefaultViewParams() {
+	L_ambient = vec3(1.0, 1.0, 1.0);
+	L_diffuse = vec3(1.0, 1.0, 1.0);
+	L_specular = vec3(1.0, .5, .5);
+	M_reflect_ambient = vec3(0.7, .3, .7);
+	M_reflect_diffuse = vec3(0.2, .6, .2);
+	M_reflect_specular = vec3(0.1, .1, .1);
+	Radius = 18.0;
+	Theta = 90; // Longitude angle in degrees
+	LightTheta = 190;
+	LightRadius = -91;
+	Height = 3;
+	LightHeight = 3;
+	RadiusDelta = 1;
+	Delta = 5;
+	HeightDelta = .1;
+	ParallelDelta = 2;
+	calculateModelCentroid();
+	uRange = 10;
+	vRange = 10;
 }
 
 void
@@ -648,34 +659,11 @@ keyboard( unsigned char key, int x, int y )
     		printf("Reset all values\n");
     	}
 
-    	L_ambient = vec3(1.0,1.0,1.0);
-    	L_diffuse = vec3(1.0,1.0,1.0);
-    	L_specular = vec3(1.0,.5,.5);
-    	M_reflect_ambient = vec3(0.7,.3,.7);
-    	M_reflect_diffuse = vec3(0.2,.6,.2);
-    	M_reflect_specular = vec3(0.1,.1,.1);
-
-    	Radius = 18.0;
-    	Theta = 90; // Longitude angle in degrees
-    	LightTheta = 190;
-    	LightRadius = -91;
-    	Height = 3;
-		LightHeight = 3;
-
-    	RadiusDelta = 1;
-    	Delta = 5;
-    	HeightDelta = .1;
-    	ParallelDelta = 2;
-
-    	calculateModelCentroid();
-
-    	uRange = 10;
-    	vRange = 10;
-
+		setDefaultViewParams();
     	break;
 
     case 'j':
-    	// N += 1;
+
     	uRange += 1;
     	vRange += 1;
 
@@ -786,9 +774,7 @@ main( int argc, char **argv )
 #endif
 
 
-
-	char* patchFileName = "patchPoints.txt";
-	readPatchFile(patchFileName);
+    setDefaultViewParams();
 
 	// Convert the 16 control vertices into a 4 by 4 array
 	parseControlVerticesToPatch();
