@@ -312,7 +312,7 @@ displayMainWindow( void )
    calculateEyeVector();
 
    // Camera matrix
-   mat4 mode_view = LookAt(
+   mat4 model_view = LookAt(
 	EyeVector,
 	vec4(0,0,0,1),
 	vec4(0,1,0,0)
@@ -322,12 +322,8 @@ displayMainWindow( void )
    // Move model to the origin mat4(1.0f);
    mat4 Model = Translate(-1 * modelCentroid);
 
-   TransformMatrix = Projection * View * Model;
 
-   // Following uni marburg example, do I need to invert my matrix
-   //
-
-   glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, mode_view );
+   glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, model_view );
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
 
    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );

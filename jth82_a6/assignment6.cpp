@@ -58,8 +58,7 @@ color4 M_reflect_ambient = vec4(0.2,.2,1,1.0);
 color4 M_reflect_diffuse = vec4(0.3,1,.3,1.0);
 color4 M_reflect_specular = vec4(.1,.1,.1,1.0);
 
-// TODO - specular should get smaller/more focused as shininess increases
-float M_shininess = .1;
+float M_shininess = 50;
 
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
 GLuint cameraPosition;
@@ -74,7 +73,6 @@ GLfloat  bottom = -3.0, top = 5.0;
 GLfloat  near = -10.0, far = 10.0;
 
 float IsGouraud = .6; // >.5 is true, otherwise false
-
 
 // Copied from Lecture 8 slides as described in assignment
 
@@ -91,10 +89,10 @@ vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
 vec4 modelCentroid;
 
-float Radius = 15.0;
+float Radius = 7.0;
 int Theta = 90; // Longitude angle in degrees
 int LightTheta = Theta + 10;
-int LightRadius = -1;
+float LightRadius = 7.0;
 float Height, LightHeight = 1;
 
 float RadiusDelta = 1;
@@ -112,7 +110,6 @@ int border = 50;
 vec4 defaultColor = vec4(.5,0,0,0);
 
 GLint windowHeight, windowWidth;
-
 
 float radians(float degrees) {
 	return (M_PI * degrees) / 180;
@@ -155,23 +152,25 @@ vec4 calculateModelCentroid() {
 	return centroid;
 }
 
-vec3 cos(vec3 angles) {
-        angles.x = cos(angles.x);
-        angles.y = cos(angles.y);
-        angles.z = cos(angles.z);
+void setDefaultViewParams() {
+	L_ambient = vec3(1.0, 1.0, 1.0);
+	L_diffuse = vec3(1.0, 1.0, 1.0);
+	L_specular = vec3(1.0, .5, .5);
+	M_reflect_ambient = vec3(0.7, .3, .7);
+	M_reflect_diffuse = vec3(0.2, .6, .2);
+	M_reflect_specular = vec3(0.1, .1, .1);
+	M_shininess = 100;
+	Radius = 5.0;
+	Theta = 90; // Longitude angle in degrees
+	LightTheta = Theta;
+	LightRadius = Radius;
+	Height = 3;
+	LightHeight = 3;
+	RadiusDelta = 1;
 
-        return angles;
+	calculateModelCentroid();
+
 }
-
-vec3 sin(vec3 angles) {
-        angles.x = sin(angles.x);
-        angles.y = sin(angles.y);
-        angles.z = sin(angles.z);
-
-        return angles;
-}
-
-
 
 void calculateEyeVector() {
 
@@ -190,10 +189,13 @@ void calculateEyeVector() {
 	EyeVector.z = Z;
 	EyeVector.w = 1;
 
+	X = LightRadius * cos(radians(LightTheta));
+	Y = LightHeight;
+	Z = LightRadius * sin(radians(LightTheta));
+
 	L_position.x = X;
-	L_position.y = Y + .5;
-	L_position.z = Z -2;
-	L_position.w = 1;
+	L_position.y = Y;
+	L_position.z = Z;
 
 	if(debug) {
 		printf("Eye Vector\n");
@@ -312,7 +314,7 @@ displayMainWindow( void )
    // Move model to the origin mat4(1.0f);
    mat4 Model = Translate(-1 * modelCentroid);
 
-   TransformMatrix = Projection * model_view; // * Model;
+   TransformMatrix = Projection * model_view * Model;
 
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
    glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, model_view );
@@ -360,11 +362,6 @@ int min(int int1, int int2) {
 void
 keyboard( unsigned char key, int x, int y )
 {
-	// Define six keys for increasing and decreasing the X,Y,Z components of the current transformation.
-	// The cube should only be transformed with each key stroke.
-	bool pressed = false;
-
-	// We either manipulate ScaleFactor, RotationFactor, or TranslateFactor, depending on current operation
 
     switch ( key ) {
 
@@ -413,7 +410,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightRadius is: %d\n",LightRadius);
     	}
-    	pressed = true;
         break;
 
 	case 'r' :
@@ -422,7 +418,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightRadius is: %d\n",LightRadius);
     	}
-    	pressed = true;
         break;
 
 
@@ -433,7 +428,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Theta is: %d\n",Theta);
     	}
-    	pressed = true;
 
     	break;
     case '6' :
@@ -441,7 +435,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Theta is: %d\n",Theta);
     	}
-    	pressed = true;
 
     	break;
     case 't' :
@@ -451,7 +444,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightTheta is: %d\n",LightTheta);
     	}
-    	pressed = true;
 
     	break;
     case 'y' :
@@ -467,7 +459,6 @@ keyboard( unsigned char key, int x, int y )
     	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
     	isPerspective = true;
 
-    	pressed = true;
     	break;
     case '8' :
     	isPerspective = false;
@@ -495,6 +486,7 @@ keyboard( unsigned char key, int x, int y )
     	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
     	M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
     	M_reflect_specular = vec4(1.0,1,1.0,1.0);
+    	M_shininess = 50;
 
     	break;
 
@@ -509,7 +501,9 @@ keyboard( unsigned char key, int x, int y )
     	M_reflect_ambient = vec4(1.0,0,1.0,1.0);
     	M_reflect_diffuse = vec4(1.0,.4,0.0,1.0);
     	M_reflect_specular = vec4(0.0,.4,.4,1.0);
-    	pressed = true;
+
+    	M_shininess = 1;
+
 
     	break;
 
@@ -524,7 +518,7 @@ keyboard( unsigned char key, int x, int y )
     	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
     	M_reflect_diffuse = vec4(1.0,1,0.0,1.0);
     	M_reflect_specular = vec4(1.0,1,.5,1.0);
-    	pressed = true;
+    	M_shininess = 1000;
 
     	break;
 
@@ -533,7 +527,12 @@ keyboard( unsigned char key, int x, int y )
 		exit( EXIT_SUCCESS );
 		break;
 
+    case 'z':
+    	setDefaultViewParams();
+    	break;
+
     }
+
 
 	calculateEyeVector();
 	glutPostRedisplay();
@@ -597,9 +596,6 @@ vec4 calculateVertexNormal(int vertexIdx) {
 	}
 
 	return vertexNormal;
-
-
-
 
 }
 
@@ -741,6 +737,7 @@ main( int argc, char **argv )
 		fileName = argv[1];
 	}
 	readSMF(fileName);
+	setDefaultViewParams();
 	populatePointsAndNormalsArrays();
 
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
@@ -762,7 +759,7 @@ main( int argc, char **argv )
 	std::cout << "Press: a - To select material 1 (reflects green, highly specular)" << std::endl;
 	std::cout << "Press: s - To select material 2 (reflects dark blue, low specular)" << std::endl;
 	std::cout << "Press: d - To select material 3 (reflects dark green, medium specular)" << std::endl;
-
+	std::cout << "Press: z - To reset the points" << std::endl;
 	std::cout << "Press: x - To exit the program" << std::endl;
 
 
