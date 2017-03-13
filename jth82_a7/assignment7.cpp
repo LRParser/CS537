@@ -12,6 +12,8 @@ GLuint modelMatrix, viewMatrix, projectionMatrix;
 mat4 TransformMatrix;
 GLuint transformMatrix;
 
+float eps = .001;
+
 // Uniforms for lighting
 
 vec3 L_position = vec3(0,5,10);
@@ -40,8 +42,6 @@ GLfloat  left = -4.0, right = 4.0;
 GLfloat  bottom = -3.0, top = 5.0;
 GLfloat  near = -10.0, far = 10.0;
 
-
-
 // Is set in tesellateInterpolatedPoints, and used in initMainWindow
 int totalNumVertices;
 
@@ -54,8 +54,6 @@ vec3 patch[4][4];
 int uRange = 10;
 int vRange = 10;
 vec3 interpolatedPoints[51][51];
-
-
 
 vec3 lineBufferData[6];
 
@@ -109,13 +107,17 @@ float getBernsteinFactor(float u, int sub) {
 // For the given desired interpolation range
 void interpolatePatch(int uRange, int vRange) {
 
-	for(int u = 0; u < uRange; u++) {
+	printf("Interpolate u to: %d and v to %d\n",uRange,vRange);
+
+	for(int u = 0; u <= uRange; u++) {
 
 		float uParam = (float) u / (float)uRange;
+		printf("uParam is %f\n",uParam);
 
-		for(int v = 0; v < vRange; v++) {
+		for(int v = 0; v <= vRange; v++) {
 
 			float vParam = (float) v / (float)vRange ;
+			printf("vParam is %f\n",vParam);
 
 			vec3 pointSum = vec3(0,0,0);
 
@@ -395,6 +397,7 @@ vec3 calculateFaceNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
 		if(std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z)) {
 
 			printf("Invalid cross vector");
+
 			exit(1);
 		}
 		return absCustomNormal;
@@ -409,10 +412,18 @@ void tesselateAndCalculateNormals() {
 
 		for(int j=0; j < vRange - 1; j++) {
 
+			printf("Tesselate - i is: %d, j is: %d\n",i,j);
+
 			// First triangle
 			vec3 vertex1 =  interpolatedPoints[i][j]; // 1
 			vec3 vertex2 = interpolatedPoints[i+1][j]; // 2
 			vec3 vertex3 = interpolatedPoints[i][j+1]; // 3
+
+			printf("Calling calulcateFaceNormal for:");
+			printVector(vertex1);
+			printVector(vertex2);
+			printVector(vertex3);
+
 			vec3 normal1 = calculateFaceNormal(vertex1,vertex2,vertex3);
 
 			points[numTesselatedVertices] = vertex1;
@@ -432,6 +443,13 @@ void tesselateAndCalculateNormals() {
 			vec3 vertex4 = interpolatedPoints[i+1][j]; // 4 == 2, not 1
 			vec3 vertex5 = interpolatedPoints[i+1][j+1]; // 5
 			vec3 vertex6 = interpolatedPoints[i][j+1]; // 6
+
+			printf("Calling calulcateFaceNormal for:");
+			printVector(vertex4);
+			printVector(vertex5);
+			printVector(vertex6);
+
+
 			vec3 normal2 = calculateFaceNormal(vertex4,vertex5,vertex6);
 
 			points[numTesselatedVertices] = vertex4;
@@ -556,14 +574,7 @@ keyboard( unsigned char key, int x, int y )
     	// Decrease height
     	Height -= HeightDelta;
     	break;
-    case 'q' :
-    	// Increase Height
-    	LightHeight += HeightDelta;
-    	break;
-    case 'w' :
-    	// Decrease height
-    	LightHeight -= HeightDelta;
-    	break;
+
     case '3' :
     	// Increase orbit radius / distance of camera
 		Radius += RadiusDelta;
@@ -586,24 +597,6 @@ keyboard( unsigned char key, int x, int y )
 		far -= ParallelDelta;
 
     	break;
-    case 'e' :
-		// Increase orbit radius / distance of light
-    	LightRadius += RadiusDelta;
-    	if(debug) {
-    		printf("LightRadius is: %d\n",LightRadius);
-    	}
-        break;
-
-	case 'r' :
-		// Increase orbit radius / distance of light
-    	LightRadius -= RadiusDelta;
-    	if(debug) {
-    		printf("LightRadius is: %d\n",LightRadius);
-    	}
-        break;
-
-
-		break;
     case '5' :
     	// Rotate counterclockwise
     	Theta += 5;
@@ -642,7 +635,7 @@ keyboard( unsigned char key, int x, int y )
     	uRange += 1;
     	vRange += 1;
 
-    	drawWindowAtSelectedSample(uRange+1, vRange+1);
+    	drawWindowAtSelectedSample(uRange, vRange);
 
     	break;
 
@@ -651,7 +644,7 @@ keyboard( unsigned char key, int x, int y )
     	uRange -= 1;
     	vRange -= 1;
 
-    	drawWindowAtSelectedSample(uRange+1, vRange+1);
+    	drawWindowAtSelectedSample(uRange, vRange);
     	break;
 
     case 'n' :
@@ -754,7 +747,7 @@ main( int argc, char **argv )
 	// Convert the 16 control vertices into a 4 by 4 array
 	parseControlVerticesToPatch();
 
-	drawWindowAtSelectedSample(uRange+1,vRange+1);
+	drawWindowAtSelectedSample(uRange,vRange);
 
     initMainWindow();
 
