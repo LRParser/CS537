@@ -11,8 +11,8 @@ typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
 int N = 10;
-const int uRange = N;
-const int vRange = N;
+int uRange = 30;
+int vRange = 30;
 
 int totalRead = 0;
 
@@ -30,7 +30,7 @@ public:
 	vec4 normal;
 };
 
-bool debug = false;
+bool debug = true;
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
 
@@ -99,7 +99,7 @@ vec4 lineBufferData[6];
 
 vec4 controlVertices[defaultSize];
 vec4 patch[4][4];
-vec4 interpolatedPoints[10][10];
+vec4 interpolatedPoints[51][51];
 
 vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
@@ -159,11 +159,11 @@ float getBernsteinFactor(float u, int sub) {
 
 void calcPatchPoints() {
 
-	for(int u = 0; u < uRange; u++) {
+	for(int u = 0; u <= uRange; u++) {
 
 		float uParam = (float) u / (float)uRange;
 
-		for(int v = 0; v < vRange; v++) {
+		for(int v = 0; v <= vRange; v++) {
 
 			float vParam = (float) v / (float)vRange ;
 
@@ -180,7 +180,7 @@ void calcPatchPoints() {
 					float controlX = patch[i][j].x;
 					float controlY = patch[i][j].y;
 					float controlZ = patch[i][j].z;
-					vec4 controlPoint = vec4(controlX,controlY,controlZ,0);
+					vec4 controlPoint = vec4(controlX,controlY,controlZ,1);
 					float weight = bernsteinForU * bernsteinForV;
 					pointSum += weight * controlPoint;
 				}
@@ -470,58 +470,6 @@ void idle() {
 
 // Find all triangles incident to this vertex
 
-/* For HW6, we need to:
- * find the average of the normals of the triangles incident to the vertex. See Lecture 10, slide 53.
- */
-vec4 calculateVertexNormal(int vertexIdx) {
-
-    std::vector<Face> incidentFaces = vertexFaceMapping.at(vertexIdx);
-    vec4 vertexNormal;
-    vec4 incidentFacesColorsSum;
-
-	int incidentFacesCount = 0;
-
-
-	std::vector<Face>::iterator it;
-	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
-		if(debug) {
-			printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
-			printVector(it->normal);
-		}
-		if(std::isnan(it->normal.x)) {
-			// We weren't able to calculate the normal. Set it to default color
-			it->normal = normalize(defaultColor);
-		}
-		if(debug) {
-			printVector(incidentFacesColorsSum);
-		}
-		incidentFacesColorsSum += it->normal;
-		if(debug) {
-			printf("New sum is: ");
-			printVector(incidentFacesColorsSum);
-		}
-		incidentFacesCount++;
-	}
-
-	if(debug) {
-		printf("Colors sum to: ");
-		printVector(incidentFacesColorsSum);
-		std::cout << "Incident faces count for vertex: " << vertexIdx << " is: " << incidentFacesCount << std::endl;
-		std::cout << "Incident faces average: ";
-	}
-
-
-	vertexNormal = incidentFacesColorsSum / incidentFacesCount;
-
-	if(debug) {
-		printf("Average color is");
-		printVector(vertexNormal);
-
-	}
-
-	return vertexNormal;
-
-}
 
 
 void populatePointsAndNormalsArrays() {
@@ -545,9 +493,11 @@ void populatePointsAndNormalsArrays() {
 		points[currentOffset + 1] = vertex2;
 		points[currentOffset + 2] = vertex3;
 
-		normals[currentOffset] = calculateVertexNormal(currentFace.firstVertexIndex);
-		normals[currentOffset + 1] = calculateVertexNormal(currentFace.secondVertexIndex);
-		normals[currentOffset + 2] = calculateVertexNormal(currentFace.thirdVertexIndex);
+		vec4 normalVal = currentFace.normal;
+
+		normals[currentOffset] =normalVal; // calculateVertexNormal(currentFace.firstVertexIndex);
+		normals[currentOffset + 1] =normalVal; // calculateVertexNormal(currentFace.secondVertexIndex);
+		normals[currentOffset + 2] = normalVal; //calculateVertexNormal(currentFace.thirdVertexIndex);
 
 	}
 }
@@ -579,6 +529,7 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 			printf("Final Color is: %f, %f, %f, %f\n",absCustomNormal.x,absCustomNormal.y,absCustomNormal.z,absCustomNormal.w);
 
 			printf("Invalid cross vector");
+			exit(1);
 			currentFace.normal = vec4(0.33,0.33,0.33,1.0f);
 
 		}
@@ -607,7 +558,9 @@ int readPatchFile(char* fileName) {
 }
 
 
-void calcPatchPointsAndAssociateToFaces() {
+// Tesselate the points
+void tesselateInterpolatedPoints() {
+
 
 	int vertexNum = 1;
 
@@ -616,19 +569,19 @@ void calcPatchPointsAndAssociateToFaces() {
 
 
 	// Calculate all interpolated points and store the smfVertices and smfFaces
-	for(int i = 0; i <= N - 1; i++) {
+	for(int i = 0; i <= uRange; i++) {
 
-			for(int j=0; j <= N - 1; j++) {
+			for(int j=0; j <= vRange; j++) {
 
 				// First triangle
-				vec4 vertex1 =  patch[i][j]; // 1
-				vec4 vertex2 = patch[i+1][j]; // 2
-				vec4 vertex3 = patch[i][j+1]; // 3
+				vec4 vertex1 =  interpolatedPoints[i][j]; // 1
+				vec4 vertex2 = interpolatedPoints[i+1][j]; // 2
+				vec4 vertex3 = interpolatedPoints[i][j+1]; // 3
 
 				// Second triangle
-				vec4 vertex4 = patch[i+1][j]; // 4 == 2, not 1
-				vec4 vertex5 = patch[i+1][j+1]; // 5
-				vec4 vertex6 = patch[i][j+1]; // 6
+				vec4 vertex4 = interpolatedPoints[i+1][j]; // 4 == 2, not 1
+				vec4 vertex5 = interpolatedPoints[i+1][j+1]; // 5
+				vec4 vertex6 = interpolatedPoints[i][j+1]; // 6
 
 				smfVertices[numSmfVertices] = vertex1;
 				numSmfVertices++;
@@ -639,33 +592,6 @@ void calcPatchPointsAndAssociateToFaces() {
 				smfVertices[numSmfVertices] = vertex3;
 				numSmfVertices++;
 
-				int vertexNum1 = vertexNum;
-				int vertexNum2 = vertexNum + 1;
-				int vertexNum3 = vertexNum + 2;
-
-				Face f;
-				f.faceIdx = numSmfFaces + 1; // faces are 1-indexed
-				f.firstVertexIndex = vertexNum1;
-				f.secondVertexIndex = vertexNum2;
-				f.thirdVertexIndex = vertexNum3;
-				vec4 firstVertex = smfVertices[f.firstVertexIndex - 1];
-				f.firstVertex = firstVertex;
-				vec4 secondVertex = smfVertices[f.secondVertexIndex - 1];
-				f.secondVertex = secondVertex;
-				vec4 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
-				f.thirdVertex = thirdVertex;
-
-				calculateFaceNormal(firstVertex,secondVertex,thirdVertex,f);
-
-				vertexFaceMapping[f.firstVertexIndex].push_back(f);
-				vertexFaceMapping[f.secondVertexIndex].push_back(f);
-				vertexFaceMapping[f.thirdVertexIndex].push_back(f);
-
-				smfFaces.push_back(f);
-				numSmfFaces++;
-
-				vertexNum += 3;
-
 				smfVertices[numSmfVertices] = vertex4;
 				numSmfVertices++;
 
@@ -675,28 +601,7 @@ void calcPatchPointsAndAssociateToFaces() {
 				smfVertices[numSmfVertices] = vertex6;
 				numSmfVertices++;
 
-				int vertexNum4 = vertexNum;
-				int vertexNum5 = vertexNum + 1;
-				int vertexNum6 = vertexNum + 2;
 
-				// Second face
-				Face g;
-				g.faceIdx = numSmfFaces + 1; // faces are 1-indexed
-				g.firstVertexIndex = vertexNum4;
-				g.secondVertexIndex = vertexNum5;
-				g.thirdVertexIndex = vertexNum6;
-				g.firstVertex = vertex4;
-				g.secondVertex = vertex5;
-				g.thirdVertex = vertex6;
-
-				calculateFaceNormal(vertexNum4,vertexNum5,vertexNum6,g);
-				vertexFaceMapping[g.firstVertexIndex].push_back(g);
-				vertexFaceMapping[g.secondVertexIndex].push_back(g);
-				vertexFaceMapping[g.thirdVertexIndex].push_back(g);
-
-				smfFaces.push_back(g);
-
-				vertexNum += 3;
 				numSmfFaces++;
 
 			}
@@ -759,7 +664,7 @@ void drawWindowAtSelectedSample() {
 
 	// Interpolate as desired
 
-	calcPatchPointsAndAssociateToFaces();
+	tesselateInterpolatedPoints();
 
 	populatePointsAndNormalsArrays();
 
@@ -1000,6 +905,8 @@ keyboard( unsigned char key, int x, int y )
 
     case 'j':
     	N += 1;
+    	uRange += 1;
+    	vRange += 1;
     	if (N >= 100) {
     		N = 100;
     	}
@@ -1009,6 +916,8 @@ keyboard( unsigned char key, int x, int y )
 
     case 'k' :
     	N -= 1;
+    	uRange -= 1;
+    	vRange -= 1;
     	if(N <= 0) {
     		N = 1;
     	}
@@ -1118,9 +1027,12 @@ main( int argc, char **argv )
 	parseControlVerticesToPatch();
 
 	// Interpolate as desired
+	calcPatchPoints();
 
-	calcPatchPointsAndAssociateToFaces();
+	// Tesselate
+	tesselateInterpolatedPoints();
 
+	// For shading
 	populatePointsAndNormalsArrays();
 
     initMainWindow();

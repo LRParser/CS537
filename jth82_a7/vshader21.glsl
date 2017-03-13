@@ -4,8 +4,7 @@ in vec4 vPosition;
 in vec4 vNormal;
 
 out vec4 color;
-out vec4 position;
-out vec4 normal;
+
 
 uniform mat4 transformMatrix;
 uniform vec4 l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, l_position;
@@ -22,11 +21,12 @@ vec4 vProduct(vec4 a, vec4 b) {
 void main()
 {
 
-	if(isGouraud > .5f) {
 	// Computed ambient, diffuse and specular colors
 	vec4 c_ambient = vProduct(l_ambient,m_reflect_ambient);
+	
+	vec4 L = l_position - vPosition;
 
-	float d = dot(vNormal, normalize(l_position));
+	float d = dot(vNormal, normalize(L));
 
 	vec4 c_diffuse;
 	if(d > 0) {
@@ -35,35 +35,9 @@ void main()
 	else {
 		c_diffuse = vec4(0,0,0,1);
 	}
-
-
-	vec4 viewDirection = (transformMatrix * vPosition) - cameraPosition;
-	vec4 halfVector = normalize(l_position + viewDirection);
-
-	vec4 c_specular = vec4(0,0,0,0);
-	float s = dot(halfVector,vNormal);
-	if(s >0.0) {
-		c_specular = pow(s,m_shininess) * vProduct(l_specular,m_reflect_specular);
-	}
-	else {
-		c_specular = vec4(0,0,0,0);
-	}
-
-
-	if(flatShading >= .5) {
-		color = c_ambient + c_diffuse; // + c_specular;
-	}
-	else {
-		color = c_ambient + c_diffuse + c_specular;
-
-	}
-	}
-	else {
-		color = vec4(1.0,0.0,0.0,1.0);
-	}
 	
 	position = vPosition;
-	normal = vNormal;
+	color = c_ambient + c_diffuse;
 
 	gl_Position =  transformMatrix * vPosition;
 }
