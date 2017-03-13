@@ -17,7 +17,9 @@ vec3 vProduct(vec3 a, vec3 b) {
 void main()
 {
 	
-	// Computed ambient, diffuse and specular colors
+	// Computed ambient
+	vec3 c_ambient = vProduct(l_ambient,m_reflect_ambient);
+
     vec3 N = vNorm;
     vec3 E = vec3(eyePosition.x,eyePosition.y,eyePosition.z) - vPos;
 
@@ -26,8 +28,7 @@ void main()
       N = -1 * N;
     }
 	
-	vec3 c_ambient = vProduct(l_ambient,m_reflect_ambient);
-	
+    // Computed diffuse
 	vec3 L = l_position - vPos;
 
 	float d = dot(N, normalize(L));
