@@ -735,16 +735,18 @@ void reinitializeArrays() {
 }
 
 void printUsage() {
-	std::cout << "Press: w - To reset the view" << std::endl;
-	std::cout << "Press: j - To increase the sampling by 1 (e.g., from 10x10 default to 11x11)" << std::endl;
-	std::cout << "Press: k - To decrease the sampling by 5 (e.g., from 10x10 default to 9x9)" << std::endl;
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;
 	std::cout << "Press: 3 - To increase orbit radius" << std::endl;
 	std::cout << "Press: 4 - To decrease orbit radius" << std::endl;
 	std::cout << "Press: 5 - To increase camera angle (rotate camera)" << std::endl;
 	std::cout << "Press: 6 - To decrease camera angle (rotate counterclockwise)" << std::endl;
+	std::cout << "Press: j - To increase the sampling by 1 (e.g., from 10x10 default to 11x11)" << std::endl;
+	std::cout << "Press: k - To decrease the sampling by 5 (e.g., from 10x10 default to 9x9)" << std::endl;
+	std::cout << "Press n to cycle thru control points and then -,=,[,],{,} to increase/decrease x,y,z respectively" << std::endl;
+	std::cout << "Press: z - To reset the view" << std::endl;
 	std::cout << "Press: x - To exit the program" << std::endl;
+
 }
 
 
