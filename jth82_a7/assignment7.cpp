@@ -90,13 +90,13 @@ void printVector(vec3 vIn) {
 
 float getBernsteinFactor(float u, int sub) {
 	float uu = 1-u;
-	if(sub == 1) {
+	if(sub == 0) {
 		return uu * uu * uu;
 	}
-	else if(sub == 2) {
+	else if(sub == 1) {
 		return 3 * u * uu * uu;
 	}
-	else if(sub == 3) {
+	else if(sub == 2) {
 		return 3 * u * u * uu;
 	}
 	else {
@@ -129,9 +129,9 @@ void interpolatePatch(int uRange, int vRange) {
 
 					float bernsteinForV = getBernsteinFactor(vParam,j);
 
-					float controlX = patch[i][j].x;
-					float controlY = patch[i][j].y;
-					float controlZ = patch[i][j].z;
+					float controlX = patch[j][i].x;
+					float controlY = patch[j][i].y;
+					float controlZ = patch[j][i].z;
 					vec3 controlPoint = vec3(controlX,controlY,controlZ);
 					float weight = bernsteinForU * bernsteinForV;
 					pointSum += weight * controlPoint;
