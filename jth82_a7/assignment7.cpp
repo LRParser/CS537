@@ -416,6 +416,9 @@ int readPatchFile(char* fileName) {
 		controlVertices[numVertices++] = vertex;
 	}
 
+
+
+
 	return numVertices;
 
 	infile.close();
@@ -475,13 +478,27 @@ void tesselateAndCalculateNormals() {
 
 void parseControlVerticesToPatch() {
 	// Convert the 16 control vertices into a 4 by 4 array
-	int idx = 0;
-	for(int i=0; i < 4; i++) {
-		for(int j=0; j<4; j++) {
-			vec3 vertex = controlVertices[idx++];
-			patch[i][j] = vertex;
-		}
-	}
+
+	patch[0][0] = vec3(0.0f,0.0f,0.0f);
+	patch[1][0] = vec3(2.0f,0.0f,1.5f);
+	patch[2][0] = vec3(4.0f,0.0f,2.9f);
+	patch[3][0] = vec3(6.0f,0.0f,0.0f);
+
+	patch[0][1] = vec3(0.0f,2.0f,1.1f);
+	patch[1][1] = vec3(2.0f,2.0f,3.9f);
+	patch[2][1] = vec3(4.0f,2.0f,3.1f);
+	patch[3][1] = vec3(6.0f,2.0f,0.7f);
+
+	patch[0][2] = vec3(0.0f,4.0f,-0.5f);
+	patch[1][2] = vec3(2.0f,4.0f,2.6f);
+	patch[2][2] = vec3(4.0f,4.0f,2.4f);
+	patch[3][2] = vec3(6.0f,4.0f,0.4f);
+
+	patch[0][3] = vec3(0.0f,6.0f,0.3f);
+	patch[1][3] = vec3(2.0f,6.0f,-1.1f);
+	patch[2][3] = vec3(4.0f,6.0f,1.3f);
+	patch[3][3] = vec3(6.0f,6.0f,-0.2f);
+
 }
 
 void reinitializeArrays() {
