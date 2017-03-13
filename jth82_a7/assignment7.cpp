@@ -64,11 +64,11 @@ vec3 EyeVector = vec3(1.0f,1.0f,10.0f);
 vec3 modelCentroid;
 
 float Radius = 18.0;
-int Theta = 90; // Longitude angle in degrees
-int LightTheta = 190;
-int LightRadius = -91;
+int Theta = 0; // Longitude angle in degrees
+int LightTheta = Theta;
+int LightRadius = Radius;
 float Height = 3;
-float LightHeight = 3;
+float LightHeight = Height;
 
 float RadiusDelta = 1;
 int Delta = 5;
@@ -385,47 +385,20 @@ vec3 calculateFaceNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
 		vec3 V = vertex3 - vertex2;
 
 		vec3 crossVector = cross(U,V);
-		vec3 absCustomNormal = normalize(crossVector);
 
+		double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
+
+		vec3 customNormal = crossVector / customLength;
+
+		vec3 absCustomNormal = vAbs(customNormal);
 
 		if(std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z)) {
-
-			printf("Cross product ");
-			printVector(crossVector);
-
-			printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
-			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
-			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
-
-			printf("Final Color is: %f, %f, %f\n",absCustomNormal.x,absCustomNormal.y,absCustomNormal.z);
 
 			printf("Invalid cross vector");
 			exit(1);
 		}
 		return absCustomNormal;
 }
-
-int readPatchFile(char* fileName) {
-
-	// Read in the patch file
-	std::ifstream infile(fileName);
-
-	float a, b, c;
-	int numVertices = 0;
-	while (infile >> a >> b >> c)
-	{
-		vec3 vertex = vec3(a,b,c);
-		controlVertices[numVertices++] = vertex;
-	}
-
-
-
-
-	return numVertices;
-
-	infile.close();
-}
-
 
 // Tesselate the points
 void tesselateAndCalculateNormals() {
@@ -669,7 +642,7 @@ keyboard( unsigned char key, int x, int y )
     	uRange += 1;
     	vRange += 1;
 
-    	drawWindowAtSelectedSample(uRange, vRange);
+    	drawWindowAtSelectedSample(uRange+1, vRange+1);
 
     	break;
 
@@ -678,7 +651,7 @@ keyboard( unsigned char key, int x, int y )
     	uRange -= 1;
     	vRange -= 1;
 
-    	drawWindowAtSelectedSample(uRange, vRange);
+    	drawWindowAtSelectedSample(uRange+1, vRange+1);
     	break;
 
     case 'n' :
@@ -781,7 +754,7 @@ main( int argc, char **argv )
 	// Convert the 16 control vertices into a 4 by 4 array
 	parseControlVerticesToPatch();
 
-	drawWindowAtSelectedSample(uRange,vRange);
+	drawWindowAtSelectedSample(uRange+1,vRange+1);
 
     initMainWindow();
 
