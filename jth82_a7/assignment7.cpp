@@ -271,7 +271,7 @@ initMainWindow( void )
 	m_shininess = glGetUniformLocation(program, "m_shininess");
 	eyePosition = glGetUniformLocation(program, "eyePosition");
 
-    glClearColor( 0.2, 0.2, 0.2, 0.2 ); // grey background
+	glClearColor( 1.0, 1.0, 1.0, 1.0 ); // grey background
 
 
 
@@ -346,12 +346,14 @@ displayMainWindow( void )
    glUniform1f(m_shininess,M_shininess);
 
 
-   glClearColor( 0.6, 0.6, 0.6, 1.0 ); // grey background
+   glClearColor( 1.0, 1.0, 1.0, 1.0 ); // grey background
 
 
    glDrawArrays( GL_TRIANGLES, 0, totalNumVertices );
+
+   /*
    glDrawArrays( GL_POINTS, 0, totalNumVertices );
-   glDrawArrays( GL_LINES, 2*defaultSize, 6 );
+   glDrawArrays( GL_LINES, 2*defaultSize, 6 ); */
 
    glutSwapBuffers();
 
