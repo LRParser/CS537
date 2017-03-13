@@ -5,7 +5,9 @@
 
 int selectedPointIdx = 0;
 
-bool debug = true;
+bool debug = false;
+
+GLuint modelMatrix, viewMatrix, projectionMatrix;
 
 mat4 TransformMatrix;
 GLuint transformMatrix;
@@ -30,7 +32,7 @@ vec3 M_reflect_specular = vec3(0.1,.1,.1);
 float M_shininess = 50;
 
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
-GLuint cameraPosition;
+GLuint eyePosition;
 
 bool isPerspective = true;
 
@@ -48,6 +50,7 @@ vec3 points[defaultSize];
 vec3 normals[defaultSize];
 vec3 controlVertices[defaultSize];
 vec3 patch[4][4];
+
 int uRange = 10;
 int vRange = 10;
 vec3 interpolatedPoints[51][51];
@@ -138,7 +141,6 @@ void interpolatePatch(int uRange, int vRange) {
 
 	} // end u loop
 
-
 } // end method
 
 void printVertex(vec3 vertex) {
@@ -154,17 +156,9 @@ vec3 vAbs(vec3 input) {
 vec3 calculateModelCentroid() {
 	vec3 sumOfAllPoints;
 	for(int i = 0; i < totalNumVertices; i++) {
-		if(debug) {
-			//printf("[Point]");
-			//printVector(points[i]);
-		}
 		sumOfAllPoints += points[i];
 	}
 	vec3 centroid = (sumOfAllPoints) / totalNumVertices;
-	if(debug) {
-		//printf("Model centroid");
-		//printVector(centroid);
-	}
 	return centroid;
 }
 
@@ -222,8 +216,6 @@ void
 initMainWindow( void )
 {
 
-
-
     // Create a vertex array object
     GLuint vao[1];
     glGenVertexArrays( 1, vao );
@@ -265,6 +257,9 @@ initMainWindow( void )
 
     modelCentroid = calculateModelCentroid();
 
+    modelMatrix = glGetUniformLocation(program, "modelMatrix");
+    viewMatrix = glGetUniformLocation(program, "viewMatrix");
+    projectionMatrix = glGetUniformLocation(program, "projectionMatrix");
     transformMatrix = glGetUniformLocation(program, "transformMatrix");
     l_ambient = glGetUniformLocation(program, "l_ambient");
 	l_diffuse = glGetUniformLocation(program, "l_diffuse");
@@ -274,7 +269,7 @@ initMainWindow( void )
 	m_reflect_diffuse = glGetUniformLocation(program, "m_reflect_diffuse");
 	m_reflect_specular = glGetUniformLocation(program, "m_reflect_specular");
 	m_shininess = glGetUniformLocation(program, "m_shininess");
-	cameraPosition = glGetUniformLocation(program, "cameraPosition");
+	eyePosition = glGetUniformLocation(program, "eyePosition");
 
     glClearColor( 0.2, 0.2, 0.2, 0.2 ); // grey background
 
@@ -327,6 +322,14 @@ displayMainWindow( void )
 
    TransformMatrix = Projection * View * Model;
 
+   // Following uni marburg example, do I need to invert my matrix
+   //
+   mat4 ModelViewMatrix = View * Model;
+
+   glUniformMatrix4fv( modelMatrix, 1, GL_TRUE, Model );
+   glUniformMatrix4fv( viewMatrix, 1, GL_TRUE, View );
+   glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
+
    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
    glUniform3fv(l_ambient, 1, L_ambient);
    glUniform3fv(l_diffuse, 1, L_diffuse);
@@ -339,7 +342,7 @@ displayMainWindow( void )
    glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
    glUniform1f(m_shininess,M_shininess);
    glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform3fv(cameraPosition,1,EyeVector);
+   glUniform3fv(eyePosition,1,EyeVector);
    glUniform1f(m_shininess,M_shininess);
 
 
@@ -374,25 +377,16 @@ int min(int int1, int int2) {
 }
 
 
-
-//----------------------------------------------------------------------------
-
-
-
-// Find all triangles incident to this vertex
-
-
-
 vec3 calculateFaceNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
 		// See p 272
 		vec3 U = vertex2 - vertex1;
 		vec3 V = vertex3 - vertex2;
 
 		vec3 crossVector = cross(U,V);
-		vec3 absCustomNormal = normalize(vAbs(crossVector));
+		vec3 absCustomNormal = normalize(crossVector);
 
 
-		if(debug && (std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z))) {
+		if(std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z)) {
 
 			printf("Cross product ");
 			printVector(crossVector);
@@ -522,7 +516,7 @@ void printUsage() {
 }
 
 
-void drawWindowAtSelectedSample() {
+void drawWindowAtSelectedSample(int uRange, int vRange) {
 
 	reinitializeArrays();
 
@@ -548,14 +542,8 @@ void drawWindowAtSelectedSample() {
 void
 keyboard( unsigned char key, int x, int y )
 {
-	// Define six keys for increasing and decreasing the X,Y,Z components of the current transformation.
-	// The cube should only be transformed with each key stroke.
-	bool pressed = false;
-
-	// We either manipulate ScaleFactor, RotationFactor, or TranslateFactor, depending on current operation
 
     switch ( key ) {
-
 
     case '1' :
     	// Increase Height
@@ -601,7 +589,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightRadius is: %d\n",LightRadius);
     	}
-    	pressed = true;
         break;
 
 	case 'r' :
@@ -610,7 +597,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("LightRadius is: %d\n",LightRadius);
     	}
-    	pressed = true;
         break;
 
 
@@ -622,7 +608,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Theta is: %d\n",Theta);
     	}
-    	pressed = true;
 
     	break;
     case '6' :
@@ -631,39 +616,16 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Theta is: %d\n",Theta);
     	}
-    	pressed = true;
-
-    	break;
-    case 't' :
-    	// Rotate counterclockwise
-    	LightTheta += 5;
-    	LightTheta = LightTheta % 360;
-    	if(debug) {
-    		printf("LightTheta is: %d\n",LightTheta);
-    	}
-    	pressed = true;
-
-    	break;
-    case 'y' :
-    	LightTheta -= 5;
-    	LightTheta = LightTheta % 360;
-    	if(debug) {
-    		printf("LightTheta is: %d\n",LightTheta);
-    	}
 
     	break;
     case '7' :
     	// Set perspective projection
     	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
     	isPerspective = true;
-
-    	pressed = true;
     	break;
     case '8' :
     	isPerspective = false;
     	break;
-
-
     case 'z':
     	if(debug) {
     		printf("Reset all values\n");
@@ -700,7 +662,7 @@ keyboard( unsigned char key, int x, int y )
     	uRange += 1;
     	vRange += 1;
 
-    	drawWindowAtSelectedSample();
+    	drawWindowAtSelectedSample(uRange, vRange);
 
     	break;
 
@@ -709,7 +671,7 @@ keyboard( unsigned char key, int x, int y )
     	uRange -= 1;
     	vRange -= 1;
 
-    	drawWindowAtSelectedSample();
+    	drawWindowAtSelectedSample(uRange, vRange);
     	break;
 
     case 'n' :
@@ -724,7 +686,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].x += 1;
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample();
+    	drawWindowAtSelectedSample(uRange,vRange);
     	printf("Point movement done\n");
     	printUsage();
 
@@ -734,7 +696,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].x -= 1;
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample();
+    	drawWindowAtSelectedSample(uRange,vRange);
     	printf("Point movement done\n");
     	printUsage();
     	break;
@@ -743,7 +705,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].y += 1;
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample();
+    	drawWindowAtSelectedSample(uRange,vRange);
     	printf("Resampling done\n");
     	printUsage();
     	break;
@@ -752,7 +714,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].y -= 1;
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample();
+    	drawWindowAtSelectedSample(uRange,vRange);
     	printf("Resampling done\n");
     	printUsage();
     	break;
@@ -761,7 +723,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].z += 1;
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample();
+    	drawWindowAtSelectedSample(uRange,vRange);
     	printf("Resampling done\n");
     	printUsage();
     	break;
@@ -770,7 +732,7 @@ keyboard( unsigned char key, int x, int y )
     	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
     	controlVertices[selectedPointIdx].z -= 1;
     	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample();
+    	drawWindowAtSelectedSample(uRange,vRange);
     	printf("Resampling done\n");
     	printUsage();
     	break;
@@ -814,11 +776,7 @@ main( int argc, char **argv )
 	// Convert the 16 control vertices into a 4 by 4 array
 	parseControlVerticesToPatch();
 
-	// Interpolate as desired
-	interpolatePatch(uRange, vRange);
-
-	// Tesselate, shade, populate points and normals
-	tesselateAndCalculateNormals();
+	drawWindowAtSelectedSample(uRange,vRange);
 
     initMainWindow();
 
