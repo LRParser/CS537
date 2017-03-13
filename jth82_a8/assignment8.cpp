@@ -234,7 +234,7 @@ vec4 calculateModelCentroid() {
 	return centroid;
 }
 
-void calculateEyeVector2() {
+void calculateEyeVector() {
 
 	float X, Y, Z;
 
@@ -411,7 +411,7 @@ displayMainWindow( bool isFrameBuffer )
 
    }
 
-   calculateEyeVector2();
+   calculateEyeVector();
 
    // Camera matrix
    mat4 View = LookAt(
@@ -597,7 +597,7 @@ keyboard( unsigned char key, int x, int y )
 
     }
 
-	calculateEyeVector2();
+	calculateEyeVector();
 	glutPostRedisplay();
 
 }

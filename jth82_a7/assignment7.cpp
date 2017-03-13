@@ -2,104 +2,64 @@
 #include <math.h>
 #include <fstream>
 #include <time.h>
-#include <vector>
-#include <map>
-#include <algorithm>
-#include <iterator>
+
 
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
-int N = 10;
-int uRange = 30;
-int vRange = 30;
-
-int totalRead = 0;
+int uRange = 10;
+int vRange = 10;
+vec4 interpolatedPoints[51][51];
 
 int selectedPointIdx = 0;
 
-class Face {
-public:
-	int faceIdx;
-	int firstVertexIndex;
-	int secondVertexIndex;
-	int thirdVertexIndex;
-	vec4 firstVertex;
-	vec4 secondVertex;
-	vec4 thirdVertex;
-	vec4 normal;
-};
-
 bool debug = true;
-
-std::map<int,std::vector<Face> > vertexFaceMapping;
-
 
 mat4 TransformMatrix;
 GLuint transformMatrix;
 
 // Uniforms for lighting
-// Light properties
 
 point4 L_position = point4(0,5,10,1);
-
-// Material properties
 
 vec4 materialAmbientLightProperties[3];
 vec4 materialDiffuseLightProperties[3];
 vec4 materialSpecularLightProperties[3];
-
 vec4 materialAmbientReflectionProperties[3];
 vec4 materialDiffuseReflectionProperties[3];
 vec4 materialSpecularReflectionProperties[3];
 
-
 color4 L_ambient = vec4(1.0,1.0,1.0,1.0);
-color4 L_diffuse = vec4(.2,.2,.2,1.0);
-color4 L_specular = vec4(.5,.5,.5,1);
+color4 L_diffuse = vec4(1.0,1.0,1.0,0.5);
+color4 L_specular = vec4(1.0,.5,.5,1);
+color4 M_reflect_ambient = vec4(0.7,.3,.7,1.0);
+color4 M_reflect_diffuse = vec4(0.2,.6,.2,1.0);
+color4 M_reflect_specular = vec4(0.1,.1,.1,1.0);
 
-color4 M_reflect_ambient = vec4(0.2,.1,.7,1.0);
-color4 M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
-color4 M_reflect_specular = vec4(0.1,.6,.1,1.0);
-
-float M_shininess = 10;
+float M_shininess = 50;
 
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
 GLuint cameraPosition;
-GLuint isGouraud;
-GLuint flatShading;
 
-// Projection matrix : 45° Field of View, 1:1 ratio, display range : 0.1 unit <-> 100 units
 bool isPerspective = true;
 
-// For Ortho coordinates
 GLfloat  left = -4.0, right = 4.0;
 GLfloat  bottom = -3.0, top = 5.0;
 GLfloat  near = -10.0, far = 10.0;
 
-float IsGouraud = .4; // >.5 is true, otherwise false
-float FlatShading = .6; // >.5 is true, otherwise false
 
+
+// Is set in tesellateInterpolatedPoints, and used in initMainWindow
+int totalNumVertices;
 
 const int defaultSize = 100000;
-const int NumVertices = defaultSize;
-
-// Is set in calcPatchPointsAndAssociateToFaces, and used in initMainWindow
-int shape1VertexCount = 24;
-
-vec4 smfVertices[NumVertices];
-std::vector<Face> smfFaces;
-
-
-
 vec4 points[defaultSize];
 vec4 normals[defaultSize];
-
-vec4 lineBufferData[6];
-
 vec4 controlVertices[defaultSize];
 vec4 patch[4][4];
-vec4 interpolatedPoints[51][51];
+
+
+vec4 lineBufferData[6];
 
 vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
@@ -124,11 +84,6 @@ int h = 500;
 int border = 50;
 
 
-vec4 defaultColor = vec4(.5,0,0,0);
-
-GLint windowHeight, windowWidth;
-
-
 float radians(float degrees) {
 	return (M_PI * degrees) / 180;
 }
@@ -139,31 +94,28 @@ void printVector(vec4 vIn) {
 
 float getBernsteinFactor(float u, int sub) {
 	float uu = 1-u;
-	float val1 = uu * uu * uu;
-	float val2 = 3 * u * uu * uu;
-	float val3 = 3 * u * u * uu;
-	float val4 = u * u * u;
 	if(sub == 1) {
-		return val1;
+		return uu * uu * uu;
 	}
 	else if(sub == 2) {
-		return val2;
+		return 3 * u * uu * uu;
 	}
 	else if(sub == 3) {
-		return val3;
+		return 3 * u * u * uu;
 	}
 	else {
-		return val4;
+		return u * u * u;
 	}
 }
 
-void calcPatchPoints() {
+// For the given desired interpolation range
+void calcPatchPoints(int uRange, int vRange) {
 
-	for(int u = 0; u <= uRange; u++) {
+	for(int u = 0; u < uRange; u++) {
 
 		float uParam = (float) u / (float)uRange;
 
-		for(int v = 0; v <= vRange; v++) {
+		for(int v = 0; v < vRange; v++) {
 
 			float vParam = (float) v / (float)vRange ;
 
@@ -220,14 +172,14 @@ vec4 vScale(vec4 input, float scaleFactor) {
 
 vec4 calculateModelCentroid() {
 	vec4 sumOfAllPoints;
-	for(int i = 0; i < shape1VertexCount; i++) {
+	for(int i = 0; i < totalNumVertices; i++) {
 		if(debug) {
 			//printf("[Point]");
 			//printVector(points[i]);
 		}
 		sumOfAllPoints += points[i];
 	}
-	vec4 centroid = (sumOfAllPoints) / shape1VertexCount;
+	vec4 centroid = (sumOfAllPoints) / totalNumVertices;
 	if(debug) {
 		//printf("Model centroid");
 		//printVector(centroid);
@@ -238,7 +190,7 @@ vec4 calculateModelCentroid() {
 
 
 
-void calculateEyeVector2() {
+void calculateEyeVector() {
 
 	//	Recall that the Cartesian coordinates of a point (X, Y , Z) defined in cylindrical coordinates (θ, R(adius), H(eight)) is
 	//	X = R * cos(θ)
@@ -281,12 +233,12 @@ void setLineBufferData() {
 }
 
 void printPointsAndNormals() {
-	for(int i = 0; i < shape1VertexCount; i++) {
+	for(int i = 0; i < totalNumVertices; i++) {
 		vec4 currentPoint = points[i];
 		printf("(Point)");
 		printVector(currentPoint);
 	}
-	for(int i = 0; i < shape1VertexCount; i++) {
+	for(int i = 0; i < totalNumVertices; i++) {
 		vec4 currentNormal = normals[i];
 		printf("(Normal)");
 		printVector(currentNormal);
@@ -351,8 +303,6 @@ initMainWindow( void )
 	m_reflect_specular = glGetUniformLocation(program, "m_reflect_specular");
 	m_shininess = glGetUniformLocation(program, "m_shininess");
 	cameraPosition = glGetUniformLocation(program, "cameraPosition");
-	isGouraud = glGetUniformLocation(program, "isGouraud");
-	flatShading = glGetUniformLocation(program, "flatShading");
 
     glClearColor( 0.2, 0.2, 0.2, 0.2 ); // grey background
 
@@ -360,13 +310,13 @@ initMainWindow( void )
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    printf("Num Vertices Used: %d\n",shape1VertexCount);
+    printf("Num Vertices Used: %d\n",totalNumVertices);
 
 
     glPointSize(20.0f);
     glLineWidth(20.0f);
-    glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
-    glDrawArrays( GL_POINTS, 0, shape1VertexCount );
+    glDrawArrays( GL_TRIANGLES, 0, totalNumVertices );
+    glDrawArrays( GL_POINTS, 0, totalNumVertices );
     glDrawArrays( GL_LINES, 2* defaultSize, 6 );
 
 
@@ -394,7 +344,7 @@ displayMainWindow( void )
 
    }
 
-   calculateEyeVector2();
+   calculateEyeVector();
 
    // Camera matrix
    mat4 View = LookAt(
@@ -423,17 +373,14 @@ displayMainWindow( void )
    glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
    glUniform4fv(cameraPosition,1,EyeVector);
    glUniform1f(m_shininess,M_shininess);
-   glUniform1f(isGouraud,IsGouraud);
-   glUniform1f(flatShading,FlatShading);
+
 
    glClearColor( 0.6, 0.6, 0.6, 1.0 ); // grey background
 
 
-   glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
-   glDrawArrays( GL_POINTS, 0, shape1VertexCount );
+   glDrawArrays( GL_TRIANGLES, 0, totalNumVertices );
+   glDrawArrays( GL_POINTS, 0, totalNumVertices );
    glDrawArrays( GL_LINES, 2*defaultSize, 6 );
-
-
 
    glutSwapBuffers();
 
@@ -458,10 +405,6 @@ int min(int int1, int int2) {
 	}
 }
 
-void idle() {
-
-
-}
 
 
 //----------------------------------------------------------------------------
@@ -472,52 +415,16 @@ void idle() {
 
 
 
-void populatePointsAndNormalsArrays() {
-
-	if(debug) {
-		printf("smfFaces.size() is %d\n",smfFaces.size());
-	}
-
-	for(int i = 0; i < smfFaces.size(); i++) {
-		Face currentFace = smfFaces.at(i);
-
-		vec4 vertex1 = currentFace.firstVertex;
-
-		vec4 vertex2 = currentFace.secondVertex;
-
-		vec4 vertex3 = currentFace.thirdVertex;
-
-		int currentOffset = i * 3;
-
-		points[currentOffset] = vertex1;
-		points[currentOffset + 1] = vertex2;
-		points[currentOffset + 2] = vertex3;
-
-		vec4 normalVal = currentFace.normal;
-
-		normals[currentOffset] =normalVal; // calculateVertexNormal(currentFace.firstVertexIndex);
-		normals[currentOffset + 1] =normalVal; // calculateVertexNormal(currentFace.secondVertexIndex);
-		normals[currentOffset + 2] = normalVal; //calculateVertexNormal(currentFace.thirdVertexIndex);
-
-	}
-}
-
-void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
+vec4 calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3) {
 		// See p 272
 		vec4 U = vertex2 - vertex1;
 		vec4 V = vertex3 - vertex2;
 
 		vec4 crossVector = cross(U,V);
+		vec4 absCustomNormal = normalize(vAbs(crossVector));
 
-		double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
-
-		vec4 customNormal = crossVector / customLength;
-
-		vec4 absCustomNormal = vAbs(customNormal);
 
 		if(debug && (std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z))) {
-
-			printf("Issue for face at index: %d \n",currentFace.faceIdx);
 
 			printf("Cross product ");
 			printVector(crossVector);
@@ -530,13 +437,8 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 
 			printf("Invalid cross vector");
 			exit(1);
-			currentFace.normal = vec4(0.33,0.33,0.33,1.0f);
-
 		}
-		else {
-
-		currentFace.normal = absCustomNormal;
-		}
+		return absCustomNormal;
 }
 
 int readPatchFile(char* fileName) {
@@ -561,17 +463,12 @@ int readPatchFile(char* fileName) {
 // Tesselate the points
 void tesselateInterpolatedPoints() {
 
-
-	int vertexNum = 1;
-
 	int numSmfVertices = 0;
-	int numSmfFaces = 0;
-
 
 	// Calculate all interpolated points and store the smfVertices and smfFaces
-	for(int i = 0; i <= uRange; i++) {
+	for(int i = 0; i < uRange - 1; i++) {
 
-			for(int j=0; j <= vRange; j++) {
+			for(int j=0; j < vRange - 1; j++) {
 
 				// First triangle
 				vec4 vertex1 =  interpolatedPoints[i][j]; // 1
@@ -583,31 +480,37 @@ void tesselateInterpolatedPoints() {
 				vec4 vertex5 = interpolatedPoints[i+1][j+1]; // 5
 				vec4 vertex6 = interpolatedPoints[i][j+1]; // 6
 
-				smfVertices[numSmfVertices] = vertex1;
+				vec4 normal1 = calculateFaceNormal(vertex1,vertex2,vertex3);
+				vec4 normal2 = calculateFaceNormal(vertex4,vertex5,vertex6);
+
+				points[numSmfVertices] = vertex1;
+				normals[numSmfVertices] = normal1;
 				numSmfVertices++;
 
-				smfVertices[numSmfVertices] = vertex2;
+				points[numSmfVertices] = vertex2;
+				normals[numSmfVertices] = normal1;
+
 				numSmfVertices++;
 
-				smfVertices[numSmfVertices] = vertex3;
+				points[numSmfVertices] = vertex3;
+				normals[numSmfVertices] = normal1;
 				numSmfVertices++;
 
-				smfVertices[numSmfVertices] = vertex4;
+				points[numSmfVertices] = vertex4;
+				normals[numSmfVertices] = normal2;
 				numSmfVertices++;
 
-				smfVertices[numSmfVertices] = vertex5;
+				points[numSmfVertices] = vertex5;
+				normals[numSmfVertices] = normal2;
 				numSmfVertices++;
 
-				smfVertices[numSmfVertices] = vertex6;
+				points[numSmfVertices] = vertex6;
+				normals[numSmfVertices] = normal2;
 				numSmfVertices++;
-
-
-				numSmfFaces++;
-
 			}
 		}
 
-	shape1VertexCount = numSmfFaces * 3;
+	totalNumVertices = numSmfVertices;
 }
 
 void parseControlVerticesToPatch() {
@@ -626,7 +529,6 @@ void reinitializeArrays() {
 	for(int i = 0; i < 10000; i++) {
 		points[i] = vec4(0,0,0,0);
 		normals[i] = vec4(0,0,0,0);
-		smfVertices[i] = vec4(0,0,0,0);
 	}
 
 	for(int i = 0; i < 4; i++) {
@@ -635,8 +537,7 @@ void reinitializeArrays() {
 		}
 	}
 
-	vertexFaceMapping.clear();
-	smfFaces.clear();
+
 }
 
 void printUsage() {
@@ -664,9 +565,9 @@ void drawWindowAtSelectedSample() {
 
 	// Interpolate as desired
 
-	tesselateInterpolatedPoints();
+	calcPatchPoints(uRange, vRange);
 
-	populatePointsAndNormalsArrays();
+	tesselateInterpolatedPoints();
 
     glBufferSubData( GL_ARRAY_BUFFER, 0,
         sizeof(points), points );
@@ -795,80 +696,7 @@ keyboard( unsigned char key, int x, int y )
     case '8' :
     	isPerspective = false;
     	break;
-    case 'g' :
-    	IsGouraud = .6;
-    	FlatShading = .4;
 
-    	if(debug) {
-    		printf("Gouraud shading mode\n");
-    	}
-    	break;
-    case 'p' :
-    	IsGouraud = .4;
-    	FlatShading = .4;
-
-    	if(debug) {
-    		printf("Phong shading mode\n");
-    	}
-    	break;
-    case 'f' :
-    	FlatShading = .6;
-    	if(debug) {
-    		printf("Turned on flat shading\n");
-    	}
-    	break;
-    case 'v' :
-    	FlatShading = .4;
-    	if(debug) {
-    		printf("Turned off flat shading\n");
-    	}
-    	break;
-    case 'a' :
-    	if(debug) {
-    		printf("Material 1 selected");
-    	}
-
-    	L_ambient = vec4(1.0,1.0,1.0,1.0);
-    	L_diffuse = vec4(1.0,1.0,1.0,1.0);
-    	L_specular = vec4(.5,.5,.5,1);
-
-    	M_reflect_ambient = vec4(0.2,.1,.7,1.0);
-    	M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
-    	M_reflect_specular = vec4(0.1,.6,.1,1.0);
-
-
-
-
-    	break;
-
-    case 's' :
-    	if(debug) {
-    		printf("Material 2 selected");
-    	}
-    	L_ambient = vec4(1.0,1.0,1.0,1.0);
-    	L_diffuse = vec4(1.0,1.0,1.0,1.0);
-    	L_specular = vec4(.5,.5,.5,1);
-
-    	M_reflect_ambient = vec4(0.3,.3,.3,1.0);
-    	M_reflect_diffuse = vec4(0.4,.4,.4,1.0);
-    	M_reflect_specular = vec4(0.3,.3,.3,1.0);
-
-    	break;
-
-    case 'd' :
-    	if(debug) {
-    		printf("Material 3 selected");
-    	}
-    	L_ambient = vec4(1.0,1.0,1.0,1.0);
-    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
-    	L_specular = vec4(1.0,.5,.5,1);
-
-    	M_reflect_ambient = vec4(0.7,.3,.7,1.0);
-    	M_reflect_diffuse = vec4(0.2,.6,.2,1.0);
-    	M_reflect_specular = vec4(0.1,.1,.1,1.0);
-    	pressed = true;
-
-    	break;
 
     case 'z':
     	if(debug) {
@@ -876,14 +704,11 @@ keyboard( unsigned char key, int x, int y )
     	}
 
     	L_ambient = vec4(1.0,1.0,1.0,1.0);
-    	L_diffuse = vec4(1.0,1.0,1.0,1.0);
-    	L_specular = vec4(.5,.5,.5,1);
-
-    	M_reflect_ambient = vec4(0.2,.1,.7,1.0);
-    	M_reflect_diffuse = vec4(0.7,.2,.2,1.0);
-    	M_reflect_specular = vec4(0.1,.6,.1,1.0);
-
-    	FlatShading = 0.6;
+    	L_diffuse = vec4(1.0,1.0,1.0,0.5);
+    	L_specular = vec4(1.0,.5,.5,1);
+    	M_reflect_ambient = vec4(0.7,.3,.7,1.0);
+    	M_reflect_diffuse = vec4(0.2,.6,.2,1.0);
+    	M_reflect_specular = vec4(0.1,.1,.1,1.0);
 
     	Radius = 18.0;
     	Theta = 90; // Longitude angle in degrees
@@ -899,28 +724,25 @@ keyboard( unsigned char key, int x, int y )
 
     	calculateModelCentroid();
 
-    	N = 10;
+    	uRange = 10;
+    	vRange = 10;
 
     	break;
 
     case 'j':
-    	N += 1;
+    	// N += 1;
     	uRange += 1;
     	vRange += 1;
-    	if (N >= 100) {
-    		N = 100;
-    	}
+
     	drawWindowAtSelectedSample();
 
     	break;
 
     case 'k' :
-    	N -= 1;
+
     	uRange -= 1;
     	vRange -= 1;
-    	if(N <= 0) {
-    		N = 1;
-    	}
+
     	drawWindowAtSelectedSample();
     	break;
 
@@ -994,7 +816,7 @@ keyboard( unsigned char key, int x, int y )
 
     }
 
-	calculateEyeVector2();
+	calculateEyeVector();
 	glutPostRedisplay();
 
 }
@@ -1027,13 +849,10 @@ main( int argc, char **argv )
 	parseControlVerticesToPatch();
 
 	// Interpolate as desired
-	calcPatchPoints();
+	calcPatchPoints(uRange, vRange);
 
-	// Tesselate
+	// Tesselate, shade, populate points and normals
 	tesselateInterpolatedPoints();
-
-	// For shading
-	populatePointsAndNormalsArrays();
 
     initMainWindow();
 

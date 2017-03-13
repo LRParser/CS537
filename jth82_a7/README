@@ -1,0 +1,13 @@
+The example should be run on OS X via 'make run'
+
+Testing suggestions / notes: 
+
+Default sampling is set to 10. By pressing k to lower the sampling down to 1 (the minimum amount) you can see effect of lowered sampling
+Press n to cycle thru control points and then -,=,[,],{,} to increase/decrease x,y,z respectively
+
+Known issues:
+When sampling is increased beyond 10 model changes very little (after sampling interval of 10), centroid calculation may be incorrect
+
+Did not implement "Change the color and/or size of the selected control point.", instead command line output given
+
+Press x to exit, w to reset all

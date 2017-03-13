@@ -10,8 +10,7 @@ uniform mat4 transformMatrix;
 uniform vec4 l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, l_position;
 uniform vec4 cameraPosition;
 uniform float m_shininess;
-uniform float isGouraud;
-uniform float flatShading;
+
 
 
 vec4 vProduct(vec4 a, vec4 b) {
@@ -36,8 +35,6 @@ void main()
 		c_diffuse = vec4(0,0,0,1);
 	}
 	
-	position = vPosition;
 	color = c_ambient + c_diffuse;
-
 	gl_Position =  transformMatrix * vPosition;
 }

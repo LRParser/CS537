@@ -58,7 +58,8 @@ color4 M_reflect_ambient = vec4(0.2,.2,1,1.0);
 color4 M_reflect_diffuse = vec4(0.3,1,.3,1.0);
 color4 M_reflect_specular = vec4(.1,.1,.1,1.0);
 
-float M_shininess = 50;
+// TODO - specular should get smaller/more focused as shininess increases
+float M_shininess = .1;
 
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
 GLuint cameraPosition;
@@ -172,7 +173,7 @@ vec3 sin(vec3 angles) {
 
 
 
-void calculateEyeVector2() {
+void calculateEyeVector() {
 
 	//	Recall that the Cartesian coordinates of a point (X, Y , Z) defined in cylindrical coordinates (θ, R(adius), H(eight)) is
 	//	X = R * cos(θ)
@@ -296,7 +297,7 @@ displayMainWindow( void )
 
    }
 
-   calculateEyeVector2();
+   calculateEyeVector();
 
    // Camera matrix
    mat4 View = LookAt(
@@ -530,7 +531,7 @@ keyboard( unsigned char key, int x, int y )
 
     }
 
-	calculateEyeVector2();
+	calculateEyeVector();
 	glutPostRedisplay();
 
 }
