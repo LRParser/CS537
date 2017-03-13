@@ -7,7 +7,7 @@ int selectedPointIdx = 0;
 
 bool debug = false;
 
-GLuint modelMatrix, viewMatrix, projectionMatrix;
+GLuint modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix;
 
 mat4 TransformMatrix;
 GLuint transformMatrix;
@@ -312,7 +312,7 @@ displayMainWindow( void )
    calculateEyeVector();
 
    // Camera matrix
-   mat4 View = LookAt(
+   mat4 mode_view = LookAt(
 	EyeVector,
 	vec4(0,0,0,1),
 	vec4(0,1,0,0)
@@ -326,10 +326,8 @@ displayMainWindow( void )
 
    // Following uni marburg example, do I need to invert my matrix
    //
-   mat4 ModelViewMatrix = View * Model;
 
-   glUniformMatrix4fv( modelMatrix, 1, GL_TRUE, Model );
-   glUniformMatrix4fv( viewMatrix, 1, GL_TRUE, View );
+   glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, mode_view );
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
 
    glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );

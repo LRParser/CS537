@@ -7,7 +7,7 @@ out vec4 color;
 out vec4 position;
 out vec4 normal;
 
-uniform mat4 transformMatrix;
+uniform mat4 modelViewMatrix, projectionMatrix;
 uniform vec4 l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, l_position;
 uniform vec4 cameraPosition;
 uniform float m_shininess;
@@ -21,42 +21,44 @@ vec4 vProduct(vec4 a, vec4 b) {
 void main()
 {
 
+	mat4 Projection = projectionMatrix;
+	mat4 ModelView = modelViewMatrix;
+	
 	if(isGouraud > .5f) {
-	// Computed ambient, diffuse and specular colors
-	vec4 c_ambient = vProduct(l_ambient,m_reflect_ambient);
 
-	float d = dot(vNormal, normalize(l_position));
 
-	vec4 c_diffuse;
-	if(d > 0) {
-		c_diffuse = vProduct(l_diffuse, m_reflect_diffuse)*d;
+		vec4 LightPosition = l_position;
+		
+		vec3 pos = (ModelView * vPosition).xyz;
+		 // Light defined in camera frame
+		 vec3 L = normalize( LightPosition.xyz - pos );
+		 vec3 E = normalize( -pos );
+		 vec3 H = normalize( L + E );
+		 // Transform vertex normal into eye coordinates
+		 vec3 N = normalize( ModelView*vNormal ).xyz; 
+		 
+		 vec3 ambient = vProduct(l_ambient,m_reflect_ambient).xyz;
+		  float dTerm = max( dot(L, N), 0.0 );
+		  vec3 DiffuseProduct = vProduct(l_diffuse,m_reflect_diffuse).xyz;
+		  vec3 diffuse = dTerm*DiffuseProduct;
+		  float sTerm = pow( max(dot(N, H), 0.0), m_shininess );
+		  vec3 SpecularProduct = vProduct(l_specular,m_reflect_specular).xyz;
+		  vec3 specular = sTerm * SpecularProduct;
+		  if( dot(L, N) < 0.0 ) {
+			  specular = vec3(0.0, 0.0, 0.0);
+		  }
+		  position = Projection * ModelView * vPosition;
+		  color = vec4(ambient + diffuse + specular,1.0); 
+		  normal = vNormal;
 	}
 	else {
-		c_diffuse = vec4(0.2,0.2,0.2,1);
+		position =  vPosition;
+		color = vNormal;
+		normal = vNormal;
 	}
-
-
-	vec4 viewDirection = (transformMatrix * vPosition) - cameraPosition;
-	vec4 halfVector = normalize(l_position + viewDirection);
-
-	vec4 c_specular = vec4(0,0,0,0);
-	float s = dot(halfVector,vNormal);
-	if(s >0.0) {
-		c_specular = pow(s,m_shininess) * vProduct(l_specular,m_reflect_specular);
-	}
-	else {
-		c_specular = -1 * pow(s,m_shininess) * vProduct(l_specular,m_reflect_specular);
-	}
-
-
-	color = c_ambient + c_diffuse + c_specular;
-	}
-	else {
-		color = vec4(1.0,0.0,0.0,1.0);
-	}
-
-	position = vPosition;
-	normal = vNormal;
-
-	gl_Position =  transformMatrix * vPosition;
+	
+	gl_Position = Projection * ModelView * vPosition;
+	// 
+	
+	
 }
