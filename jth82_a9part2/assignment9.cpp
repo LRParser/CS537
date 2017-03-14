@@ -84,16 +84,21 @@ int w = 500;
 int h = 500;
 int border = 50;
 
+GLubyte image[64][64][3];
 
-float pixels[] = {
-    0.0f, 0.0f, 0.0f,   .25f, .25f, .25f,
-    .50f, .5f, .5f,   1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,   .5f, .5f, .5f,
-    .25f, .25f, .25f,   0.0f, 0.0f, 0.0f,
-};
 
 void initTexture() {
-	// procedurally generate 2D RGB image data
+	// Create a  64 x 64 checkerboard pattern
+	    for ( int i = 0; i < 64; i++ ) {
+	        for ( int j = 0; j < 64; j++ ) {
+	            GLubyte c = (((i & 0x8) == 0) ^ ((j & 0x8)  == 0)) * 255;
+	            image[i][j][0]  = c;
+	            image[i][j][1]  = c;
+	            image[i][j][2]  = c;
+	            // image[i][j][3]  = (GLubyte) 255;
+
+	        }
+	    }
 }
 
 float radians(float degrees) {
@@ -288,7 +293,6 @@ initMainWindow( void )
     modelCentroid = calculateModelCentroid();
 
     modelMatrix = glGetUniformLocation(program, "modelMatrix");
-    modelViewMatrix = glGetUniformLocation(program, "modelViewMatrix");
     viewMatrix = glGetUniformLocation(program, "viewMatrix");
     projectionMatrix = glGetUniformLocation(program, "projectionMatrix");
     transformMatrix = glGetUniformLocation(program, "transformMatrix");
@@ -308,9 +312,8 @@ initMainWindow( void )
 	// Texture objects
     glGenTextures( 1, textures );
     glBindTexture( GL_TEXTURE_2D, textures[0] );
-
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, 4,
-       4, 0, GL_RGB, GL_FLOAT, pixels );
+    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, 64,
+       64, 0, GL_RGB, GL_UNSIGNED_BYTE, image );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
         GL_REPEAT );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,

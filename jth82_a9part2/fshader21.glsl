@@ -6,7 +6,7 @@ in vec2 texCoord; //texure coordinate from rasterizer
 
 out vec4 FragColor;
 
-uniform mat4 modelMatrix, viewMatrix, modelViewMatrix, projectionMatrix, transformMatrix;
+uniform mat4 modelMatrix, viewMatrix, projectionMatrix, transformMatrix;
 uniform vec3 l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, l_position;
 uniform vec4 eyePosition;
 uniform float m_shininess;
@@ -19,10 +19,6 @@ vec3 vProduct(vec3 a, vec3 b) {
 
 void main()
 {
-
-	mat4 Projection = projectionMatrix;
-	mat4 ModelView = modelViewMatrix;
-	vec3 LightPosition = l_position;
 	
 	// Computed ambient
 	vec3 c_ambient = vProduct(l_ambient,m_reflect_ambient);
@@ -49,7 +45,9 @@ void main()
 	}
 	// Replace diffuse color by a texture
 	c_diffuse =  texture2D( texture, texCoord ).xyz; 
+	float redChannel = texture2D( texture, texCoord).x;
 	vec3 color = c_ambient + c_diffuse;
+	color.x = redChannel;
 
 	FragColor = vec4(color,1.0);
 }
