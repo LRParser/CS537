@@ -62,7 +62,7 @@ vec3 EyeVector = vec3(1.0f,1.0f,10.0f);
 vec3 modelCentroid;
 
 float Radius = 18.0;
-int Theta = 0; // Longitude angle in degrees
+int Theta = 90; // Longitude angle in degrees
 int LightTheta = Theta;
 int LightRadius = Radius;
 float Height = 3;
@@ -312,18 +312,14 @@ displayMainWindow( void )
    calculateEyeVector();
 
 
-   // Move model to the origin mat4(1.0f);
-   mat4 Model = Translate(-1 * modelCentroid);
-
-   // Camera matrix
-   mat4 View = LookAt(
+   // Look at model centroid
+   mat4 model_view = LookAt(
 	EyeVector,
-	vec4(0,0,0,1),
-	vec4(0,1,0,0)
+	modelCentroid,
+	vec4(0,1,0,1)
        );
 
-   mat4 model_view = View * Model;
-
+   TransformMatrix = Projection * model_view;
 
    glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, model_view );
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );

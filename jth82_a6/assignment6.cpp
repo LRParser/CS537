@@ -242,10 +242,6 @@ initMainWindow( void )
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    //glPointSize(20.0f);
-    // glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
-    //glDrawArrays( GL_POINTS, 0, shape1VertexCount );
-
     glFlush();
 
 }
