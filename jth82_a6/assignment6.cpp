@@ -9,19 +9,16 @@
 #include <algorithm>
 #include <iterator>
 
-typedef Angel::vec4  color4;
-typedef Angel::vec4  point4;
-
 class Face {
 public:
 	int faceIdx;
 	int firstVertexIndex;
 	int secondVertexIndex;
 	int thirdVertexIndex;
-	vec4 firstVertex;
-	vec4 secondVertex;
-	vec4 thirdVertex;
-	vec4 normal;
+	vec3 firstVertex;
+	vec3 secondVertex;
+	vec3 thirdVertex;
+	vec3 normal;
 };
 
 bool debug = true;
@@ -29,111 +26,93 @@ bool debug = true;
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
 
-mat4 TransformMatrix;
-GLuint modelViewMatrix, projectionMatrix, transformMatrix;
+mat4 TranslateMatrix;
+GLuint modelViewMatrix, projectionMatrix, translateMatrix;
 
 // Uniforms for lighting
 // Light properties
 
-point4 L_position = point4(0,5,10,1);
+vec3 L_position = vec3(0,5,10);
 
 // Material properties
 
-vec4 materialAmbientLightProperties[3];
-vec4 materialDiffuseLightProperties[3];
-vec4 materialSpecularLightProperties[3];
+vec3 materialAmbientLightProperties[3];
+vec3 materialDiffuseLightProperties[3];
+vec3 materialSpecularLightProperties[3];
 
-vec4 materialAmbientReflectionProperties[3];
-vec4 materialDiffuseReflectionProperties[3];
-vec4 materialSpecularReflectionProperties[3];
+vec3 materialAmbientReflectionProperties[3];
+vec3 materialDiffuseReflectionProperties[3];
+vec3 materialSpecularReflectionProperties[3];
 
-color4 L_ambient = vec4(1.0,1.0,1.0,1.0);
-color4 L_diffuse = vec4(1.0,1.0,1.0,0.5);
-color4 L_specular = vec4(.5,.5,.5,1);
+vec3 L_ambient = vec3(1.0,1.0,1.0);
+vec3 L_diffuse = vec3(1.0,1.0,1.0);
+vec3 L_specular = vec3(.5,.5,.5);
 
-color4 M_reflect_ambient = vec4(0.2,.2,1,1.0);
-color4 M_reflect_diffuse = vec4(0.3,1,.3,1.0);
-color4 M_reflect_specular = vec4(.1,.1,.1,1.0);
+vec3 M_reflect_ambient = vec3(0.2,.2,1);
+vec3 M_reflect_diffuse = vec3(0.3,1,.3);
+vec3 M_reflect_specular = vec3(.1,.1,.1);
 
-float M_shininess = 50;
+float M_shininess = 100;
 
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
 GLuint cameraPosition;
 GLuint isGouraud;
 
-// Projection matrix : 45° Field of View, 1:1 ratio, display range : 0.1 unit <-> 100 units
 bool isPerspective = true;
 
-// For Ortho coordinates
 GLfloat  left = -4.0, right = 4.0;
 GLfloat  bottom = -3.0, top = 5.0;
 GLfloat  near = -10.0, far = 10.0;
 
 float IsGouraud = .6; // >.5 is true, otherwise false
 
-// Copied from Lecture 8 slides as described in assignment
-
 const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
-int shape1VertexCount = 24;
 
-vec4 smfVertices[NumVertices];
+// Total number of vertices
+int shape1VertexCount;
+
+vec3 smfVertices[NumVertices];
 std::vector<Face> smfFaces;
 
-vec4 points[10000];
-vec4 normals[10000];
+vec3 points[10000];
+vec3 normals[10000];
 
-vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
+vec3 EyeVector = vec3(1.0f,1.0f,10.0f);
 
-vec4 modelCentroid;
+vec3 modelCentroid;
 
-float Radius = 3.0;
-int Theta = 90; // Longitude angle in degrees
-int LightTheta = Theta + 10;
-float LightRadius = -4.0;
-float Height, LightHeight = 1;
+float Radius, Theta, LightTheta, LightRadius, Height, LightHeight;
 
 float RadiusDelta = 1;
-int Delta = 5;
-float HeightDelta = .1;
+float Delta = 5;
+float HeightDelta = 1;
 float ParallelDelta = 2;
 
 int mainWindow;
 
 int w = 500;
 int h = 500;
-int border = 50;
-
-
-vec4 defaultColor = vec4(.5,0,0,0);
-
-GLint windowHeight, windowWidth;
 
 float radians(float degrees) {
 	return (M_PI * degrees) / 180;
 }
 
-void printVector(vec4 vIn) {
+void printVector(vec3 vIn) {
 	printf("(%f, %f, %f)\n",vIn.x,vIn.y,vIn.z);
 }
 
-vec4 vProduct(vec4 a, vec4 b) {
-	return vec4(a[0]*b[0],a[1]*b[1],a[2]*b[2],1.0);
+vec3 vProduct(vec3 a, vec3 b) {
+	return vec3(a[0]*b[0],a[1]*b[1],a[2]*b[2]);
 }
 
-vec4 vAbs(vec4 input) {
-	vec4 absVec = vec4(std::abs(input.x),std::abs(input.y),
-			std::abs(input.z),1.0);
+vec3 vAbs(vec3 input) {
+	vec3 absVec = vec3(std::abs(input.x),std::abs(input.y),
+			std::abs(input.z));
 	return absVec;
 }
 
-vec4 vScale(vec4 input, float scaleFactor) {
-	vec4 scaleVec = vec4(scaleFactor * input.x,scaleFactor * input.y,scaleFactor * input.z,0.0);
-	return scaleVec;
-}
-
-
-vec4 calculateModelCentroid() {
-	vec4 sumOfAllPoints;
+vec3 calculateModelCentroid() {
+	vec3 sumOfAllPoints;
 	for(int i = 0; i < shape1VertexCount; i++) {
 		if(debug) {
 			printf("[Point]");
@@ -141,7 +120,7 @@ vec4 calculateModelCentroid() {
 		}
 		sumOfAllPoints += points[i];
 	}
-	vec4 centroid = (sumOfAllPoints) / shape1VertexCount;
+	vec3 centroid = (sumOfAllPoints) / shape1VertexCount;
 	if(debug) {
 		printf("Model centroid");
 		printVector(centroid);
@@ -156,7 +135,7 @@ void setDefaultViewParams() {
 	M_reflect_ambient = vec3(0.7, .3, .7);
 	M_reflect_diffuse = vec3(0.2, .6, .2);
 	M_reflect_specular = vec3(0.1, .1, .1);
-	M_shininess = 100;
+	M_shininess = 500;
 	Radius = 3.0;
 	Theta = 90; // Longitude angle in degrees
 	LightTheta = Theta;
@@ -175,24 +154,22 @@ void calculateEyeVector() {
 	//	X = R * cos(θ)
 	//	Y = R * sin(θ)
 	//	Z = H
+
 	float X, Y, Z;
 
 	X = Radius * cos(radians(Theta));
-	Y = Height;
-	Z = Radius * sin(radians(Theta));
+	Y = Radius * sin(radians(Theta));
+	Z = Height;
 
-	EyeVector.x = X;
-	EyeVector.y = Y;
-	EyeVector.z = Z;
-	EyeVector.w = 1;
+	EyeVector = vec3(X,Y,Z);
 
 	X = LightRadius * cos(radians(LightTheta));
 	Y = LightHeight;
 	Z = LightRadius * sin(radians(LightTheta));
 
-	L_position.x = X;
-	L_position.y = Y;
-	L_position.z = Z;
+	L_position.x = EyeVector.x; // X * translateMatrix;
+	L_position.y = EyeVector.y; // Y * translateMatrix;
+	L_position.z = EyeVector.z; // Z * translateMatrix;
 
 	if(debug) {
 		printf("Eye Vector\n");
@@ -217,12 +194,12 @@ initMainWindow( void )
     // Print points and normals info
 	if(debug) {
 		for(int i = 0; i < shape1VertexCount; i++) {
-			vec4 currentPoint = points[i];
+			vec3 currentPoint = points[i];
 			printf("(Point)");
 			printVector(currentPoint);
 		}
 		for(int i = 0; i < shape1VertexCount; i++) {
-			vec4 currentNormal = normals[i];
+			vec3 currentNormal = normals[i];
 			printf("(Normal)");
 			printVector(currentNormal);
 		}
@@ -244,19 +221,19 @@ initMainWindow( void )
     // Initialize the vertex position attribute from the vertex shader
     GLuint vPosition = glGetAttribLocation( program, "vPosition" );
     glEnableVertexAttribArray( vPosition );
-    glVertexAttribPointer( vPosition, 4, GL_FLOAT, GL_FALSE, 0,
+    glVertexAttribPointer( vPosition, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(0) );
 
     GLuint vNormal = glGetAttribLocation( program, "vNormal" );
     glEnableVertexAttribArray( vNormal );
-    glVertexAttribPointer( vNormal, 4, GL_FLOAT, GL_TRUE, 0,
+    glVertexAttribPointer( vNormal, 3, GL_FLOAT, GL_TRUE, 0,
                            BUFFER_OFFSET(sizeof(normals)) );
 
     modelCentroid = calculateModelCentroid();
 
     projectionMatrix = glGetUniformLocation(program, "projectionMatrix");
     modelViewMatrix = glGetUniformLocation(program, "modelViewMatrix");
-    transformMatrix = glGetUniformLocation(program, "transformMatrix");
+    translateMatrix = glGetUniformLocation(program, "translateMatrix");
     l_ambient = glGetUniformLocation(program, "l_ambient");
 	l_diffuse = glGetUniformLocation(program, "l_diffuse");
 	l_specular = glGetUniformLocation(program, "l_specular");
@@ -300,34 +277,34 @@ displayMainWindow( void )
 
    calculateEyeVector();
 
-   // Camera matrix
+   modelCentroid = calculateModelCentroid();
+
+   // Look at model centroid
    mat4 model_view = LookAt(
 	EyeVector,
-	vec4(0,0,0,1),
+	modelCentroid,
 	vec4(0,1,0,1)
 
        );
 
-   // Move model to the origin mat4(1.0f);
-   mat4 Model = Translate(-1 * modelCentroid);
+   mat4 TranslateMatrix = -1 * Translate(modelCentroid);
 
-   TransformMatrix = Projection * model_view * Model;
-
+   glUniformMatrix4fv( translateMatrix, 1, GL_TRUE, TranslateMatrix);
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
    glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, model_view );
 
-   glUniform4fv(l_ambient, 1, L_ambient);
-   glUniform4fv(l_diffuse, 1, L_diffuse);
-   glUniform4fv(l_specular, 1, L_specular);
-   glUniform4fv(l_position, 1, L_position);
+   glUniform3fv(l_ambient, 1, L_ambient);
+   glUniform3fv(l_diffuse, 1, L_diffuse);
+   glUniform3fv(l_specular, 1, L_specular);
+   glUniform3fv(l_position, 1, L_position);
 
 
-   glUniform4fv(m_reflect_ambient, 1, M_reflect_ambient);
-   glUniform4fv(m_reflect_diffuse, 1, M_reflect_diffuse);
-   glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
+   glUniform3fv(m_reflect_ambient, 1, M_reflect_ambient);
+   glUniform3fv(m_reflect_diffuse, 1, M_reflect_diffuse);
+   glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
    glUniform1f(m_shininess,M_shininess);
-   glUniform4fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform4fv(cameraPosition,1,EyeVector);
+   glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
+   glUniform3fv(cameraPosition,1,EyeVector);
    glUniform1f(m_shininess,M_shininess);
    glUniform1f(isGouraud,IsGouraud);
 
@@ -474,13 +451,13 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 1 selected");
     	}
-    	L_ambient = vec4(1.0,1,0.0,1);
-    	L_diffuse = vec4(0.0,1,0.0,1);
-    	L_specular = vec4(1.0,1.0,1.0,1);
+    	L_ambient = vec3(1.0,1,0.0);
+    	L_diffuse = vec3(0.0,1,0.0);
+    	L_specular = vec3(1.0,1.0,1.0);
 
-    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(0.0,1,0.0,1.0);
-    	M_reflect_specular = vec4(1.0,1,1.0,1.0);
+    	M_reflect_ambient = vec3(0.0,1,0.0);
+    	M_reflect_diffuse = vec3(0.0,1,0.0);
+    	M_reflect_specular = vec3(1.0,1,1.0);
     	M_shininess = 50;
 
     	break;
@@ -489,13 +466,13 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 2 selected");
     	}
-    	L_ambient = vec4(1.0,1,1,1);
-    	L_diffuse = vec4(0.0,0,1.0,1);
-    	L_specular = vec4(0.0,1.0,1.0,1);
+    	L_ambient = vec3(1.0,1,1);
+    	L_diffuse = vec3(0.0,0,1.0);
+    	L_specular = vec3(0.0,1.0,1.0);
 
-    	M_reflect_ambient = vec4(1.0,0,1.0,1.0);
-    	M_reflect_diffuse = vec4(1.0,.4,0.0,1.0);
-    	M_reflect_specular = vec4(0.0,.4,.4,1.0);
+    	M_reflect_ambient = vec3(1.0,0,1.0);
+    	M_reflect_diffuse = vec3(1.0,.4,0.0);
+    	M_reflect_specular = vec3(0.0,.4,.4);
 
     	M_shininess = 1;
 
@@ -506,13 +483,13 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 3 selected");
     	}
-    	L_ambient = vec4(1.0,1,1,1);
-    	L_diffuse = vec4(0.0,0,1.0,1);
-    	L_specular = vec4(0.0,1.0,1.0,1);
+    	L_ambient = vec3(1.0,1,1);
+    	L_diffuse = vec3(0.0,0,1.0);
+    	L_specular = vec3(0.0,1.0,1.0);
 
-    	M_reflect_ambient = vec4(0.0,1,0.0,1.0);
-    	M_reflect_diffuse = vec4(1.0,1,0.0,1.0);
-    	M_reflect_specular = vec4(1.0,1,.5,1.0);
+    	M_reflect_ambient = vec3(0.0,1,0.0);
+    	M_reflect_diffuse = vec3(1.0,1,0.0);
+    	M_reflect_specular = vec3(1.0,1,.5);
     	M_shininess = 1000;
 
     	break;
@@ -550,11 +527,11 @@ void idle() {
 /* For HW6, we need to:
  * find the average of the normals of the triangles incident to the vertex. See Lecture 10, slide 53.
  */
-vec4 calculateVertexNormal(int vertexIdx) {
+vec3 calculateVertexNormal(int vertexIdx) {
 
     std::vector<Face> incidentFaces = vertexFaceMapping.at(vertexIdx);
-    vec4 vertexNormal;
-    vec4 incidentFacesColorsSum;
+    vec3 vertexNormal;
+    vec3 incidentFacesColorsSum;
 
 	int incidentFacesCount = 0;
 
@@ -563,9 +540,11 @@ vec4 calculateVertexNormal(int vertexIdx) {
 	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
 		printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
 		printVector(it->normal);
-		if(std::isnan(it->normal.x)) {
+		if(std::isnan(it->normal.x) || std::isnan(it->normal.y) || std::isnan(it->normal.z)) {
 			// We weren't able to calculate the normal. Set it to default color
-			it->normal = normalize(defaultColor);
+			printf("NaN\n");
+			printVector(it->normal);
+			exit(1);
 		}
 		printVector(incidentFacesColorsSum);
 		incidentFacesColorsSum += it->normal;
@@ -599,11 +578,11 @@ void populatePointsAndNormalsArrays() {
 	for(int i = 0; i < smfFaces.size(); i++) {
 		Face currentFace = smfFaces.at(i);
 
-		vec4 vertex1 = currentFace.firstVertex;
+		vec3 vertex1 = currentFace.firstVertex;
 
-		vec4 vertex2 = currentFace.secondVertex;
+		vec3 vertex2 = currentFace.secondVertex;
 
-		vec4 vertex3 = currentFace.thirdVertex;
+		vec3 vertex3 = currentFace.thirdVertex;
 
 		int currentOffset = i * 3;
 
@@ -618,27 +597,27 @@ void populatePointsAndNormalsArrays() {
 	}
 }
 
-void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& currentFace) {
+void calculateFaceNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3, Face& currentFace) {
 		// See p 272
-		vec4 U = vertex2 - vertex1;
-		vec4 V = vertex3 - vertex2;
+		vec3 U = vertex2 - vertex1;
+		vec3 V = vertex3 - vertex2;
 
-		vec4 crossVector = cross(U,V);
+		vec3 crossVector = cross(U,V);
 
 		if(std::isnan(crossVector.x)) {
 			printf("Invalid cross vector");
 			exit(0);
 		}
 
-		vec4 normalNormalized = normalize(crossVector);
+		vec3 normalNormalized = normalize(crossVector);
 
-		vec4 absNormalNormalized = vAbs(normalNormalized);
+		vec3 absNormalNormalized = vAbs(normalNormalized);
 
 		double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
 
-		vec4 customNormal = crossVector / customLength;
+		vec3 customNormal = crossVector / customLength;
 
-		vec4 absCustomNormal = vAbs(customNormal);
+		vec3 absCustomNormal = vAbs(customNormal);
 
 		if(debug) {
 			printf("Cross product ");
@@ -651,7 +630,7 @@ void calculateFaceNormal(vec4 vertex1, vec4 vertex2, vec4 vertex3, Face& current
 			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
 			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
 
-			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z,absNormalNormalized.w);
+			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z);
 		}
 
 		currentFace.normal = absCustomNormal;
@@ -671,7 +650,7 @@ int readSMF(char* fileName) {
 			while (infile >> a >> b >> c >> d)
 			{
 				if(a == 'v') {
-					smfVertices[numSmfVertices] = vec4(b,c,d,1);
+					smfVertices[numSmfVertices] = vec3(b,c,d);
 					numSmfVertices++;
 				}
 				else if(a == 'f') {
@@ -681,11 +660,11 @@ int readSMF(char* fileName) {
 					f.firstVertexIndex = int(b);
 					f.secondVertexIndex = int(c);
 					f.thirdVertexIndex = int(d);
-					vec4 firstVertex = smfVertices[f.firstVertexIndex - 1];
+					vec3 firstVertex = smfVertices[f.firstVertexIndex - 1];
 					f.firstVertex = firstVertex;
-					vec4 secondVertex = smfVertices[f.secondVertexIndex - 1];
+					vec3 secondVertex = smfVertices[f.secondVertexIndex - 1];
 					f.secondVertex = secondVertex;
-					vec4 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
+					vec3 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
 					f.thirdVertex = thirdVertex;
 
 					calculateFaceNormal(firstVertex,secondVertex,thirdVertex,f);
@@ -714,9 +693,9 @@ main( int argc, char **argv )
 #else
     glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE);
 #endif
-    glutInitWindowSize( 500, 500 );
+    glutInitWindowSize( w, h );
 
-    mainWindow = glutCreateWindow( "Assignment 6" );
+    glutCreateWindow( "Assignment 6" );
 #ifndef __APPLE__
     GLenum err = glewInit();
 
