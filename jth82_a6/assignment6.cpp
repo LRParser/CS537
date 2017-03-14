@@ -39,8 +39,6 @@ point4 L_position = point4(0,5,10,1);
 
 // Material properties
 
-
-
 vec4 materialAmbientLightProperties[3];
 vec4 materialDiffuseLightProperties[3];
 vec4 materialSpecularLightProperties[3];
@@ -48,7 +46,6 @@ vec4 materialSpecularLightProperties[3];
 vec4 materialAmbientReflectionProperties[3];
 vec4 materialDiffuseReflectionProperties[3];
 vec4 materialSpecularReflectionProperties[3];
-
 
 color4 L_ambient = vec4(1.0,1.0,1.0,1.0);
 color4 L_diffuse = vec4(1.0,1.0,1.0,0.5);
@@ -89,10 +86,10 @@ vec4 EyeVector = vec4(1.0f,1.0f,10.0f,1.0f);
 
 vec4 modelCentroid;
 
-float Radius = 7.0;
+float Radius = 3.0;
 int Theta = 90; // Longitude angle in degrees
 int LightTheta = Theta + 10;
-float LightRadius = 7.0;
+float LightRadius = -4.0;
 float Height, LightHeight = 1;
 
 float RadiusDelta = 1;
@@ -160,10 +157,10 @@ void setDefaultViewParams() {
 	M_reflect_diffuse = vec3(0.2, .6, .2);
 	M_reflect_specular = vec3(0.1, .1, .1);
 	M_shininess = 100;
-	Radius = 5.0;
+	Radius = 3.0;
 	Theta = 90; // Longitude angle in degrees
 	LightTheta = Theta;
-	LightRadius = Radius;
+	LightRadius = -4;
 	Height = 3;
 	LightHeight = 3;
 	RadiusDelta = 1;
@@ -408,7 +405,7 @@ keyboard( unsigned char key, int x, int y )
 		// Increase orbit radius / distance of light
     	LightRadius += RadiusDelta;
     	if(debug) {
-    		printf("LightRadius is: %d\n",LightRadius);
+    		printf("LightRadius is: %f\n",LightRadius);
     	}
         break;
 
@@ -416,7 +413,7 @@ keyboard( unsigned char key, int x, int y )
 		// Increase orbit radius / distance of light
     	LightRadius -= RadiusDelta;
     	if(debug) {
-    		printf("LightRadius is: %d\n",LightRadius);
+    		printf("LightRadius is: %f\n",LightRadius);
     	}
         break;
 
@@ -440,7 +437,6 @@ keyboard( unsigned char key, int x, int y )
     case 't' :
     	// Rotate counterclockwise
     	LightTheta += 5;
-    	LightTheta = LightTheta % 360;
     	if(debug) {
     		printf("LightTheta is: %d\n",LightTheta);
     	}
@@ -448,7 +444,6 @@ keyboard( unsigned char key, int x, int y )
     	break;
     case 'y' :
     	LightTheta -= 5;
-    	LightTheta = LightTheta % 360;
     	if(debug) {
     		printf("LightTheta is: %d\n",LightTheta);
     	}

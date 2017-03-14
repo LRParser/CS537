@@ -311,16 +311,18 @@ displayMainWindow( void )
 
    calculateEyeVector();
 
-   // Camera matrix
-   mat4 model_view = LookAt(
-	EyeVector,
-	vec4(0,0,0,1),
-	vec4(0,1,0,0)
-
-       );
 
    // Move model to the origin mat4(1.0f);
    mat4 Model = Translate(-1 * modelCentroid);
+
+   // Camera matrix
+   mat4 View = LookAt(
+	EyeVector,
+	vec4(0,0,0,1),
+	vec4(0,1,0,0)
+       );
+
+   mat4 model_view = View * Model;
 
 
    glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, model_view );
