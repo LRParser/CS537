@@ -220,7 +220,7 @@ initMainWindow( void )
 
     GLuint vNormal = glGetAttribLocation( program, "vNormal" );
     glEnableVertexAttribArray( vNormal );
-    glVertexAttribPointer( vNormal, 3, GL_FLOAT, GL_TRUE, 0,
+    glVertexAttribPointer( vNormal, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(normals)) );
 
     modelCentroid = calculateModelCentroid();
