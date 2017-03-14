@@ -114,17 +114,9 @@ vec3 vAbs(vec3 input) {
 vec3 calculateModelCentroid() {
 	vec3 sumOfAllPoints;
 	for(int i = 0; i < shape1VertexCount; i++) {
-		if(debug) {
-			printf("[Point]");
-			printVector(points[i]);
-		}
 		sumOfAllPoints += points[i];
 	}
 	vec3 centroid = (sumOfAllPoints) / shape1VertexCount;
-	if(debug) {
-		printf("Model centroid");
-		printVector(centroid);
-	}
 	return centroid;
 }
 
@@ -137,18 +129,21 @@ void setDefaultViewParams() {
 	M_reflect_specular = vec3(0.1, .1, .1);
 	M_shininess = 500;
 	Radius = 3.0;
-	Theta = 90; // Longitude angle in degrees
-	LightTheta = Theta;
-	LightRadius = -4;
 	Height = 3;
-	LightHeight = 3;
+	Theta = 0;
+	LightTheta = Theta;
+	LightRadius = Radius;
+	LightHeight = Height;
+
 	RadiusDelta = 1;
 
-	calculateModelCentroid();
+	vec3 modelCentroid = calculateModelCentroid();
+	L_position = vec3(modelCentroid);
+	EyeVector = vec3(modelCentroid);
 
 }
 
-void calculateEyeVector() {
+vec3 calculateEyeVector() {
 
 	//	Recall that the Cartesian coordinates of a point (X, Y , Z) defined in cylindrical coordinates (θ, R(adius), H(eight)) is
 	//	X = R * cos(θ)
@@ -158,24 +153,21 @@ void calculateEyeVector() {
 	float X, Y, Z;
 
 	X = Radius * cos(radians(Theta));
-	Y = Radius * sin(radians(Theta));
-	Z = Height;
+	Y = Height;
+	Z = Radius * sin(radians(Theta));
 
-	EyeVector = vec3(X,Y,Z);
+	return vec3(X,Y,Z);
+}
+
+vec3 calculateLightVector() {
+
+	float X, Y, Z;
 
 	X = LightRadius * cos(radians(LightTheta));
 	Y = LightHeight;
 	Z = LightRadius * sin(radians(LightTheta));
 
-	L_position.x = EyeVector.x; // X * translateMatrix;
-	L_position.y = EyeVector.y; // Y * translateMatrix;
-	L_position.z = EyeVector.z; // Z * translateMatrix;
-
-	if(debug) {
-		printf("Eye Vector\n");
-		printVector(EyeVector);
-	}
-
+	return vec3(X,Y,Z);
 
 }
 
@@ -250,9 +242,9 @@ initMainWindow( void )
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    glPointSize(20.0f);
+    //glPointSize(20.0f);
     // glDrawArrays( GL_TRIANGLES, 0, NumVerticesUsed );
-    glDrawArrays( GL_POINTS, 0, shape1VertexCount );
+    //glDrawArrays( GL_POINTS, 0, shape1VertexCount );
 
     glFlush();
 
@@ -272,22 +264,21 @@ displayMainWindow( void )
    }
    else {
 	   Projection = Ortho(left,right,bottom,top,-0.001f,100.f);
-
    }
 
-   calculateEyeVector();
+   vec3 eyePos = calculateEyeVector();
+   vec3 lightPos = calculateLightVector();
 
-   modelCentroid = calculateModelCentroid();
+   vec3 modelCentroid = calculateModelCentroid();
 
    // Look at model centroid
    mat4 model_view = LookAt(
-	EyeVector,
+	eyePos,
 	modelCentroid,
 	vec4(0,1,0,1)
-
        );
 
-   mat4 TranslateMatrix = -1 * Translate(modelCentroid);
+   mat4 TranslateMatrix = mat4(); //-1 * Translate(modelCentroid);
 
    glUniformMatrix4fv( translateMatrix, 1, GL_TRUE, TranslateMatrix);
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
@@ -296,7 +287,7 @@ displayMainWindow( void )
    glUniform3fv(l_ambient, 1, L_ambient);
    glUniform3fv(l_diffuse, 1, L_diffuse);
    glUniform3fv(l_specular, 1, L_specular);
-   glUniform3fv(l_position, 1, L_position);
+   glUniform3fv(l_position, 1, lightPos);
 
 
    glUniform3fv(m_reflect_ambient, 1, M_reflect_ambient);
@@ -304,7 +295,7 @@ displayMainWindow( void )
    glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
    glUniform1f(m_shininess,M_shininess);
    glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform3fv(cameraPosition,1,EyeVector);
+   glUniform3fv(cameraPosition,1,eyePos);
    glUniform1f(m_shininess,M_shininess);
    glUniform1f(isGouraud,IsGouraud);
 
@@ -343,94 +334,58 @@ keyboard( unsigned char key, int x, int y )
     case '1' :
     	// Increase Height
     	Height += HeightDelta;
+    	LightHeight += HeightDelta;
     	break;
     case '2' :
     	// Decrease height
     	Height -= HeightDelta;
-    	break;
-    case 'q' :
-    	// Increase Height
-    	LightHeight += HeightDelta;
-    	break;
-    case 'w' :
-    	// Decrease height
     	LightHeight -= HeightDelta;
     	break;
+
     case '3' :
     	// Increase orbit radius / distance of camera
 		Radius += RadiusDelta;
-		if(Radius >= 360) {
-			Radius = 360;
-		}
+    	LightRadius += RadiusDelta;
 
-		near += ParallelDelta;
-		far += ParallelDelta;
+    	if(!isPerspective) {
+			near += ParallelDelta;
+			far += ParallelDelta;
+    	}
 
 
     	break;
     case '4' :
 		Radius -= RadiusDelta;
-		if(Radius <= 1) {
-			Radius = 1;
-		}
+    	LightRadius -= RadiusDelta;
 
-		near -= ParallelDelta;
-		far -= ParallelDelta;
+    	if(!isPerspective) {
+			near -= ParallelDelta;
+			far -= ParallelDelta;
+    	}
 
     	break;
-    case 'e' :
-		// Increase orbit radius / distance of light
-    	LightRadius += RadiusDelta;
-    	if(debug) {
-    		printf("LightRadius is: %f\n",LightRadius);
-    	}
-        break;
 
-	case 'r' :
-		// Increase orbit radius / distance of light
-    	LightRadius -= RadiusDelta;
-    	if(debug) {
-    		printf("LightRadius is: %f\n",LightRadius);
-    	}
-        break;
-
-
-		break;
     case '5' :
     	// Rotate counterclockwise
     	Theta += 5;
+    	LightTheta += 5;
     	if(debug) {
-    		printf("Theta is: %d\n",Theta);
+    		printf("Theta is: %f\n",Theta);
     	}
 
     	break;
     case '6' :
     	Theta -= 5;
-    	if(debug) {
-    		printf("Theta is: %d\n",Theta);
-    	}
-
-    	break;
-    case 't' :
-    	// Rotate counterclockwise
-    	LightTheta += 5;
-    	if(debug) {
-    		printf("LightTheta is: %d\n",LightTheta);
-    	}
-
-    	break;
-    case 'y' :
     	LightTheta -= 5;
     	if(debug) {
-    		printf("LightTheta is: %d\n",LightTheta);
+    		printf("Theta is: %f\n",Theta);
     	}
-
     	break;
+
     case '7' :
     	// Set perspective projection
     	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
     	isPerspective = true;
-
     	break;
     case '8' :
     	isPerspective = false;
@@ -506,7 +461,6 @@ keyboard( unsigned char key, int x, int y )
     }
 
 
-	calculateEyeVector();
 	glutPostRedisplay();
 
 }

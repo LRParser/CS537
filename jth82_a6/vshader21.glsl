@@ -38,6 +38,16 @@ void main()
 		 // Transform vertex normal into eye coordinates
 		 vec3 N = normalize( ModelView*vec4(vNormal,0.0) ).xyz; 
 		 
+		 /*
+		 N = normal;
+    	vec3 L = LightPos - vPos; // This position could be the centroid of the triangle           
+    	E = EyePos - vPos;
+
+                         // N and E point in the "same" direction, i.e.
+    if (dot(N, E) > 0)  // the normal points away from the camera
+      N = -1 * N;
+		 */
+		 
 		 vec3 ambient = vProduct(l_ambient,m_reflect_ambient).xyz;
 		  float dTerm = max( dot(L, N), 0.0 );
 		  vec3 DiffuseProduct = vProduct(l_diffuse,m_reflect_diffuse).xyz;
