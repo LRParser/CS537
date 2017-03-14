@@ -58,6 +58,8 @@ GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflec
 GLuint cameraPosition;
 GLuint isGouraud;
 
+float eps = 0.001;
+
 bool isPerspective = true;
 
 GLfloat  left = -4.0, right = 4.0;
@@ -343,6 +345,11 @@ keyboard( unsigned char key, int x, int y )
 		Radius += RadiusDelta;
     	LightRadius += RadiusDelta;
 
+    	if(debug) {
+    		printf("Radius is: %f\n",Radius);
+    		printf("LightRadius is: %f\n",LightRadius);
+    	}
+
     	if(!isPerspective) {
 			near += ParallelDelta;
 			far += ParallelDelta;
@@ -353,6 +360,17 @@ keyboard( unsigned char key, int x, int y )
     case '4' :
 		Radius -= RadiusDelta;
     	LightRadius -= RadiusDelta;
+
+    	// Clamp to 1; a negative radius doesn't make sense
+
+    	if(Radius <= 1 + eps || LightRadius <= 1 + eps) {
+    		Radius = LightRadius = 1;
+    	}
+
+    	if(debug) {
+    		printf("Radius is: %f\n",Radius);
+    		printf("LightRadius is: %f\n",LightRadius);
+    	}
 
     	if(!isPerspective) {
 			near -= ParallelDelta;
@@ -367,6 +385,8 @@ keyboard( unsigned char key, int x, int y )
     	LightTheta += 5;
     	if(debug) {
     		printf("Theta is: %f\n",Theta);
+    		printf("LightRadius is: %f\n",LightTheta);
+
     	}
 
     	break;
@@ -375,6 +395,7 @@ keyboard( unsigned char key, int x, int y )
     	LightTheta -= 5;
     	if(debug) {
     		printf("Theta is: %f\n",Theta);
+    		printf("LightRadius is: %f\n",LightTheta);
     	}
     	break;
 
@@ -402,14 +423,13 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 1 selected");
     	}
-    	L_ambient = vec3(1.0,1,0.0);
-    	L_diffuse = vec3(0.0,1,0.0);
-    	L_specular = vec3(1.0,1.0,1.0);
-
-    	M_reflect_ambient = vec3(0.0,1,0.0);
-    	M_reflect_diffuse = vec3(0.0,1,0.0);
-    	M_reflect_specular = vec3(1.0,1,1.0);
-    	M_shininess = 50;
+    	L_ambient = vec3(1.0, 1.0, 1.0);
+    	L_diffuse = vec3(1.0, 1.0, 1.0);
+    	L_specular = vec3(1.0, .5, .5);
+    	M_reflect_ambient = vec3(0.7, .3, .7);
+    	M_reflect_diffuse = vec3(0.2, .6, .2);
+    	M_reflect_specular = vec3(0.1, .1, .1);
+    	M_shininess = 500;
 
     	break;
 
@@ -417,15 +437,13 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 2 selected");
     	}
-    	L_ambient = vec3(1.0,1,1);
-    	L_diffuse = vec3(0.0,0,1.0);
-    	L_specular = vec3(0.0,1.0,1.0);
-
-    	M_reflect_ambient = vec3(1.0,0,1.0);
-    	M_reflect_diffuse = vec3(1.0,.4,0.0);
-    	M_reflect_specular = vec3(0.0,.4,.4);
-
-    	M_shininess = 1;
+    	L_ambient = vec3(1.0, 1.0, 1.0);
+    	L_diffuse = vec3(1.0, 1.0, 1.0);
+    	L_specular = vec3(1.0, .5, .5);
+    	M_reflect_ambient = vec3(0.3, .7, .7);
+    	M_reflect_diffuse = vec3(0.2, .6, .2);
+    	M_reflect_specular = vec3(0.1, .1, .1);
+    	M_shininess = 100;
 
 
     	break;
@@ -434,13 +452,12 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 3 selected");
     	}
-    	L_ambient = vec3(1.0,1,1);
-    	L_diffuse = vec3(0.0,0,1.0);
-    	L_specular = vec3(0.0,1.0,1.0);
-
-    	M_reflect_ambient = vec3(0.0,1,0.0);
-    	M_reflect_diffuse = vec3(1.0,1,0.0);
-    	M_reflect_specular = vec3(1.0,1,.5);
+    	L_ambient = vec3(1.0, 1.0, 1.0);
+    	L_diffuse = vec3(1.0, 1.0, 1.0);
+    	L_specular = vec3(1.0, .5, .5);
+    	M_reflect_ambient = vec3(0.1, .1, .8);
+    	M_reflect_diffuse = vec3(0.1, .1, .8);
+    	M_reflect_specular = vec3(0.1, .1, .1);
     	M_shininess = 1000;
 
     	break;
