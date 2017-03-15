@@ -590,7 +590,7 @@ main( int argc, char **argv )
 
     char* fileName;
     if(argc == 1) {
-    	fileName = "bound-bunny_200.smf";
+    	fileName = "bound-lo-sphere.smf";
 	}
 	else {
 		fileName = argv[1];
