@@ -98,8 +98,6 @@ vec3 calculateModelCentroid() {
 }
 
 void setDefaultViewParams() {
-	// Don't want to wash out with ambient light
-
 	// Base color is red
 	P_ambient = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
 	P_diffuse = vProduct(vec3(0.6, .6, .6),vec3(.5,0,0));
@@ -111,9 +109,7 @@ void setDefaultViewParams() {
 	LightTheta = Theta;
 	LightRadius = Radius;
 	LightHeight = Height;
-
 	RadiusDelta = 1;
-
 }
 
 vec3 calculateEyeVector() {
@@ -176,8 +172,6 @@ initMainWindow( void )
     glEnableVertexAttribArray( vNormal );
     glVertexAttribPointer( vNormal, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(normals)) );
-
-    modelCentroid = calculateModelCentroid();
 
     projectionMatrix = glGetUniformLocation(program, "Projection");
     modelViewMatrix = glGetUniformLocation(program, "ModelView");
@@ -295,7 +289,6 @@ keyboard( unsigned char key, int x, int y )
 			far += ParallelDelta;
     	}
 
-
     	break;
     case '4' :
 		Radius -= RadiusDelta;
@@ -362,51 +355,6 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Phong shading mode\n");
     	}
-    	break;
-    case 'a' :
-    	if(debug) {
-    		printf("Material 1 selected");
-    	}
-    	/*
-    	L_ambient = vec3(1.0, 1.0, 1.0);
-    	L_diffuse = vec3(1.0, 1.0, 1.0);
-    	L_specular = vec3(1.0, .5, .5);
-    	M_reflect_ambient = vec3(0.7, .3, .7);
-    	M_reflect_diffuse = vec3(0.2, .6, .2);
-    	M_reflect_specular = vec3(0.1, .1, .1); */
-    	M_shininess = 500;
-
-    	break;
-
-    case 's' :
-    	if(debug) {
-    		printf("Material 2 selected");
-    	}
-    	/*
-    	L_ambient = vec3(1.0, 1.0, 1.0);
-    	L_diffuse = vec3(1.0, 1.0, 1.0);
-    	L_specular = vec3(1.0, .5, .5);
-    	M_reflect_ambient = vec3(0.3, .7, .7);
-    	M_reflect_diffuse = vec3(0.2, .6, .2);
-    	M_reflect_specular = vec3(0.1, .1, .1); */
-    	M_shininess = 100;
-
-
-    	break;
-
-    case 'd' :
-    	if(debug) {
-    		printf("Material 3 selected");
-    	}
-    	/*
-    	L_ambient = vec3(1.0, 1.0, 1.0);
-    	L_diffuse = vec3(1.0, 1.0, 1.0);
-    	L_specular = vec3(1.0, .5, .5);
-    	M_reflect_ambient = vec3(0.1, .1, .8);
-    	M_reflect_diffuse = vec3(0.1, .1, .8);
-    	M_reflect_specular = vec3(0.1, .1, .1); */
-    	M_shininess = 1000;
-
     	break;
 
 	case 'x':

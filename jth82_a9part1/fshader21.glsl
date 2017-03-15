@@ -1,55 +1,36 @@
 #version 150
 
-in vec3 vPos;
-in vec3 vNorm;
-in vec2 texCoord; //texure coordinate from rasterizer 
-
-out vec4 FragColor;
-
-uniform mat4 modelMatrix, viewMatrix, modelViewMatrix, projectionMatrix, transformMatrix;
-uniform vec3 l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, l_position;
-uniform vec4 eyePosition;
-uniform float m_shininess;
+ // per-fragment interpolated values from the vertex shader 
+in vec3 fN; 
+in vec3 fL; 
+in vec3 fE; 
+in vec3 normal;
+in vec2 texCoord;
+out vec4 frag_color; 
+uniform vec3 AmbientProduct, DiffuseProduct, SpecularProduct; 
+uniform mat4 ModelView; 
+uniform float Shininess; 
 uniform sampler2D texture; //texture object id from application 
 
-
-vec3 vProduct(vec3 a, vec3 b) {
-	return vec3(a[0]*b[0],a[1]*b[1],a[2]*b[2]);
-}
-
-void main()
-{
-
-	mat4 Projection = projectionMatrix;
-	mat4 ModelView = modelViewMatrix;
-	vec3 LightPosition = l_position;
-	
-	// Computed ambient
-	vec3 c_ambient = vProduct(l_ambient,m_reflect_ambient);
-
-    vec3 N = vNorm;
-    vec3 E = vec3(eyePosition.x,eyePosition.y,eyePosition.z) - vPos;
-
-    // N and E point in the "same" direction, i.e. the normal points away from the camera
-    if (dot(N, E) > 0)  {
-      N = -1 * N;
-    }
-	
-    // Computed diffuse
-	vec3 L = l_position - vPos;
-
-	float d = dot(N, normalize(L));
-
-	vec3 c_diffuse;
-	if(d > 0) {
-		c_diffuse = vProduct(l_diffuse, m_reflect_diffuse)*d;
-	}
-	else {
-		c_diffuse = vec3(0,0,0);
-	}
+void main()  
+{  
+    // Normalize the input lighting vectors 
+   	vec3 N = normalize(fN); 
+    vec3 E = normalize(fE); 
+    vec3 L = normalize(fL); 
+    vec3 H = normalize( L + E );    
+    vec3 ambient = AmbientProduct; 
+    
+    float dTerm = max(dot(L, N), 0.0); 
+    vec3 diffuse = dTerm*DiffuseProduct; 
+    float sTerm = pow(max(dot(N, H), 0.0), Shininess); 
+    vec3 specular = sTerm*SpecularProduct; 
+    // discard the specular highlight if the light's behind the vertex 
+    if( dot(L, N) < 0.0 )  
+		specular = vec3(0.0, 0.0, 0.0);  
+		
 	// Replace diffuse color by a texture
-	c_diffuse =  texture2D( texture, texCoord ).xyz; 
-	vec3 color = c_ambient + c_diffuse;
-
-	FragColor = vec4(color,1.0);
-}
+	diffuse =  texture2D( texture, texCoord ).xyz; 
+    frag_color = vec4(ambient + diffuse + specular, 1.0); 
+    
+}  

@@ -3,42 +3,23 @@
 #include <fstream>
 #include <time.h>
 
-int selectedPointIdx = 0;
-
 bool debug = false;
 
-GLuint modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix;
+
 GLuint textures[1];
 GLuint vTexCoord;
 GLuint texture;
 
 
-mat4 TransformMatrix;
-GLuint transformMatrix;
+vec3 P_ambient, P_diffuse, P_specular;
 
-float eps = .001;
+float M_shininess = 100;
 
-// Uniforms for lighting
+GLuint modelViewMatrix, projectionMatrix;
 
-vec3 L_position = vec3(0,5,10);
-vec3 materialAmbientLightProperties[3];
-vec3 materialDiffuseLightProperties[3];
-vec3 materialSpecularLightProperties[3];
-vec3 materialAmbientReflectionProperties[3];
-vec3 materialDiffuseReflectionProperties[3];
-vec3 materialSpecularReflectionProperties[3];
+GLuint p_ambient, p_diffuse, p_specular, l_position, e_position, m_shininess;
 
-vec3 L_ambient = vec3(1.0,1.0,1.0);
-vec3 L_diffuse = vec3(1.0,1.0,1.0);
-vec3 L_specular = vec3(1.0,.5,.5);
-vec3 M_reflect_ambient = vec3(0.7,.3,.7);
-vec3 M_reflect_diffuse = vec3(0.2,.6,.2);
-vec3 M_reflect_specular = vec3(0.1,.1,.1);
-
-float M_shininess = 50;
-
-GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
-GLuint eyePosition;
+float eps = 0.001;
 
 bool isPerspective = true;
 
@@ -59,7 +40,7 @@ vec3 patch[4][4];
 int uRange = 12;
 int vRange = 12;
 
-int maxRange = 51;
+const int maxRange = 51;
 vec3 interpolatedPoints[maxRange][maxRange];
 
 vec3 lineBufferData[6];
@@ -68,17 +49,13 @@ vec3 EyeVector = vec3(1.0f,1.0f,10.0f);
 
 vec3 modelCentroid;
 
-float Radius = 18.0;
-int Theta = 90; // Longitude angle in degrees
-int LightTheta = Theta;
-int LightRadius = Radius;
-float Height = 3;
-float LightHeight = Height;
+float Radius, Theta, LightTheta, LightRadius, Height, LightHeight;
 
-float RadiusDelta = 1;
-int Delta = 5;
-float HeightDelta = .1;
-float ParallelDelta = 2;
+float RadiusDelta = 1.0f;
+float Delta = 5.0f;
+float HeightDelta = 1.0f;
+float ParallelDelta = 2.0f;
+float ThetaDelta = 5.0f;
 
 int mainWindow;
 
@@ -93,6 +70,10 @@ float pixels[] = {
     1.0f, 1.0f, 1.0f,   .5f, .5f, .5f,
     .25f, .25f, .25f,   0.0f, 0.0f, 0.0f,
 };
+
+vec3 vProduct(vec3 a, vec3 b) {
+	return vec3(a[0]*b[0],a[1]*b[1],a[2]*b[2]);
+}
 
 void initTexture() {
 	// procedurally generate 2D RGB image data
@@ -167,10 +148,28 @@ void printVertex(vec3 vertex) {
 	printf("v %f %f %f\n",vertex.x,vertex.y,vertex.z);
 }
 
-vec3 vAbs(vec3 input) {
-	vec3 absVec = vec3(std::abs(input.x),std::abs(input.y),
-			std::abs(input.z));
-	return absVec;
+vec3 calculateEyeVector() {
+
+
+	float X, Y, Z;
+
+	X = Radius * cos(radians(Theta));
+	Y = Height;
+	Z = Radius * sin(radians(Theta));
+
+	return vec3(X,Y,Z);
+}
+
+vec3 calculateLightVector() {
+
+	float X, Y, Z;
+
+	X = LightRadius * cos(radians(LightTheta));
+	Y = LightHeight;
+	Z = LightRadius * sin(radians(LightTheta)) + 1; // Ensure light is a bit behind camera
+
+	return vec3(X,Y,Z);
+
 }
 
 vec3 calculateModelCentroid() {
@@ -182,41 +181,6 @@ vec3 calculateModelCentroid() {
 	return centroid;
 }
 
-void calculateEyeVector() {
-
-	float X, Y, Z;
-
-	X = Radius * cos(radians(Theta));
-	Y = Height;
-	Z = Radius * sin(radians(Theta));
-
-	EyeVector.x = X;
-	EyeVector.y = Y;
-	EyeVector.z = Z;
-
-	X = LightRadius * cos(radians(LightTheta));
-	Y = LightHeight;
-	Z = LightRadius * sin(radians(LightTheta));
-
-	L_position.x = X;
-	L_position.y = Y;
-	L_position.z = Z;
-
-}
-
-void setLineBufferData() {
-    // X axis
-    lineBufferData[0] = vec3(0,0,0);
-    lineBufferData[1] = vec3(10,0,0);
-
-    // Y axis
-    lineBufferData[2] = vec3(0,0,0);
-    lineBufferData[3] = vec3(0,10,0);
-
-    // Z axis
-    lineBufferData[4] = vec3(0,0,0);
-    lineBufferData[5] = vec3(0,0,10);
-}
 
 void printPointsAndNormals() {
 	for(int i = 0; i < totalNumVertices; i++) {
@@ -282,30 +246,19 @@ initMainWindow( void )
                            BUFFER_OFFSET(sizeof(points) + sizeof(normals)) );
 
 
-    // Set the value of the fragment shader texture sampler variable
-    //   ("texture") to the the appropriate texture unit. In this case,
-    //   zero, for GL_TEXTURE0 which was previously set by calling
-    //   glActiveTexture().
-
     modelCentroid = calculateModelCentroid();
 
-    modelMatrix = glGetUniformLocation(program, "modelMatrix");
-    modelViewMatrix = glGetUniformLocation(program, "modelViewMatrix");
-    viewMatrix = glGetUniformLocation(program, "viewMatrix");
-    projectionMatrix = glGetUniformLocation(program, "projectionMatrix");
-    transformMatrix = glGetUniformLocation(program, "transformMatrix");
-    l_ambient = glGetUniformLocation(program, "l_ambient");
-	l_diffuse = glGetUniformLocation(program, "l_diffuse");
-	l_specular = glGetUniformLocation(program, "l_specular");
-	l_position = glGetUniformLocation(program, "l_position");
-	m_reflect_ambient = glGetUniformLocation(program, "m_reflect_ambient");
-	m_reflect_diffuse = glGetUniformLocation(program, "m_reflect_diffuse");
-	m_reflect_specular = glGetUniformLocation(program, "m_reflect_specular");
-	m_shininess = glGetUniformLocation(program, "m_shininess");
-	eyePosition = glGetUniformLocation(program, "eyePosition");
+    projectionMatrix = glGetUniformLocation(program, "Projection");
+    modelViewMatrix = glGetUniformLocation(program, "ModelView");
+    p_ambient = glGetUniformLocation(program, "AmbientProduct");
+	p_diffuse = glGetUniformLocation(program, "DiffuseProduct");
+	p_specular = glGetUniformLocation(program, "SpecularProduct");
+	l_position = glGetUniformLocation(program, "LightPosition");
+	e_position = glGetUniformLocation(program, "EyePosition");
+	m_shininess = glGetUniformLocation(program, "Shininess");
 	texture = glGetUniformLocation(program, "texture");
 
-	glClearColor( 1.0, 1.0, 1.0, 1.0 ); // grey background
+	   glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 
 	// Texture objects
     glGenTextures( 1, textures );
@@ -350,39 +303,33 @@ displayMainWindow( void )
 
    }
 
-   calculateEyeVector();
+   vec3 eyePos = calculateEyeVector();
+   vec4 lightPos = calculateLightVector();
 
+   vec3 modelCentroid = calculateModelCentroid();
 
-   // Look at model centroid
-   mat4 model_view = LookAt(
-	EyeVector,
-	modelCentroid,
-	vec4(0,1,0,1)
-       );
+      // Look at model centroid
+    mat4 model_view = LookAt(
+   	eyePos,
+   	modelCentroid,
+   	vec4(0,1,0,1)
+          );
 
-   TransformMatrix = Projection * model_view;
+  mat4 ModelViewMatrix = model_view;
 
-   glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, model_view );
-   glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
+  glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
+  glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, ModelViewMatrix );
 
-   glUniformMatrix4fv( transformMatrix, 1, GL_TRUE, TransformMatrix );
-   glUniform3fv(l_ambient, 1, L_ambient);
-   glUniform3fv(l_diffuse, 1, L_diffuse);
-   glUniform3fv(l_specular, 1, L_specular);
-   glUniform3fv(l_position, 1, L_position);
-
-
-   glUniform3fv(m_reflect_ambient, 1, M_reflect_ambient);
-   glUniform3fv(m_reflect_diffuse, 1, M_reflect_diffuse);
-   glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform1f(m_shininess,M_shininess);
-   glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform3fv(eyePosition,1,EyeVector);
-   glUniform1f(m_shininess,M_shininess);
+  glUniform3fv(p_ambient, 1, P_ambient);
+  glUniform3fv(p_diffuse, 1, P_diffuse);
+  glUniform3fv(p_specular, 1, P_specular);
+  glUniform4fv(l_position, 1, lightPos);
+  glUniform3fv(e_position,1,eyePos);
+  glUniform1f(m_shininess,M_shininess);
    glUniform1i( texture, 0 );
 
 
-   glClearColor( 1.0, 1.0, 1.0, 1.0 ); // grey background
+   glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 
 
    glDrawArrays( GL_TRIANGLES, 0, totalNumVertices );
@@ -410,28 +357,12 @@ int min(int int1, int int2) {
 	}
 }
 
-
-vec3 calculateFaceNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
-		// See p 272
-		vec3 U = vertex2 - vertex1;
-		vec3 V = vertex3 - vertex2;
-
-		vec3 crossVector = cross(U,V);
-
-		double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
-
-		vec3 customNormal = crossVector / customLength;
-
-		vec3 absCustomNormal = vAbs(customNormal);
-
-		if(std::isnan(absCustomNormal.x) || std::isnan(absCustomNormal.y) || std::isnan(absCustomNormal.z)) {
-
-			printf("Invalid cross vector");
-
-			exit(1);
-		}
-		return absCustomNormal;
+vec3 calculateNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
+	vec3 U = vertex2 - vertex1;
+	vec3 V = vertex3 - vertex2;
+	return normalize(cross(U,V));
 }
+
 
 // Tesselate the points
 void tesselateAndCalculateNormals() {
@@ -454,7 +385,7 @@ void tesselateAndCalculateNormals() {
 			printVector(vertex2);
 			printVector(vertex3);
 
-			vec3 normal1 = calculateFaceNormal(vertex1,vertex2,vertex3);
+			vec3 normal1 = calculateNormal(vertex1,vertex2,vertex3);
 
 			points[numTesselatedVertices] = vertex1;
 			normals[numTesselatedVertices] = normal1;
@@ -482,7 +413,7 @@ void tesselateAndCalculateNormals() {
 			printVector(vertex6);
 
 
-			vec3 normal2 = calculateFaceNormal(vertex4,vertex5,vertex6);
+			vec3 normal2 = calculateNormal(vertex4,vertex5,vertex6);
 
 			points[numTesselatedVertices] = vertex4;
 			normals[numTesselatedVertices] = normal2;
@@ -574,25 +505,18 @@ void drawWindowAtSelectedSample(int uRange, int vRange) {
 }
 
 void setDefaultViewParams() {
-	L_ambient = vec3(1.0, 1.0, 1.0);
-	L_diffuse = vec3(1.0, 1.0, 1.0);
-	L_specular = vec3(1.0, .5, .5);
-	M_reflect_ambient = vec3(0.7, .3, .7);
-	M_reflect_diffuse = vec3(0.2, .6, .2);
-	M_reflect_specular = vec3(0.1, .1, .1);
-	Radius = 18.0;
-	Theta = 90; // Longitude angle in degrees
-	LightTheta = 190;
-	LightRadius = -91;
-	Height = 3;
-	LightHeight = 3;
+	// Base color is red
+	P_ambient = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
+	P_diffuse = vProduct(vec3(0.6, .6, .6),vec3(.5,0,0));
+	P_specular = vProduct(vec3(0.25, .25, .25),vec3(1,1,1));
+	M_shininess = 100;
+	Radius = 12.0;
+	Height = 0.0f;
+	Theta = 270.0f;
+	LightTheta = Theta;
+	LightRadius = Radius;
+	LightHeight = Height;
 	RadiusDelta = 1;
-	Delta = 5;
-	HeightDelta = .1;
-	ParallelDelta = 2;
-	calculateModelCentroid();
-	uRange = 10;
-	vRange = 10;
 }
 
 void
@@ -601,54 +525,80 @@ keyboard( unsigned char key, int x, int y )
 
     switch ( key ) {
 
+
     case '1' :
     	// Increase Height
     	Height += HeightDelta;
+    	LightHeight += HeightDelta;
     	break;
     case '2' :
     	// Decrease height
     	Height -= HeightDelta;
+    	LightHeight -= HeightDelta;
     	break;
 
     case '3' :
     	// Increase orbit radius / distance of camera
 		Radius += RadiusDelta;
-		if(Radius >= 360) {
-			Radius = 360;
-		}
+    	LightRadius += RadiusDelta;
 
-		near += ParallelDelta;
-		far += ParallelDelta;
+    	if(debug) {
+    		printf("Radius is: %f\n",Radius);
+    		printf("LightRadius is: %f\n",LightRadius);
+    	}
 
+    	if(!isPerspective) {
+			near += ParallelDelta;
+			far += ParallelDelta;
+    	}
 
     	break;
     case '4' :
 		Radius -= RadiusDelta;
-		if(Radius <= 1) {
-			Radius = 1;
-		}
+    	LightRadius -= RadiusDelta;
 
-		near -= ParallelDelta;
-		far -= ParallelDelta;
+    	// Clamp to 1; a negative radius doesn't make sense
+
+    	if(Radius <= 1 + eps || LightRadius <= 1 + eps) {
+    		Radius = LightRadius = 1;
+    	}
+
+    	if(debug) {
+    		printf("Radius is: %f\n",Radius);
+    		printf("LightRadius is: %f\n",LightRadius);
+    	}
+
+    	if(!isPerspective) {
+			near -= ParallelDelta;
+			far -= ParallelDelta;
+    	}
 
     	break;
+
     case '5' :
     	// Rotate counterclockwise
-    	Theta += 5;
-    	Theta = Theta % 360;
+    	Theta += ThetaDelta;
+    	LightTheta += ThetaDelta;
+    	Theta = min(Theta,360);
+    	LightTheta = min(LightTheta,360);
     	if(debug) {
-    		printf("Theta is: %d\n",Theta);
+    		printf("Theta is: %f\n",Theta);
+    		printf("LightRadius is: %f\n",LightTheta);
+
     	}
 
     	break;
     case '6' :
-    	Theta -= 5;
-    	Theta = Theta % 360;
+    	Theta -= ThetaDelta;
+    	LightTheta -= ThetaDelta;
+    	Theta = max(Theta,5.0);
+    	LightTheta = max(LightTheta,5.0);
     	if(debug) {
-    		printf("Theta is: %d\n",Theta);
+    		printf("Theta is: %f\n",Theta);
+    		printf("LightRadius is: %f\n",LightTheta);
     	}
-
     	break;
+
     case '7' :
     	// Set perspective projection
     	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
@@ -657,102 +607,18 @@ keyboard( unsigned char key, int x, int y )
     case '8' :
     	isPerspective = false;
     	break;
-    case 'z':
-    	if(debug) {
-    		printf("Reset all values\n");
-    	}
-
-		setDefaultViewParams();
-    	break;
-
-    case 'j':
-
-    	uRange += 1;
-    	vRange += 1;
-
-    	drawWindowAtSelectedSample(uRange, vRange);
-
-    	break;
-
-    case 'k' :
-
-    	uRange -= 1;
-    	vRange -= 1;
-
-    	drawWindowAtSelectedSample(uRange, vRange);
-    	break;
-
-    case 'n' :
-    	selectedPointIdx++;
-    	selectedPointIdx = selectedPointIdx % 16;
-    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	printUsage();
-    	break;
-
-    case '-' :
-    	printf("Increase control point x axis\n");
-    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].x += 1;
-    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample(uRange,vRange);
-    	printf("Point movement done\n");
-    	printUsage();
-
-    	break;
-    case '=' :
-    	printf("Decrease control point x axis\n");
-    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].x -= 1;
-    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample(uRange,vRange);
-    	printf("Point movement done\n");
-    	printUsage();
-    	break;
-    case '[' :
-    	printf("Increase control point y axis\n");
-    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].y += 1;
-    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample(uRange,vRange);
-    	printf("Resampling done\n");
-    	printUsage();
-    	break;
-    case ']' :
-    	printf("Decrease control point y axis\n");
-    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].y -= 1;
-    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample(uRange,vRange);
-    	printf("Resampling done\n");
-    	printUsage();
-    	break;
-    case '{' :
-    	printf("Increase control point z axis\n");
-    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].z += 1;
-    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample(uRange,vRange);
-    	printf("Resampling done\n");
-    	printUsage();
-    	break;
-    case '}' :
-    	printf("Decrease control point z axis\n");
-    	printf("Selected control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	controlVertices[selectedPointIdx].z -= 1;
-    	printf("Modified control point %d, x: %f, y %f, z: %f\n",selectedPointIdx,controlVertices[selectedPointIdx].x,controlVertices[selectedPointIdx].y,controlVertices[selectedPointIdx].z);
-    	drawWindowAtSelectedSample(uRange,vRange);
-    	printf("Resampling done\n");
-    	printUsage();
-    	break;
-
 	case 'x':
 		// Exit
 		exit( EXIT_SUCCESS );
 		break;
 
+    case 'z':
+    	setDefaultViewParams();
+    	break;
+
     }
 
-	calculateEyeVector();
+
 	glutPostRedisplay();
 
 }
