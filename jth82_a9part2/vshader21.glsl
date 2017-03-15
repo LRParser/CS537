@@ -7,6 +7,7 @@ out vec3 fN;
 out vec3 fE; 
 out vec3 fL;
 out vec3 normal;
+out vec3 position;
 
 uniform vec4 LightPosition; 
 uniform vec3 EyePosition; 
@@ -28,7 +29,7 @@ void main()
     } else { 
         fL = LightPosition.xyz; 
     } 
-	
+	position = vPosition;
 	normal = vec3(ModelView * vec4(vNormal,1.0)).xyz;
     gl_Position =  Projection * ModelView * vec4(vPosition,1.0);
 }
