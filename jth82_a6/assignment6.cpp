@@ -87,11 +87,6 @@ vec3 vProduct(vec3 a, vec3 b) {
 	return vec3(a[0]*b[0],a[1]*b[1],a[2]*b[2]);
 }
 
-vec3 vAbs(vec3 input) {
-	vec3 absVec = vec3(std::abs(input.x),std::abs(input.y),
-			std::abs(input.z));
-	return absVec;
-}
 
 vec3 calculateModelCentroid() {
 	vec3 sumOfAllPoints;
@@ -107,9 +102,9 @@ void setDefaultViewParams() {
 
 	// Base color is red
 	P_ambient = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
-	P_ambient = vProduct(vec3(0.7, .7, .7),vec3(.5,0,0));
-	P_specular = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
-	M_shininess = 10;
+	P_diffuse = vProduct(vec3(0.6, .6, .6),vec3(.5,0,0));
+	P_specular = vProduct(vec3(0.25, .25, .25),vec3(1,1,1));
+	M_shininess = 100;
 	Radius = 3.0;
 	Height = 0.0f;
 	Theta = 5.0f;
@@ -219,7 +214,7 @@ displayMainWindow( void )
 
 
    vec3 eyePos = calculateEyeVector();
-   vec4 lightPos = vec4(eyePos.x,eyePos.y,eyePos.z + 1,1.0);
+   vec4 lightPos = calculateLightVector();
 
    vec3 modelCentroid = calculateModelCentroid();
 
@@ -495,12 +490,12 @@ vec3 calculateVertexNormal(int vertexIdx) {
 vec3 calculateNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
 	vec3 U = vertex2 - vertex1;
 	vec3 V = vertex3 - vertex2;
-	return vAbs(normalize(cross(U,V)));
+	return normalize(cross(U,V));
 }
 
 
 void populatePointsAndNormalsArrays() {
-	for(int i = 0; i < smfFaces.size(); i++) {
+	for(uint i = 0; i < smfFaces.size(); i++) {
 		Face currentFace = smfFaces.at(i);
 
 		vec3 vertex1 = currentFace.firstVertex;
@@ -524,44 +519,6 @@ void populatePointsAndNormalsArrays() {
 	}
 }
 
-void calculateFaceNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3, Face& currentFace) {
-		// See p 272
-		vec3 U = vertex2 - vertex1;
-		vec3 V = vertex3 - vertex2;
-
-		vec3 crossVector = cross(U,V);
-
-		if(std::isnan(crossVector.x)) {
-			printf("Invalid cross vector");
-			exit(0);
-		}
-
-		vec3 normalNormalized = normalize(crossVector);
-
-		vec3 absNormalNormalized = vAbs(normalNormalized);
-
-		double customLength = sqrt(crossVector.x*crossVector.x+crossVector.y*crossVector.y+crossVector.z*crossVector.z);
-
-		vec3 customNormal = crossVector / customLength;
-
-		vec3 absCustomNormal = vAbs(customNormal);
-
-		if(debug) {
-			printf("Cross product ");
-			printVector(crossVector);
-			printf("Normalized vector ");
-			printVector(normalNormalized);
-			printf("Absolute value vector ");
-			printVector(absNormalNormalized);
-			printf("Vertex 1 is: %f, %f, %f\n",vertex1.x,vertex1.y,vertex1.z);
-			printf("Vertex 2 is: %f, %f, %f\n",vertex2.x,vertex2.y,vertex2.z);
-			printf("Vertex 3 is: %f, %f, %f\n",vertex3.x,vertex3.y,vertex3.z);
-
-			printf("Final Color is: %f, %f, %f, %f\n",absNormalNormalized.x,absNormalNormalized.y,absNormalNormalized.z);
-		}
-
-		currentFace.normal = absCustomNormal;
-}
 
 
 int readSMF(char* fileName) {
