@@ -27,7 +27,7 @@ void main()
     // discard the specular highlight if the light's behind the vertex 
     if( dot(L, N) < 0.0 )  
 		specular = vec3(0.0, 0.0, 0.0); 
-    // frag_color = vec4(ambient + diffuse + specular, 1.0); 
-    frag_color = vec4(normal, 1.0); 
+    frag_color = vec4(ambient + diffuse + specular, 1.0); 
+    //frag_color = vec4(normal, 1.0); 
     
 }  

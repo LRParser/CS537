@@ -31,7 +31,7 @@ GLuint modelViewMatrix, projectionMatrix;
 // Uniforms for lighting
 // Light properties
 
-vec3 L_ambient, L_diffuse, L_specular, M_reflect_ambient, M_reflect_diffuse, M_reflect_specular;
+vec3 P_ambient, P_diffuse, P_specular;
 
 float M_shininess = 100;
 
@@ -104,13 +104,12 @@ vec3 calculateModelCentroid() {
 
 void setDefaultViewParams() {
 	// Don't want to wash out with ambient light
-	L_ambient = vec3(.1, .1, .1);
-	L_diffuse = vec3(.1, .1, .1);
-	L_specular = vec3(1.0, 1, 1);
-	M_reflect_ambient = vec3(0.05, .05, .05);
-	M_reflect_diffuse = vec3(0.85, .85, .85);
-	M_reflect_specular = vec3(0.1, .1, .1);
-	M_shininess = 500;
+
+	// Base color is red
+	P_ambient = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
+	P_ambient = vProduct(vec3(0.7, .7, .7),vec3(.5,0,0));
+	P_specular = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
+	M_shininess = 10;
 	Radius = 3.0;
 	Height = 0.0f;
 	Theta = 5.0f;
@@ -124,10 +123,6 @@ void setDefaultViewParams() {
 
 vec3 calculateEyeVector() {
 
-	//	Recall that the Cartesian coordinates of a point (X, Y , Z) defined in cylindrical coordinates (θ, R(adius), H(eight)) is
-	//	X = R * cos(θ)
-	//	Y = R * sin(θ)
-	//	Z = H
 
 	float X, Y, Z;
 
@@ -144,7 +139,7 @@ vec3 calculateLightVector() {
 
 	X = LightRadius * cos(radians(LightTheta));
 	Y = LightHeight;
-	Z = LightRadius * sin(radians(LightTheta));
+	Z = LightRadius * sin(radians(LightTheta)) + 1; // Ensure light is a bit behind camera
 
 	return vec3(X,Y,Z);
 
@@ -240,9 +235,9 @@ displayMainWindow( void )
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
    glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, ModelViewMatrix );
 
-   glUniform3fv(p_ambient, 1, L_ambient);
-   glUniform3fv(p_diffuse, 1, L_diffuse);
-   glUniform3fv(p_specular, 1, L_specular);
+   glUniform3fv(p_ambient, 1, P_ambient);
+   glUniform3fv(p_diffuse, 1, P_diffuse);
+   glUniform3fv(p_specular, 1, P_specular);
    glUniform4fv(l_position, 1, lightPos);
    glUniform3fv(e_position,1,eyePos);
    glUniform1f(m_shininess,M_shininess);
@@ -377,12 +372,13 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 1 selected");
     	}
+    	/*
     	L_ambient = vec3(1.0, 1.0, 1.0);
     	L_diffuse = vec3(1.0, 1.0, 1.0);
     	L_specular = vec3(1.0, .5, .5);
     	M_reflect_ambient = vec3(0.7, .3, .7);
     	M_reflect_diffuse = vec3(0.2, .6, .2);
-    	M_reflect_specular = vec3(0.1, .1, .1);
+    	M_reflect_specular = vec3(0.1, .1, .1); */
     	M_shininess = 500;
 
     	break;
@@ -391,12 +387,13 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 2 selected");
     	}
+    	/*
     	L_ambient = vec3(1.0, 1.0, 1.0);
     	L_diffuse = vec3(1.0, 1.0, 1.0);
     	L_specular = vec3(1.0, .5, .5);
     	M_reflect_ambient = vec3(0.3, .7, .7);
     	M_reflect_diffuse = vec3(0.2, .6, .2);
-    	M_reflect_specular = vec3(0.1, .1, .1);
+    	M_reflect_specular = vec3(0.1, .1, .1); */
     	M_shininess = 100;
 
 
@@ -406,12 +403,13 @@ keyboard( unsigned char key, int x, int y )
     	if(debug) {
     		printf("Material 3 selected");
     	}
+    	/*
     	L_ambient = vec3(1.0, 1.0, 1.0);
     	L_diffuse = vec3(1.0, 1.0, 1.0);
     	L_specular = vec3(1.0, .5, .5);
     	M_reflect_ambient = vec3(0.1, .1, .8);
     	M_reflect_diffuse = vec3(0.1, .1, .8);
-    	M_reflect_specular = vec3(0.1, .1, .1);
+    	M_reflect_specular = vec3(0.1, .1, .1); */
     	M_shininess = 1000;
 
     	break;
