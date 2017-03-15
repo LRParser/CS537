@@ -9,6 +9,8 @@ in vec3 color;
 
 out vec4 FragColor;
 
+uniform mat4 modelViewProjectionMatrix;
+
 uniform mat4 modelViewMatrix, projectionMatrix;
 uniform vec3 l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, l_position;
 uniform vec3 cameraPosition;
@@ -22,7 +24,10 @@ vec3 vProduct(vec3 a, vec3 b) {
 
 void main()
 {
+		FragColor = vec4(color,1.0);
 
+
+/*
 	mat4 Projection = projectionMatrix;
 	mat4 ModelView = modelViewMatrix;
 	vec3 LightPosition = l_position;
@@ -56,5 +61,6 @@ void main()
 	else {
 		FragColor = vec4(color,1.0);
 	}
+	*/
 	
 }

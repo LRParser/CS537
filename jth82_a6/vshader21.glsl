@@ -7,6 +7,7 @@ out vec3 color;
 out vec3 position;
 out vec3 normal;
 
+uniform mat4 modelViewProjectionMatrix;
 uniform mat4 modelViewMatrix, projectionMatrix, translateMatrix;
 uniform vec3 l_ambient, l_diffuse, l_specular, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, l_position;
 uniform vec3 cameraPosition;
@@ -20,7 +21,13 @@ vec3 vProduct(vec3 a, vec3 b) {
 
 void main()
 {
+	color = vNormal;
+	normal = vNormal;
+	position = (modelViewProjectionMatrix * vec4(vPosition,1.0)).xyz;
+    gl_Position =  modelViewProjectionMatrix * vec4(vPosition,1.0);
 
+
+/*
 	mat4 Projection = projectionMatrix;
 	mat4 ModelView = modelViewMatrix;
 	vec3 LightPosition = l_position;
@@ -59,5 +66,5 @@ void main()
 		position = vPosition;
 		normal = vNormal;
 	}
-	
+*/	
 }

@@ -27,7 +27,7 @@ bool debug = true;
 std::map<int,std::vector<Face> > vertexFaceMapping;
 
 mat4 TranslateMatrix;
-GLuint modelViewMatrix, projectionMatrix, translateMatrix;
+GLuint modelViewMatrix, projectionMatrix, modelViewProjectionMatrix;
 
 // Uniforms for lighting
 // Light properties
@@ -185,19 +185,6 @@ initMainWindow( void )
     glGenVertexArrays( 1, vao );
     glBindVertexArray( vao[0] );
 
-    // Print points and normals info
-	if(debug) {
-		for(int i = 0; i < shape1VertexCount; i++) {
-			vec3 currentPoint = points[i];
-			printf("(Point)");
-			printVector(currentPoint);
-		}
-		for(int i = 0; i < shape1VertexCount; i++) {
-			vec3 currentNormal = normals[i];
-			printf("(Normal)");
-			printVector(currentNormal);
-		}
-	}
 
     GLuint buffer;
     glGenBuffers( 1, &buffer );
@@ -227,7 +214,7 @@ initMainWindow( void )
 
     projectionMatrix = glGetUniformLocation(program, "projectionMatrix");
     modelViewMatrix = glGetUniformLocation(program, "modelViewMatrix");
-    translateMatrix = glGetUniformLocation(program, "translateMatrix");
+    modelViewProjectionMatrix = glGetUniformLocation(program, "modelViewProjectionMatrix");
     l_ambient = glGetUniformLocation(program, "l_ambient");
 	l_diffuse = glGetUniformLocation(program, "l_diffuse");
 	l_specular = glGetUniformLocation(program, "l_specular");
@@ -240,7 +227,7 @@ initMainWindow( void )
 	isGouraud = glGetUniformLocation(program, "isGouraud");
 
 
-    glClearColor( 0.2, 0.2, 0.2, 0.2 ); // black background
+    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
@@ -268,17 +255,20 @@ displayMainWindow( void )
    vec3 lightPos = calculateLightVector();
 
    vec3 modelCentroid = calculateModelCentroid();
+   mat4 Model = -1 * Translate(modelCentroid);
 
    // Look at model centroid
    mat4 model_view = LookAt(
 	eyePos,
-	modelCentroid,
+	vec4(0,0,0,1),
 	vec4(0,1,0,1)
        );
 
-   mat4 TranslateMatrix = mat4(); //-1 * Translate(modelCentroid);
+   mat4 ModelViewProjectionMatrix = Projection * model_view;
 
-   glUniformMatrix4fv( translateMatrix, 1, GL_TRUE, TranslateMatrix);
+
+
+   glUniformMatrix4fv( modelViewProjectionMatrix, 1, GL_TRUE, ModelViewProjectionMatrix);
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
    glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, model_view );
 
@@ -540,6 +530,12 @@ vec3 calculateVertexNormal(int vertexIdx) {
 
 }
 
+vec3 calculateNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
+	vec3 U = vertex2 - vertex1;
+	vec3 V = vertex3 - vertex2;
+	return vAbs(normalize(cross(U,V)));
+}
+
 
 void populatePointsAndNormalsArrays() {
 	for(int i = 0; i < smfFaces.size(); i++) {
@@ -634,7 +630,8 @@ int readSMF(char* fileName) {
 					vec3 thirdVertex = smfVertices[f.thirdVertexIndex - 1];
 					f.thirdVertex = thirdVertex;
 
-					calculateFaceNormal(firstVertex,secondVertex,thirdVertex,f);
+					vec3 normal = calculateNormal(firstVertex,secondVertex,thirdVertex);
+					f.normal = normal;
 
 					vertexFaceMapping[f.firstVertexIndex].push_back(f);
 					vertexFaceMapping[f.secondVertexIndex].push_back(f);
