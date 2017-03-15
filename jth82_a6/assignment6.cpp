@@ -52,7 +52,7 @@ vec3 M_reflect_ambient = vec3(0.2,.2,1);
 vec3 M_reflect_diffuse = vec3(0.3,1,.3);
 vec3 M_reflect_specular = vec3(.1,.1,.1);
 
-float M_shininess = 100;
+float M_shininess = 1000;
 
 GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
 GLuint cameraPosition;

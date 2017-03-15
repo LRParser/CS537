@@ -365,7 +365,7 @@ void readSMF(char* fileName) {
 			while (infile >> a >> b >> c >> d)
 			{
 				if(a == 'v') {
-					smfVertices[numSmfVertices] = vec4(b,c,d,0.0);
+					smfVertices[numSmfVertices] = vec4(b,c,d,1.0);
 					numSmfVertices++;
 				}
 				else if(a == 'f') {

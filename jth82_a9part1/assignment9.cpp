@@ -58,7 +58,9 @@ vec3 patch[4][4];
 
 int uRange = 12;
 int vRange = 12;
-vec3 interpolatedPoints[51][51];
+
+int maxRange = 51;
+vec3 interpolatedPoints[maxRange][maxRange];
 
 vec3 lineBufferData[6];
 

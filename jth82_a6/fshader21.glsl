@@ -35,8 +35,10 @@ void main()
 		 vec3 E = normalize( -pos );
 		 vec3 H = normalize( L + E );
 		 // Transform vertex normal into eye coordinates
-		 vec3 N = normalize( ModelView*vec4(normal,0.0) ).xyz; 
-		 
+		 vec3 N = normal; 
+		     if (dot(N, E) > 0)  {
+      			N = -1 * N;
+    		}
 		 vec3 ambient = vProduct(l_ambient,m_reflect_ambient).xyz;
 		  float dTerm = max( dot(L, N), 0.0 );
 		  vec3 DiffuseProduct = vProduct(l_diffuse,m_reflect_diffuse).xyz;
@@ -47,7 +49,9 @@ void main()
 		  if( dot(L, N) < 0.0 ) {
 			  specular = vec3(0.0, 0.0, 0.0);
 		  }
-		  FragColor = vec4(ambient + diffuse + specular,1.0); 
+		  FragColor = vec4(diffuse,1.0); 
+		  
+		  //FragColor = vec4(ambient + diffuse + specular,1.0); 
 	}
 	else {
 		FragColor = vec4(color,1.0);
