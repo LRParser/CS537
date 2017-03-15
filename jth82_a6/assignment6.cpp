@@ -26,37 +26,16 @@ bool debug = true;
 
 std::map<int,std::vector<Face> > vertexFaceMapping;
 
-mat4 TranslateMatrix;
-GLuint modelViewMatrix, projectionMatrix, modelViewProjectionMatrix;
+GLuint modelViewMatrix, projectionMatrix;
 
 // Uniforms for lighting
 // Light properties
 
-vec3 L_position = vec3(0,5,10);
+vec3 L_ambient, L_diffuse, L_specular, M_reflect_ambient, M_reflect_diffuse, M_reflect_specular;
 
-// Material properties
+float M_shininess = 100;
 
-vec3 materialAmbientLightProperties[3];
-vec3 materialDiffuseLightProperties[3];
-vec3 materialSpecularLightProperties[3];
-
-vec3 materialAmbientReflectionProperties[3];
-vec3 materialDiffuseReflectionProperties[3];
-vec3 materialSpecularReflectionProperties[3];
-
-vec3 L_ambient = vec3(1.0,1.0,1.0);
-vec3 L_diffuse = vec3(1.0,1.0,1.0);
-vec3 L_specular = vec3(.5,.5,.5);
-
-vec3 M_reflect_ambient = vec3(0.2,.2,1);
-vec3 M_reflect_diffuse = vec3(0.3,1,.3);
-vec3 M_reflect_specular = vec3(.1,.1,.1);
-
-float M_shininess = 1000;
-
-GLuint l_ambient, l_diffuse, l_specular, l_position, m_reflect_ambient, m_reflect_diffuse, m_reflect_specular, m_shininess;
-GLuint cameraPosition;
-GLuint isGouraud;
+GLuint p_ambient, p_diffuse, p_specular, l_position, e_position, m_shininess;
 
 float eps = 0.001;
 
@@ -85,10 +64,11 @@ vec3 modelCentroid;
 
 float Radius, Theta, LightTheta, LightRadius, Height, LightHeight;
 
-float RadiusDelta = 1;
-float Delta = 5;
-float HeightDelta = 1;
-float ParallelDelta = 2;
+float RadiusDelta = 1.0f;
+float Delta = 5.0f;
+float HeightDelta = 1.0f;
+float ParallelDelta = 2.0f;
+float ThetaDelta = 5.0f;
 
 int mainWindow;
 
@@ -123,25 +103,22 @@ vec3 calculateModelCentroid() {
 }
 
 void setDefaultViewParams() {
-	L_ambient = vec3(1.0, 1.0, 1.0);
-	L_diffuse = vec3(1.0, 1.0, 1.0);
-	L_specular = vec3(1.0, .5, .5);
-	M_reflect_ambient = vec3(0.7, .3, .7);
-	M_reflect_diffuse = vec3(0.2, .6, .2);
+	// Don't want to wash out with ambient light
+	L_ambient = vec3(.1, .1, .1);
+	L_diffuse = vec3(.1, .1, .1);
+	L_specular = vec3(1.0, 1, 1);
+	M_reflect_ambient = vec3(0.05, .05, .05);
+	M_reflect_diffuse = vec3(0.85, .85, .85);
 	M_reflect_specular = vec3(0.1, .1, .1);
 	M_shininess = 500;
 	Radius = 3.0;
-	Height = 3;
-	Theta = 0;
+	Height = 0.0f;
+	Theta = 5.0f;
 	LightTheta = Theta;
 	LightRadius = Radius;
 	LightHeight = Height;
 
 	RadiusDelta = 1;
-
-	vec3 modelCentroid = calculateModelCentroid();
-	L_position = vec3(modelCentroid);
-	EyeVector = vec3(modelCentroid);
 
 }
 
@@ -212,20 +189,14 @@ initMainWindow( void )
 
     modelCentroid = calculateModelCentroid();
 
-    projectionMatrix = glGetUniformLocation(program, "projectionMatrix");
-    modelViewMatrix = glGetUniformLocation(program, "modelViewMatrix");
-    modelViewProjectionMatrix = glGetUniformLocation(program, "modelViewProjectionMatrix");
-    l_ambient = glGetUniformLocation(program, "l_ambient");
-	l_diffuse = glGetUniformLocation(program, "l_diffuse");
-	l_specular = glGetUniformLocation(program, "l_specular");
-	l_position = glGetUniformLocation(program, "l_position");
-	m_reflect_ambient = glGetUniformLocation(program, "m_reflect_ambient");
-	m_reflect_diffuse = glGetUniformLocation(program, "m_reflect_diffuse");
-	m_reflect_specular = glGetUniformLocation(program, "m_reflect_specular");
-	m_shininess = glGetUniformLocation(program, "m_shininess");
-	cameraPosition = glGetUniformLocation(program, "cameraPosition");
-	isGouraud = glGetUniformLocation(program, "isGouraud");
-
+    projectionMatrix = glGetUniformLocation(program, "Projection");
+    modelViewMatrix = glGetUniformLocation(program, "ModelView");
+    p_ambient = glGetUniformLocation(program, "AmbientProduct");
+	p_diffuse = glGetUniformLocation(program, "DiffuseProduct");
+	p_specular = glGetUniformLocation(program, "SpecularProduct");
+	l_position = glGetUniformLocation(program, "LightPosition");
+	e_position = glGetUniformLocation(program, "EyePosition");
+	m_shininess = glGetUniformLocation(program, "Shininess");
 
     glClearColor( 1.0, 1.0, 1.0, 1.0 ); // black background
 
@@ -251,41 +222,30 @@ displayMainWindow( void )
 	   Projection = Ortho(left,right,bottom,top,-0.001f,100.f);
    }
 
+
    vec3 eyePos = calculateEyeVector();
-   vec3 lightPos = calculateLightVector();
+   vec4 lightPos = vec4(eyePos.x,eyePos.y,eyePos.z + 1,1.0);
 
    vec3 modelCentroid = calculateModelCentroid();
-   mat4 Model = -1 * Translate(modelCentroid);
 
    // Look at model centroid
    mat4 model_view = LookAt(
 	eyePos,
-	vec4(0,0,0,1),
+	modelCentroid,
 	vec4(0,1,0,1)
        );
 
-   mat4 ModelViewProjectionMatrix = Projection * model_view;
+   mat4 ModelViewMatrix = model_view;
 
-
-
-   glUniformMatrix4fv( modelViewProjectionMatrix, 1, GL_TRUE, ModelViewProjectionMatrix);
    glUniformMatrix4fv( projectionMatrix, 1, GL_TRUE, Projection );
-   glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, model_view );
+   glUniformMatrix4fv( modelViewMatrix, 1, GL_TRUE, ModelViewMatrix );
 
-   glUniform3fv(l_ambient, 1, L_ambient);
-   glUniform3fv(l_diffuse, 1, L_diffuse);
-   glUniform3fv(l_specular, 1, L_specular);
-   glUniform3fv(l_position, 1, lightPos);
-
-
-   glUniform3fv(m_reflect_ambient, 1, M_reflect_ambient);
-   glUniform3fv(m_reflect_diffuse, 1, M_reflect_diffuse);
-   glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
+   glUniform3fv(p_ambient, 1, L_ambient);
+   glUniform3fv(p_diffuse, 1, L_diffuse);
+   glUniform3fv(p_specular, 1, L_specular);
+   glUniform4fv(l_position, 1, lightPos);
+   glUniform3fv(e_position,1,eyePos);
    glUniform1f(m_shininess,M_shininess);
-   glUniform3fv(m_reflect_specular, 1, M_reflect_specular);
-   glUniform3fv(cameraPosition,1,eyePos);
-   glUniform1f(m_shininess,M_shininess);
-   glUniform1f(isGouraud,IsGouraud);
 
    glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
 
@@ -371,8 +331,10 @@ keyboard( unsigned char key, int x, int y )
 
     case '5' :
     	// Rotate counterclockwise
-    	Theta += 5;
-    	LightTheta += 5;
+    	Theta += ThetaDelta;
+    	LightTheta += ThetaDelta;
+    	Theta = min(Theta,360);
+    	LightTheta = min(LightTheta,360);
     	if(debug) {
     		printf("Theta is: %f\n",Theta);
     		printf("LightRadius is: %f\n",LightTheta);
@@ -381,8 +343,10 @@ keyboard( unsigned char key, int x, int y )
 
     	break;
     case '6' :
-    	Theta -= 5;
-    	LightTheta -= 5;
+    	Theta -= ThetaDelta;
+    	LightTheta -= ThetaDelta;
+    	Theta = max(Theta,5.0);
+    	LightTheta = max(LightTheta,5.0);
     	if(debug) {
     		printf("Theta is: %f\n",Theta);
     		printf("LightRadius is: %f\n",LightTheta);
@@ -553,9 +517,11 @@ void populatePointsAndNormalsArrays() {
 		points[currentOffset + 1] = vertex2;
 		points[currentOffset + 2] = vertex3;
 
-		normals[currentOffset] = calculateVertexNormal(currentFace.firstVertexIndex);
-		normals[currentOffset + 1] = calculateVertexNormal(currentFace.secondVertexIndex);
-		normals[currentOffset + 2] = calculateVertexNormal(currentFace.thirdVertexIndex);
+		vec3 faceNormal = calculateNormal(vertex1,vertex2,vertex3);
+
+		normals[currentOffset] = faceNormal; // calculateVertexNormal(currentFace.firstVertexIndex);
+		normals[currentOffset + 1] = faceNormal; // calculateVertexNormal(currentFace.secondVertexIndex);
+		normals[currentOffset + 2] = faceNormal; // calculateVertexNormal(currentFace.thirdVertexIndex);
 
 	}
 }
