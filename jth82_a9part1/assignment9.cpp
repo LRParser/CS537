@@ -106,17 +106,24 @@ float getBernsteinFactor(float u, int sub) {
 // For the given desired interpolation range
 void interpolatePatch(int uRange, int vRange) {
 
-	printf("Interpolate u to: %d and v to %d\n",uRange,vRange);
+	if(debug) {
+		printf("Interpolate u to: %d and v to %d\n",uRange,vRange);
+	}
 
 	for(int u = 0; u <= uRange; u++) {
 
 		float uParam = (float) u / (float)uRange;
-		printf("uParam is %f\n",uParam);
+
+		if(debug) {
+			printf("uParam is %f\n",uParam);
+		}
 
 		for(int v = 0; v <= vRange; v++) {
 
 			float vParam = (float) v / (float)vRange ;
-			printf("vParam is %f\n",vParam);
+			if(debug) {
+				printf("vParam is %f\n",vParam);
+			}
 
 			vec3 pointSum = vec3(0,0,0);
 
@@ -278,9 +285,9 @@ initMainWindow( void )
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
-    printf("Num Vertices Used: %d\n",totalNumVertices);
-
-    glDrawArrays( GL_LINES, 2* defaultSize, 6 );
+    if(debug) {
+    	printf("Num Vertices Used: %d\n",totalNumVertices);
+    }
 
     glFlush();
 
@@ -373,17 +380,18 @@ void tesselateAndCalculateNormals() {
 
 		for(int j=0; j < vRange - 1; j++) {
 
-			printf("Tesselate - i is: %d, j is: %d\n",i,j);
 
 			// First triangle
 			vec3 vertex1 =  interpolatedPoints[i][j]; // 1
 			vec3 vertex2 = interpolatedPoints[i+1][j]; // 2
 			vec3 vertex3 = interpolatedPoints[i][j+1]; // 3
 
+			if(debug) {
 			printf("Calling calulcateFaceNormal for:");
 			printVector(vertex1);
 			printVector(vertex2);
 			printVector(vertex3);
+			}
 
 			vec3 normal1 = calculateNormal(vertex1,vertex2,vertex3);
 
@@ -407,10 +415,13 @@ void tesselateAndCalculateNormals() {
 			vec3 vertex5 = interpolatedPoints[i+1][j+1]; // 5
 			vec3 vertex6 = interpolatedPoints[i][j+1]; // 6
 
-			printf("Calling calulcateFaceNormal for:");
-			printVector(vertex4);
-			printVector(vertex5);
-			printVector(vertex6);
+			if(debug) {
+				printf("Tesselate - i is: %d, j is: %d\n",i,j);
+				printf("Calling calulcateFaceNormal for:");
+				printVector(vertex4);
+				printVector(vertex5);
+				printVector(vertex6);
+			}
 
 
 			vec3 normal2 = calculateNormal(vertex4,vertex5,vertex6);
