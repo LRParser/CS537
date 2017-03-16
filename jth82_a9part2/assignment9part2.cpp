@@ -44,8 +44,6 @@ GLfloat  left = -4.0, right = 4.0;
 GLfloat  bottom = -3.0, top = 5.0;
 GLfloat  near = -10.0, far = 10.0;
 
-float IsGouraud = .6; // >.5 is true, otherwise false
-
 const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
 
 // Total number of vertices
@@ -56,10 +54,6 @@ std::vector<Face> smfFaces;
 
 vec3 points[10000];
 vec3 normals[10000];
-
-vec3 EyeVector = vec3(1.0f,1.0f,10.0f);
-
-vec3 modelCentroid;
 
 float Radius, Theta, LightTheta, LightRadius, Height, LightHeight;
 
@@ -101,7 +95,7 @@ void setDefaultViewParams() {
 	P_ambient = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
 	P_diffuse = vProduct(vec3(0.6, .6, .6),vec3(.5,0,0));
 	P_specular = vProduct(vec3(0.25, .25, .25),vec3(1,1,1));
-	M_shininess = 100;
+	M_shininess = 50;
 	Radius = 3.0;
 	Height = 0.0f;
 	Theta = 5.0f;
@@ -378,8 +372,10 @@ vec3 calculateVertexNormal(int vertexIdx) {
 
 	std::vector<Face>::iterator it;
 	for(it=incidentFaces.begin() ; it < incidentFaces.end(); it++ ) {
-		printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
-		printVector(it->normal);
+		if(debug) {
+			printf("Normal for face %d incident to vertex %d is: ",it->faceIdx,vertexIdx);
+			printVector(it->normal);
+		}
 		if(std::isnan(it->normal.x) || std::isnan(it->normal.y) || std::isnan(it->normal.z)) {
 			// We weren't able to calculate the normal. Set it to default color
 			printf("NaN\n");
@@ -388,7 +384,9 @@ vec3 calculateVertexNormal(int vertexIdx) {
 		}
 		printVector(incidentFacesColorsSum);
 		incidentFacesColorsSum += it->normal;
-		printf("New sum is: ");
+		if(debug) {
+			printf("New sum is: ");
+		}
 		printVector(incidentFacesColorsSum);
 		incidentFacesCount++;
 	}
@@ -438,9 +436,9 @@ void populatePointsAndNormalsArrays() {
 
 		vec3 faceNormal = calculateNormal(vertex1,vertex2,vertex3);
 
-		normals[currentOffset] = faceNormal; // calculateVertexNormal(currentFace.firstVertexIndex);
-		normals[currentOffset + 1] = faceNormal; // calculateVertexNormal(currentFace.secondVertexIndex);
-		normals[currentOffset + 2] = faceNormal; // calculateVertexNormal(currentFace.thirdVertexIndex);
+		normals[currentOffset] = calculateVertexNormal(currentFace.firstVertexIndex);
+		normals[currentOffset + 1] = calculateVertexNormal(currentFace.secondVertexIndex);
+		normals[currentOffset + 2] = calculateVertexNormal(currentFace.thirdVertexIndex);
 
 	}
 }
@@ -506,7 +504,7 @@ main( int argc, char **argv )
 #endif
     glutInitWindowSize( w, h );
 
-    glutCreateWindow( "Assignment 6" );
+    glutCreateWindow( "Assignment 9 Part 2" );
 #ifndef __APPLE__
     GLenum err = glewInit();
 

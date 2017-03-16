@@ -2,7 +2,7 @@ This program should be run on MacOS with make run
 It places a 2D texture similar to the logo for the company Square on a 12 by 12 Bezier patch
 A light source is attached to the camera and a specular highlight is visible
 
-Suppported controls:
+Supported controls:
 
 Press: 1 - To increase camera height
 Press: 2 - To decrease camera height

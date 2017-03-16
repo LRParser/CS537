@@ -1,7 +1,7 @@
 GL_OPTIONS = -framework OpenGL -framework GLUT
 GL_OPTIONS = -lglut -lGLEW -lGL -lGLU
 
-name1 = assignment9
+name1 = assignment9part1
 
 CXXINCS = -Wall -pedantic -Iinclude 
 
