@@ -515,9 +515,9 @@ void drawWindowAtSelectedSample(int uRange, int vRange) {
 void setDefaultViewParams() {
 	// Base color is red
 	P_ambient = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
-	P_diffuse = vProduct(vec3(0.6, .6, .6),vec3(.5,0,0));
-	P_specular = vProduct(vec3(0.25, .25, .25),vec3(1,1,1));
-	M_shininess = 100;
+	P_diffuse = vProduct(vec3(0.5, .5, .5),vec3(.5,0,0));
+	P_specular = vProduct(vec3(0.35, .35, .35),vec3(1,1,1));
+	M_shininess = 50;
 	Radius = 12.0;
 	Height = 0.0f;
 	Theta = 270.0f;
