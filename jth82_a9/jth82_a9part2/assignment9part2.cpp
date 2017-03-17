@@ -382,12 +382,15 @@ vec3 calculateVertexNormal(int vertexIdx) {
 			printVector(it->normal);
 			exit(1);
 		}
+		if(debug) {
 		printVector(incidentFacesColorsSum);
+		}
 		incidentFacesColorsSum += it->normal;
 		if(debug) {
 			printf("New sum is: ");
+			printVector(incidentFacesColorsSum);
+
 		}
-		printVector(incidentFacesColorsSum);
 		incidentFacesCount++;
 	}
 

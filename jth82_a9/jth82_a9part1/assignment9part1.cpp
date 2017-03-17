@@ -8,7 +8,7 @@ bool debug = false;
 
 GLuint textures[1];
 GLuint vTexCoord;
-GLuint texture;
+GLuint modelTexture;
 
 
 vec3 P_ambient, P_diffuse, P_specular;
@@ -75,9 +75,6 @@ vec3 vProduct(vec3 a, vec3 b) {
 	return vec3(a[0]*b[0],a[1]*b[1],a[2]*b[2]);
 }
 
-void initTexture() {
-	// procedurally generate 2D RGB image data
-}
 
 float radians(float degrees) {
 	return (M_PI * degrees) / 180;
@@ -263,7 +260,7 @@ initMainWindow( void )
 	l_position = glGetUniformLocation(program, "LightPosition");
 	e_position = glGetUniformLocation(program, "EyePosition");
 	m_shininess = glGetUniformLocation(program, "Shininess");
-	texture = glGetUniformLocation(program, "texture");
+	modelTexture = glGetUniformLocation(program, "modelTexture");
 
 	   glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
 
@@ -333,7 +330,7 @@ displayMainWindow( void )
   glUniform4fv(l_position, 1, lightPos);
   glUniform3fv(e_position,1,eyePos);
   glUniform1f(m_shininess,M_shininess);
-   glUniform1i( texture, 0 );
+   glUniform1i( modelTexture, 0 );
 
 
    glClearColor( 0.0, 0.0, 0.0, 0.0 ); // black background
@@ -375,16 +372,22 @@ vec3 calculateNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
 void tesselateAndCalculateNormals() {
 
 	int numTesselatedVertices = 0;
+	int faceNum = 0;
 
 	for(int i = 0; i < uRange - 1; i++) {
 
 		for(int j=0; j < vRange - 1; j++) {
 
 
-			// First triangle
+			// First three vertices are associated with the first triangle/face
 			vec3 vertex1 =  interpolatedPoints[i][j]; // 1
-			vec3 vertex2 = interpolatedPoints[i+1][j]; // 2
-			vec3 vertex3 = interpolatedPoints[i][j+1]; // 3
+			vec3 vertex2 = interpolatedPoints[i+1][j]; // 2 == 4
+			vec3 vertex3 = interpolatedPoints[i][j+1]; // 3 == 6
+
+			// Second three vertices are associated with the second triangle/face
+			vec3 vertex4 = interpolatedPoints[i+1][j]; // 4 == 2
+			vec3 vertex5 = interpolatedPoints[i+1][j+1]; // 5
+			vec3 vertex6 = interpolatedPoints[i][j+1]; // 6 == 3
 
 			if(debug) {
 			printf("Calling calulcateFaceNormal for:");
@@ -394,26 +397,9 @@ void tesselateAndCalculateNormals() {
 			}
 
 			vec3 normal1 = calculateNormal(vertex1,vertex2,vertex3);
+			vec3 normal2 = calculateNormal(vertex4,vertex5,vertex6);
 
-			points[numTesselatedVertices] = vertex1;
-			normals[numTesselatedVertices] = normal1;
-			tex_coords[numTesselatedVertices] = vec2( 0.0, 0.0 );
-			numTesselatedVertices++;
-
-			points[numTesselatedVertices] = vertex2;
-			normals[numTesselatedVertices] = normal1;
-			tex_coords[numTesselatedVertices] = vec2( 0.0, 1.0 );
-			numTesselatedVertices++;
-
-			points[numTesselatedVertices] = vertex3;
-			normals[numTesselatedVertices] = normal1;
-			tex_coords[numTesselatedVertices] = vec2( 0.0, 0.0 );
-			numTesselatedVertices++;
-
-			// Second triangle
-			vec3 vertex4 = interpolatedPoints[i+1][j]; // 4 == 2, not 1
-			vec3 vertex5 = interpolatedPoints[i+1][j+1]; // 5
-			vec3 vertex6 = interpolatedPoints[i][j+1]; // 6
+			vec3 averagedNormal = (normal1 + normal2) / 2;
 
 			if(debug) {
 				printf("Tesselate - i is: %d, j is: %d\n",i,j);
@@ -424,18 +410,37 @@ void tesselateAndCalculateNormals() {
 			}
 
 
-			vec3 normal2 = calculateNormal(vertex4,vertex5,vertex6);
-
-			points[numTesselatedVertices] = vertex4;
-			normals[numTesselatedVertices] = normal2;
+			// First vertex
+			points[numTesselatedVertices] = vertex1;
+			normals[numTesselatedVertices] = normal1;
 			tex_coords[numTesselatedVertices] = vec2( 0.0, 0.0 );
 			numTesselatedVertices++;
 
+			// Second vertex
+			points[numTesselatedVertices] = vertex2;
+			normals[numTesselatedVertices] = averagedNormal;
+			tex_coords[numTesselatedVertices] = vec2( 0.0, 1.0 );
+			numTesselatedVertices++;
+
+			// Third vertex
+			points[numTesselatedVertices] = vertex3;
+			normals[numTesselatedVertices] = averagedNormal;
+			tex_coords[numTesselatedVertices] = vec2( 0.0, 0.0 );
+			numTesselatedVertices++;
+
+			// Fourth vertex
+			points[numTesselatedVertices] = vertex4;
+			normals[numTesselatedVertices] = averagedNormal;
+			tex_coords[numTesselatedVertices] = vec2( 0.0, 0.0 );
+			numTesselatedVertices++;
+
+			// Fifth vertex
 			points[numTesselatedVertices] = vertex5;
 			normals[numTesselatedVertices] = normal2;
 			tex_coords[numTesselatedVertices] = vec2( 0.0, 1.0 );
 			numTesselatedVertices++;
 
+			// Sixth vertex
 			points[numTesselatedVertices] = vertex6;
 			normals[numTesselatedVertices] = normal2;
 			tex_coords[numTesselatedVertices] = vec2( 0.0, 0.0 );
@@ -652,7 +657,6 @@ main( int argc, char **argv )
 
 
     setDefaultViewParams();
-    initTexture();
 
 	// Convert the 16 control vertices into a 4 by 4 array
 	parseControlVerticesToPatch();

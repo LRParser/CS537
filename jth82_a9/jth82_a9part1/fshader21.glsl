@@ -10,7 +10,7 @@ out vec4 frag_color;
 uniform vec3 AmbientProduct, DiffuseProduct, SpecularProduct; 
 uniform mat4 ModelView; 
 uniform float Shininess; 
-uniform sampler2D texture; //texture object id from application 
+uniform sampler2D modelTexture; //texture object id from application 
 
 void main()  
 {  
@@ -29,7 +29,7 @@ void main()
 		
 	
 	float dTerm = max(dot(L, N), 0.0); // When using this, back isn't shaded
-    vec3 diffuse = texture2D( texture, texCoord ).xyz; 	
+    vec3 diffuse = texture( modelTexture, texCoord ).xyz; 	
 	// Replace diffuse color by a texture
 	// diffuse =   
     frag_color = vec4(ambient + diffuse + specular, 1.0); 
