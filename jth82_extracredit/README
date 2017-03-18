@@ -1,0 +1,18 @@
+This program should be run on MacOS with make run
+It places a 3D procedurally generated color map texture as the diffuse color
+on the spherical SMF model and contains a bright specular highlight.
+A light source is attached to the camera and a specular highlight is visible
+
+Supported controls:
+
+Press: 1 - To increase camera height
+Press: 2 - To decrease camera height
+Press: 3 - To increase orbit radius
+Press: 4 - To decrease orbit radius
+Press: 5 - To increase camera angle (rotate camera)
+Press: 6 - To decrease camera angle (rotate counterclockwise)
+Press: 7 - To enable perspective projection mode
+Press: 8 - To enable parallel projection mode (default)
+Press: z - To reset the view
+Press: x - To exit the program
+

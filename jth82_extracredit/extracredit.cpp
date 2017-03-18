@@ -11,8 +11,7 @@
 
 bool debug = false;
 
-
-GLuint transformMatrix, modelViewMatrix, projectionMatrix;
+GLuint modelViewMatrix, projectionMatrix, currentTransformMatrix;
 
 // Uniforms for lighting
 // Light properties
@@ -36,11 +35,8 @@ const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle
 // Total number of vertices
 int shape1VertexCount;
 
-vec3 smfVertices[NumVertices];
-std::vector<Face> smfFaces;
-
-vec3 points[10000];
-vec3 normals[10000];
+vec3 points[NumVertices];
+vec3 normals[NumVertices];
 
 float Radius, Theta, LightTheta, LightRadius, Height, LightHeight;
 
@@ -57,6 +53,26 @@ int h = 500;
 
 float radians(float degrees) {
 	return (M_PI * degrees) / 180;
+}
+
+vec3 radians(vec3 degrees) {
+	return (M_PI * degrees) / 180;
+}
+
+vec3 cos(vec3 angles) {
+	angles.x = cos(angles.x);
+	angles.y = cos(angles.y);
+	angles.z = cos(angles.z);
+
+	return angles;
+}
+
+vec3 sin(vec3 angles) {
+	angles.x = sin(angles.x);
+	angles.y = sin(angles.y);
+	angles.z = sin(angles.z);
+
+	return angles;
 }
 
 void printVector(vec3 vIn) {
@@ -76,6 +92,8 @@ vec3 calculateModelCentroid() {
 	vec3 centroid = (sumOfAllPoints) / shape1VertexCount;
 	return centroid;
 }
+
+
 
 void setDefaultViewParams() {
 	// Base color is red
@@ -116,6 +134,104 @@ vec3 calculateLightVector() {
 
 }
 
+// Vertices of a unit cube centered at origin, sides aligned with axes
+vec3 unitCubeVertices[8] = {
+		vec3( -0.5, -0.5,  0.5),
+		vec3( -0.5,  0.5,  0.5 ),
+		vec3(  0.5,  0.5,  0.5),
+		vec3(  0.5, -0.5,  0.5 ),
+		vec3( -0.5, -0.5, -0.5 ),
+		vec3( -0.5,  0.5, -0.5 ),
+		vec3(  0.5,  0.5, -0.5 ),
+		vec3(  0.5, -0.5, -0.5 )
+};
+
+// quad generates two triangles for each face and assigns colors
+//    to the vertices. Draws a, b, c as one triangle, a, c, d as another
+int Index = 0;
+void
+quad( int a, int b, int c, int d )
+{
+	vec3 point1 = unitCubeVertices[a];
+	vec3 point2 = unitCubeVertices[b];
+	vec3 point3 = unitCubeVertices[c];
+
+	vec3 U = point2 - point1;
+	vec3 V = point3 - point2;
+	vec3 face1Normal = vec3(1.0,1.0,1.0); // normalize(cross(U,V));
+
+	vec3 point4 = unitCubeVertices[d];
+
+    points[Index] = point1; normals[Index] = face1Normal; Index++;
+    points[Index] = point2; normals[Index] = face1Normal; Index++;
+    points[Index] = point3; normals[Index] = face1Normal; Index++;
+
+    U = point3 - point1;
+    V = point4 - point3;
+    vec3 face2Normal = vec3(1.0,1.0,1.0); // normalize(cross(U,V));
+
+    points[Index] = point1; normals[Index] = face2Normal; Index++;
+    points[Index] = point3; normals[Index] = face2Normal; Index++;
+    points[Index] = point4; normals[Index] = face2Normal; Index++;
+}
+
+//----------------------------------------------------------------------------
+
+// generate 12 triangles: 36 vertices and 36 colors
+void
+colorcube()
+{
+    quad( 1, 0, 3, 2 );
+    quad( 2, 3, 7, 6 );
+    quad( 3, 0, 4, 7 );
+    quad( 6, 5, 1, 2 );
+    quad( 4, 5, 6, 7 );
+    quad( 5, 4, 0, 1 );
+}
+
+
+void drawCube() {
+    mat4 scaleMatrix;
+    scaleMatrix[0][0] = 1;
+    scaleMatrix[1][1] = 1;
+    scaleMatrix[2][2] = 1;
+
+    // Rotate
+    vec3 rotationFactors = vec3(0,0,0);
+    vec3 angles = radians(-1.0f * rotationFactors);
+
+    vec3 c = cos( angles );
+    vec3 s = sin( angles );
+
+    mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
+		    0.0,  c.x,  s.x, 0.0,
+		    0.0, -s.x,  c.x, 0.0,
+		    0.0,  0.0,  0.0, 1.0 );
+    mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
+		    0.0, 1.0,  0.0, 0.0,
+		    s.y, 0.0,  c.y, 0.0,
+		    0.0, 0.0,  0.0, 1.0 );
+
+    mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
+		    s.z,  c.z, 0.0, 0.0,
+		    0.0,  0.0, 1.0, 0.0,
+		    0.0,  0.0, 0.0, 1.0 );
+
+    mat4 rotationMatrix = rx * ry * rz;
+
+    // Translate
+    vec3 translationFactors = vec3(0,0,0);
+    mat4 translationMatrix;
+    translationMatrix[0][3] = translationFactors.x;
+    translationMatrix[1][3] = translationFactors.y;
+    translationMatrix[2][3] = translationFactors.z;
+
+    mat4 currentMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+
+    glUniformMatrix4fv( currentTransformMatrix, 1, GL_TRUE, currentMatrix );
+
+    glDrawArrays( GL_TRIANGLES, 0, Index );
+}
 
 
 void
@@ -162,7 +278,7 @@ initMainWindow( void )
 	e_position = glGetUniformLocation(program, "EyePosition");
 	m_shininess = glGetUniformLocation(program, "Shininess");
 
-    glClearColor( 1.0, 1.0, 1.0, 1.0 ); // black background
+    glClearColor( .50, .50, .50, 1.0 ); // black background
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);     // clear the window
 
@@ -195,7 +311,7 @@ displayMainWindow( void )
    // Look at model centroid
    mat4 model_view = LookAt(
 	eyePos,
-	modelCentroid,
+	vec4(0,0,0,0),
 	vec4(0,1,0,1)
        );
 
@@ -211,7 +327,7 @@ displayMainWindow( void )
    glUniform3fv(e_position,1,eyePos);
    glUniform1f(m_shininess,M_shininess);
 
-   glDrawArrays( GL_TRIANGLES, 0, shape1VertexCount );
+   glDrawArrays( GL_TRIANGLES, 0, Index );
 
    glutSwapBuffers();
 
@@ -338,42 +454,10 @@ keyboard( unsigned char key, int x, int y )
 
 }
 
-
-//----------------------------------------------------------------------------
-
-
-
-
 vec3 calculateNormal(vec3 vertex1, vec3 vertex2, vec3 vertex3) {
 	vec3 U = vertex2 - vertex1;
 	vec3 V = vertex3 - vertex2;
 	return normalize(cross(U,V));
-}
-
-
-void populatePointsAndNormalsArrays() {
-	for(uint i = 0; i < smfFaces.size(); i++) {
-		Face currentFace = smfFaces.at(i);
-
-		vec3 vertex1 = currentFace.firstVertex;
-
-		vec3 vertex2 = currentFace.secondVertex;
-
-		vec3 vertex3 = currentFace.thirdVertex;
-
-		int currentOffset = i * 3;
-
-		points[currentOffset] = vertex1;
-		points[currentOffset + 1] = vertex2;
-		points[currentOffset + 2] = vertex3;
-
-		vec3 faceNormal = calculateNormal(vertex1,vertex2,vertex3);
-
-		normals[currentOffset] =  faceNormal; // calculateVertexNormal(currentFace.firstVertexIndex);
-		normals[currentOffset + 1] = faceNormal; // calculateVertexNormal(currentFace.secondVertexIndex);
-		normals[currentOffset + 2] = faceNormal; // calculateVertexNormal(currentFace.thirdVertexIndex);
-
-	}
 }
 
 
@@ -398,16 +482,11 @@ main( int argc, char **argv )
       fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
 #endif
 
-    char* fileName;
-    if(argc == 1) {
-    	fileName = "bound-lo-sphere.smf";
-	}
-	else {
-		fileName = argv[1];
-	}
-	readSMF(fileName);
+
 	setDefaultViewParams();
-	populatePointsAndNormalsArrays();
+
+	// Render geometry for cube
+	colorcube();
 
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;
