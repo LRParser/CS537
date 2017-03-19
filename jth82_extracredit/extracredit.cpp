@@ -13,6 +13,8 @@ bool debug = false;
 
 GLuint modelViewMatrix, projectionMatrix, currentTransformMatrix;
 
+float Joint1Angle = 45.0f;
+
 // Uniforms for lighting
 // Light properties
 
@@ -24,10 +26,10 @@ GLuint p_ambient, p_diffuse, p_specular, l_position, e_position, m_shininess;
 
 float eps = 0.001;
 
-bool isPerspective = true;
+bool isPerspective = false;
 
 GLfloat  left = -4.0, right = 4.0;
-GLfloat  bottom = -3.0, top = 5.0;
+GLfloat  bottom = -4.0, top = 4.0;
 GLfloat  near = -10.0, far = 10.0;
 
 const int NumVertices = 10000; //(6 faces)(2 triangles/face)(3 vertices/triangle)
@@ -55,7 +57,7 @@ float radians(float degrees) {
 	return (M_PI * degrees) / 180;
 }
 
-vec3 radians(vec3 degrees) {
+vec3 vecRadians(vec3 degrees) {
 	return (M_PI * degrees) / 180;
 }
 
@@ -101,13 +103,15 @@ void setDefaultViewParams() {
 	P_diffuse = vProduct(vec3(0.6, .6, .6),vec3(.5,0,0));
 	P_specular = vProduct(vec3(0.25, .25, .25),vec3(1,1,1));
 	M_shininess = 50;
-	Radius = 3.0;
-	Height = 0.0f;
-	Theta = 5.0f;
+	Radius = 8.0;
+	Height = 3.0f;
+	Theta = 85.0f;
 	LightTheta = Theta;
 	LightRadius = Radius;
 	LightHeight = Height;
 	RadiusDelta = 1;
+	isPerspective = true;
+	Joint1Angle = 5.0f;
 }
 
 vec3 calculateEyeVector() {
@@ -135,32 +139,78 @@ vec3 calculateLightVector() {
 }
 
 // Vertices of a unit cube centered at origin, sides aligned with axes
+/*
 vec3 unitCubeVertices[8] = {
-		vec3( -0.5, -0.5,  0.5),
-		vec3( -0.5,  0.5,  0.5 ),
-		vec3(  0.5,  0.5,  0.5),
-		vec3(  0.5, -0.5,  0.5 ),
-		vec3( -0.5, -0.5, -0.5 ),
-		vec3( -0.5,  0.5, -0.5 ),
-		vec3(  0.5,  0.5, -0.5 ),
-		vec3(  0.5, -0.5, -0.5 )
+		vec3( 0, 0,  1),
+		vec3( 0,  1,  1 ),
+		vec3(  1,  1,  1),
+		vec3(  1, 0,  1 ),
+		vec3( 0, 0, 0 ),
+		vec3( 0,  1, 0 ),
+		vec3(  1,  1, 0 ),
+		vec3(  1, 0, 0 )
+};
+*/
+
+vec3 baseVertices[8] = {
+    vec3( -0.5, -0.1,  0.5),
+	vec3( -0.5,  0.1,  0.5),
+	vec3(  0.5,  0.1,  0.5),
+	vec3(  0.5, -0.1,  0.5),
+	vec3( -0.5, -0.1, -0.5),
+	vec3( -0.5,  0.1, -0.5),
+	vec3(  0.5,  0.1, -0.5),
+	vec3(  0.5, -0.1, -0.5)
+};
+
+vec3 bodyVertices[8] = {
+    vec3( -0.1, -0.1,  0.2),
+	vec3( -0.1,  4,  0.2),
+	vec3(  0.1,  4,  0.2),
+	vec3(  0.1, -0.1,  0.2),
+	vec3( -0.1, -0.1, -0.2),
+	vec3( -0.1,  4, -0.2),
+	vec3(  0.1,  4, -0.2),
+	vec3(  0.1, -0.1, -0.2)
+};
+
+vec3 arm1Vertices[8] = {
+    vec3( -0.1, -0.1,  0.2),
+	vec3( -0.1,  .1,  0.2),
+	vec3(  4,  .1, 0.2),
+	vec3(  4, -0.1,  0.2),
+	vec3( -0.1, -0.1, -0.2),
+	vec3( -0.1,  .1, -0.2),
+	vec3(  4,  .1, -0.2),
+	vec3(  4, -0.1, -0.2)
+};
+
+vec3 unitCubeVertices[8] = {
+    vec3( -0.5, -0.5,  0.5),
+	vec3( -0.5,  0.5,  0.5),
+	vec3(  0.5,  0.5,  0.5),
+	vec3(  0.5, -0.5,  0.5),
+	vec3( -0.5, -0.5, -0.5),
+	vec3( -0.5,  0.5, -0.5),
+	vec3(  0.5,  0.5, -0.5),
+	vec3(  0.5, -0.5, -0.5)
 };
 
 // quad generates two triangles for each face and assigns colors
 //    to the vertices. Draws a, b, c as one triangle, a, c, d as another
 int Index = 0;
 void
-quad( int a, int b, int c, int d )
+quad( int a, int b, int c, int d, vec3 vertexSet[] )
 {
-	vec3 point1 = unitCubeVertices[a];
-	vec3 point2 = unitCubeVertices[b];
-	vec3 point3 = unitCubeVertices[c];
+	vec3 point1 = vertexSet[a];
+	vec3 point2 = vertexSet[b];
+	vec3 point3 = vertexSet[c];
 
 	vec3 U = point2 - point1;
 	vec3 V = point3 - point2;
 	vec3 face1Normal = vec3(1.0,1.0,1.0); // normalize(cross(U,V));
 
-	vec3 point4 = unitCubeVertices[d];
+	vec3 point4 = vertexSet[d];
 
     points[Index] = point1; normals[Index] = face1Normal; Index++;
     points[Index] = point2; normals[Index] = face1Normal; Index++;
@@ -178,27 +228,25 @@ quad( int a, int b, int c, int d )
 //----------------------------------------------------------------------------
 
 // generate 12 triangles: 36 vertices and 36 colors
-void
-colorcube()
-{
-    quad( 1, 0, 3, 2 );
-    quad( 2, 3, 7, 6 );
-    quad( 3, 0, 4, 7 );
-    quad( 6, 5, 1, 2 );
-    quad( 4, 5, 6, 7 );
-    quad( 5, 4, 0, 1 );
+
+void draw(vec3 refVecs[]) {
+    quad( 1, 0, 3, 2, refVecs );
+    quad( 2, 3, 7, 6, refVecs);
+    quad( 3, 0, 4, 7, refVecs );
+    quad( 6, 5, 1, 2, refVecs );
+    quad( 4, 5, 6, 7, refVecs );
+    quad( 5, 4, 0, 1, refVecs );
 }
 
-
-void drawCube() {
+mat4 getTransformMatrix(vec3 scaleVec, vec3 rotationVec, vec3 translationVec) {
     mat4 scaleMatrix;
-    scaleMatrix[0][0] = 1;
-    scaleMatrix[1][1] = 1;
-    scaleMatrix[2][2] = 1;
+    scaleMatrix[0][0] = scaleVec.x;
+    scaleMatrix[1][1] = scaleVec.y;
+    scaleMatrix[2][2] = scaleVec.z;
 
-    // Rotate
-    vec3 rotationFactors = vec3(0,0,0);
-    vec3 angles = radians(-1.0f * rotationFactors);
+
+    vec3 angles = vecRadians(-1.0f * rotationVec);
+    printVector(angles);
 
     vec3 c = cos( angles );
     vec3 s = sin( angles );
@@ -220,17 +268,14 @@ void drawCube() {
     mat4 rotationMatrix = rx * ry * rz;
 
     // Translate
-    vec3 translationFactors = vec3(0,0,0);
     mat4 translationMatrix;
-    translationMatrix[0][3] = translationFactors.x;
-    translationMatrix[1][3] = translationFactors.y;
-    translationMatrix[2][3] = translationFactors.z;
+    translationMatrix[0][3] = translationVec.x;
+    translationMatrix[1][3] = translationVec.y;
+    translationMatrix[2][3] = translationVec.z;
 
     mat4 currentMatrix = scaleMatrix * rotationMatrix * translationMatrix;
+    return currentMatrix;
 
-    glUniformMatrix4fv( currentTransformMatrix, 1, GL_TRUE, currentMatrix );
-
-    glDrawArrays( GL_TRIANGLES, 0, Index );
 }
 
 
@@ -269,6 +314,7 @@ initMainWindow( void )
     glVertexAttribPointer( vNormal, 3, GL_FLOAT, GL_FALSE, 0,
                            BUFFER_OFFSET(sizeof(normals)) );
 
+    currentTransformMatrix = glGetUniformLocation(program, "CurrentTransformMatrix");
     projectionMatrix = glGetUniformLocation(program, "Projection");
     modelViewMatrix = glGetUniformLocation(program, "ModelView");
     p_ambient = glGetUniformLocation(program, "AmbientProduct");
@@ -295,8 +341,9 @@ displayMainWindow( void )
    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    mat4 Projection;
+
    if(isPerspective) {
-	   Projection = Perspective(45.0f, 1.0f, 0.1f, 100.0f);
+	   Projection = Perspective(90.0f, 1.0f, 0.1f, 100.0f);
    }
    else {
 	   Projection = Ortho(left,right,bottom,top,-0.001f,100.f);
@@ -305,8 +352,6 @@ displayMainWindow( void )
 
    vec3 eyePos = calculateEyeVector();
    vec4 lightPos = calculateLightVector();
-
-   vec3 modelCentroid = calculateModelCentroid();
 
    // Look at model centroid
    mat4 model_view = LookAt(
@@ -327,7 +372,35 @@ displayMainWindow( void )
    glUniform3fv(e_position,1,eyePos);
    glUniform1f(m_shininess,M_shininess);
 
-   glDrawArrays( GL_TRIANGLES, 0, Index );
+   printf("Theta is: %f\n,",Theta);
+
+   mat4 baseTranslate = Translate(vec3(0,-5,0));
+   mat4 baseRotate = RotateX(0.0f);
+   mat4 baseScale = Scale(vec3(1,.4,1));
+   mat4 baseCTM = baseScale *baseRotate * baseTranslate;
+
+   baseCTM = mat4(1);
+
+   glUniformMatrix4fv(currentTransformMatrix, 1, GL_TRUE, baseCTM);
+   glDrawArrays(GL_TRIANGLES,0,36);
+
+
+   mat4 body1Translate = Translate(vec3(0,0,0));
+   mat4 body1Rotate = RotateX(0.0f);
+   mat4 body1Scale = Scale(vec3(.2,4,1));
+
+   mat4 body1CTM = body1Scale *body1Rotate * body1Translate;
+   body1CTM = mat4(1.0);
+   glUniformMatrix4fv(currentTransformMatrix, 1, GL_TRUE, body1CTM);
+   glDrawArrays(GL_TRIANGLES,36,36);
+
+
+   mat4 arm1Translate = Translate(vec3(0,4,0));
+   mat4 arm1Rotate = RotateY(Joint1Angle);
+
+   mat4 arm1CTM = arm1Translate * arm1Rotate;
+   glUniformMatrix4fv(currentTransformMatrix, 1, GL_TRUE, arm1CTM);
+   glDrawArrays(GL_TRIANGLES,72,36);
 
    glutSwapBuffers();
 
@@ -442,7 +515,16 @@ keyboard( unsigned char key, int x, int y )
 		// Exit
 		exit( EXIT_SUCCESS );
 		break;
+	case 't':
+		Joint1Angle += 5;
+		printf("Incrementing Joint 1 angle to: %f\n");
 
+		break;
+	case 'r':
+		Joint1Angle -= 5;
+		printf("Decrementing Joint 1 angle to: %f\n");
+
+		break;
     case 'z':
     	setDefaultViewParams();
     	break;
@@ -485,8 +567,15 @@ main( int argc, char **argv )
 
 	setDefaultViewParams();
 
-	// Render geometry for cube
-	colorcube();
+	// The base
+	draw(baseVertices);
+
+	// First pillar
+	draw(bodyVertices);
+
+	// First arm which connects at first joint
+	draw(arm1Vertices);
+
 
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;

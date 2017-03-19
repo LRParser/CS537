@@ -32,5 +32,5 @@ void main()
     } 
 	position = vPosition;
 	normal = vec3(ModelView * vec4(vNormal,1.0)).xyz;
-    gl_Position =  Projection * ModelView * vec4(vPosition,1.0);
+    gl_Position =  Projection * ModelView * CurrentTransformMatrix * vec4(vPosition,1.0);
 }
