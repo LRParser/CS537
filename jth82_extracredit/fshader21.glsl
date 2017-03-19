@@ -13,14 +13,6 @@ uniform mat4 CurrentTransformMatrix;
 uniform mat4 ModelView; 
 uniform float Shininess; 
 
-vec3 textureValue(vec3 inputVec) {
-	float x = inputVec.x;
-	float y = inputVec.y;
-	float z = inputVec.z;
-	
-	return vec3(x + cos(x),y + tan(y),z + sin(z));
-	
-}
 
 void main()  
 {  
@@ -40,10 +32,7 @@ void main()
 	
 	float dTerm = max(dot(L, N), 0.0); 
     vec3 diffuse = dTerm*DiffuseProduct; 	
-    
-    // Replace diffuse with a 3d texture
-    diffuse = textureValue(position);
-	
+    	
     frag_color = vec4(ambient + diffuse + specular, 1.0); 
     
     

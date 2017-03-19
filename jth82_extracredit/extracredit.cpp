@@ -14,6 +14,7 @@ bool debug = false;
 GLuint modelViewMatrix, projectionMatrix, currentTransformMatrix;
 
 float Joint1Angle = 45.0f;
+float Joint2Angle = -45.0f;
 
 // Uniforms for lighting
 // Light properties
@@ -99,9 +100,9 @@ vec3 calculateModelCentroid() {
 
 void setDefaultViewParams() {
 	// Base color is red
-	P_ambient = vProduct(vec3(0.15, .15, .15),vec3(1,1,1));
+	P_ambient = vProduct(vec3(0.35, .35, .35),vec3(1,1,1));
 	P_diffuse = vProduct(vec3(0.6, .6, .6),vec3(.5,0,0));
-	P_specular = vProduct(vec3(0.25, .25, .25),vec3(1,1,1));
+	P_specular = vProduct(vec3(0.05, .05, .05),vec3(1,1,1));
 	M_shininess = 50;
 	Radius = 8.0;
 	Height = 3.0f;
@@ -183,6 +184,17 @@ vec3 arm1Vertices[8] = {
 	vec3( -0.1,  .1, -0.2),
 	vec3(  4,  .1, -0.2),
 	vec3(  4, -0.1, -0.2)
+};
+
+vec3 arm2Vertices[8] = {
+    vec3( -0.1, -0.1,  0.2),
+	vec3( -0.1,  .1,  0.2),
+	vec3(  3,  .1, 0.2),
+	vec3(  3, -0.1,  0.2),
+	vec3( -0.1, -0.1, -0.2),
+	vec3( -0.1,  .1, -0.2),
+	vec3(  3,  .1, -0.2),
+	vec3(  3, -0.1, -0.2)
 };
 
 vec3 unitCubeVertices[8] = {
@@ -392,7 +404,7 @@ displayMainWindow( void )
    mat4 body1CTM = body1Scale *body1Rotate * body1Translate;
    body1CTM = mat4(1.0);
    glUniformMatrix4fv(currentTransformMatrix, 1, GL_TRUE, body1CTM);
-   glDrawArrays(GL_TRIANGLES,36,36);
+   glDrawArrays(GL_TRIANGLES,1 * 36,36);
 
 
    mat4 arm1Translate = Translate(vec3(0,4,0));
@@ -400,7 +412,14 @@ displayMainWindow( void )
 
    mat4 arm1CTM = arm1Translate * arm1Rotate;
    glUniformMatrix4fv(currentTransformMatrix, 1, GL_TRUE, arm1CTM);
-   glDrawArrays(GL_TRIANGLES,72,36);
+   glDrawArrays(GL_TRIANGLES,2 * 36,36);
+
+   mat4 arm2Translate = arm1Rotate * Translate(vec3(4,4,0));
+   mat4 arm2Rotate = RotateY(Joint2Angle);
+
+   mat4 arm2CTM = arm2Translate * arm2Rotate;
+   glUniformMatrix4fv(currentTransformMatrix, 1, GL_TRUE, arm2CTM);
+   glDrawArrays(GL_TRIANGLES,3 * 36,36);
 
    glutSwapBuffers();
 
@@ -576,6 +595,14 @@ main( int argc, char **argv )
 	// First arm which connects at first joint
 	draw(arm1Vertices);
 
+	// Second arm connects at second joint
+	draw(arm2Vertices);
+
+	std::cout << "Press: t - To increment joint 1 angle" << std::endl;
+	std::cout << "Press: r - To decrement joint 1 angle" << std::endl;
+
+	std::cout << "Press: t - To increment joint 1 angle" << std::endl;
+	std::cout << "Press: r - To decrement joint 1 angle" << std::endl;
 
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;
