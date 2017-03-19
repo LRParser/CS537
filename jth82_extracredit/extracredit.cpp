@@ -15,6 +15,11 @@ GLuint modelViewMatrix, projectionMatrix, currentTransformMatrix;
 
 float Joint1Angle = 45.0f;
 float Joint2Angle = -45.0f;
+float Joint3Depth = -1.25;
+
+bool modifyJoint1 = false;
+bool modifyJoint2 = false;
+bool modifyJoint3 = false;
 
 // Uniforms for lighting
 // Light properties
@@ -104,7 +109,7 @@ void setDefaultViewParams() {
 	P_diffuse = vProduct(vec3(0.6, .6, .6),vec3(.5,0,0));
 	P_specular = vProduct(vec3(0.05, .05, .05),vec3(1,1,1));
 	M_shininess = 50;
-	Radius = 8.0;
+	Radius = 11.0;
 	Height = 3.0f;
 	Theta = 85.0f;
 	LightTheta = Theta;
@@ -112,7 +117,9 @@ void setDefaultViewParams() {
 	LightHeight = Height;
 	RadiusDelta = 1;
 	isPerspective = true;
-	Joint1Angle = 5.0f;
+	Joint1Angle = 45.0f;
+	Joint2Angle = -45.0f;
+	Joint3Depth = -1.25;
 }
 
 vec3 calculateEyeVector() {
@@ -139,19 +146,6 @@ vec3 calculateLightVector() {
 
 }
 
-// Vertices of a unit cube centered at origin, sides aligned with axes
-/*
-vec3 unitCubeVertices[8] = {
-		vec3( 0, 0,  1),
-		vec3( 0,  1,  1 ),
-		vec3(  1,  1,  1),
-		vec3(  1, 0,  1 ),
-		vec3( 0, 0, 0 ),
-		vec3( 0,  1, 0 ),
-		vec3(  1,  1, 0 ),
-		vec3(  1, 0, 0 )
-};
-*/
 
 vec3 baseVertices[8] = {
     vec3( -0.5, -0.1,  0.5),
@@ -197,16 +191,17 @@ vec3 arm2Vertices[8] = {
 	vec3(  3, -0.1, -0.2)
 };
 
-vec3 unitCubeVertices[8] = {
-    vec3( -0.5, -0.5,  0.5),
-	vec3( -0.5,  0.5,  0.5),
-	vec3(  0.5,  0.5,  0.5),
-	vec3(  0.5, -0.5,  0.5),
-	vec3( -0.5, -0.5, -0.5),
-	vec3( -0.5,  0.5, -0.5),
-	vec3(  0.5,  0.5, -0.5),
-	vec3(  0.5, -0.5, -0.5)
+vec3 arm3Vertices[8] = {
+	    vec3( -0.1, -0.1,  0.1),
+		vec3( -0.1,  2,  0.1),
+		vec3(  0.1,  2,  0.1),
+		vec3(  0.1, -0.1,  0.1),
+		vec3( -0.1, -0.1, -0.1),
+		vec3( -0.1,  2, -0.1),
+		vec3(  0.1,  2, -0.1),
+		vec3(  0.1, -0.1, -0.1)
 };
+
 
 // quad generates two triangles for each face and assigns colors
 //    to the vertices. Draws a, b, c as one triangle, a, c, d as another
@@ -248,46 +243,6 @@ void draw(vec3 refVecs[]) {
     quad( 6, 5, 1, 2, refVecs );
     quad( 4, 5, 6, 7, refVecs );
     quad( 5, 4, 0, 1, refVecs );
-}
-
-mat4 getTransformMatrix(vec3 scaleVec, vec3 rotationVec, vec3 translationVec) {
-    mat4 scaleMatrix;
-    scaleMatrix[0][0] = scaleVec.x;
-    scaleMatrix[1][1] = scaleVec.y;
-    scaleMatrix[2][2] = scaleVec.z;
-
-
-    vec3 angles = vecRadians(-1.0f * rotationVec);
-    printVector(angles);
-
-    vec3 c = cos( angles );
-    vec3 s = sin( angles );
-
-    mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
-		    0.0,  c.x,  s.x, 0.0,
-		    0.0, -s.x,  c.x, 0.0,
-		    0.0,  0.0,  0.0, 1.0 );
-    mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
-		    0.0, 1.0,  0.0, 0.0,
-		    s.y, 0.0,  c.y, 0.0,
-		    0.0, 0.0,  0.0, 1.0 );
-
-    mat4 rz = mat4( c.z, -s.z, 0.0, 0.0,
-		    s.z,  c.z, 0.0, 0.0,
-		    0.0,  0.0, 1.0, 0.0,
-		    0.0,  0.0, 0.0, 1.0 );
-
-    mat4 rotationMatrix = rx * ry * rz;
-
-    // Translate
-    mat4 translationMatrix;
-    translationMatrix[0][3] = translationVec.x;
-    translationMatrix[1][3] = translationVec.y;
-    translationMatrix[2][3] = translationVec.z;
-
-    mat4 currentMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-    return currentMatrix;
-
 }
 
 
@@ -384,7 +339,9 @@ displayMainWindow( void )
    glUniform3fv(e_position,1,eyePos);
    glUniform1f(m_shininess,M_shininess);
 
-   printf("Theta is: %f\n,",Theta);
+   if(debug) {
+	   printf("Theta is: %f\n,",Theta);
+   }
 
    mat4 baseTranslate = Translate(vec3(0,-5,0));
    mat4 baseRotate = RotateX(0.0f);
@@ -421,6 +378,11 @@ displayMainWindow( void )
    glUniformMatrix4fv(currentTransformMatrix, 1, GL_TRUE, arm2CTM);
    glDrawArrays(GL_TRIANGLES,3 * 36,36);
 
+   mat4 arm3Translate = arm2CTM * Translate(vec3(3,Joint3Depth,0));
+   mat4 arm3CTM = arm3Translate;
+   glUniformMatrix4fv(currentTransformMatrix, 1, GL_TRUE, arm3CTM);
+   glDrawArrays(GL_TRIANGLES,4 * 36,36);
+
    glutSwapBuffers();
 
 }
@@ -443,6 +405,47 @@ int min(int int1, int int2) {
 		return int2;
 	}
 }
+
+float fMax(float one, float two) {
+	if(one>two) {
+		return one;
+	}
+	else {
+		return two;
+	}
+}
+
+float fMin(float one, float two) {
+	if(one<two) {
+		return one;
+	}
+	else {
+		return two;
+	}
+}
+
+void menu_chooser_mainwindow(int id) {
+	switch(id)
+	{
+	case 1:
+		modifyJoint1 = true;
+		modifyJoint2 = false;
+		modifyJoint3 = false;
+	    break;
+
+	case 2:
+		modifyJoint1 = false;
+		modifyJoint2 = true;
+		modifyJoint3 = false;
+	    break;
+	case 3:
+		modifyJoint1 = false;
+		modifyJoint2 = false;
+		modifyJoint3 = true;
+	    break;
+	}
+}
+
 
 void
 keyboard( unsigned char key, int x, int y )
@@ -504,8 +507,8 @@ keyboard( unsigned char key, int x, int y )
     	// Rotate counterclockwise
     	Theta += ThetaDelta;
     	LightTheta += ThetaDelta;
-    	Theta = min(Theta,360);
-    	LightTheta = min(LightTheta,360);
+    	Theta = fMin(Theta,360);
+    	LightTheta = fMin(LightTheta,360);
     	if(debug) {
     		printf("Theta is: %f\n",Theta);
     		printf("LightRadius is: %f\n",LightTheta);
@@ -516,8 +519,8 @@ keyboard( unsigned char key, int x, int y )
     case '6' :
     	Theta -= ThetaDelta;
     	LightTheta -= ThetaDelta;
-    	Theta = max(Theta,5.0);
-    	LightTheta = max(LightTheta,5.0);
+    	Theta = fMax(Theta,5.0);
+    	LightTheta = fMax(LightTheta,5.0);
     	if(debug) {
     		printf("Theta is: %f\n",Theta);
     		printf("LightRadius is: %f\n",LightTheta);
@@ -535,21 +538,39 @@ keyboard( unsigned char key, int x, int y )
 		exit( EXIT_SUCCESS );
 		break;
 	case 't':
-		Joint1Angle += 5;
-		printf("Incrementing Joint 1 angle to: %f\n");
-
+		if(modifyJoint1) {
+			Joint1Angle += 5;
+			if(debug) { printf("Incrementing Joint 1 angle to: %f\n",Joint1Angle); }
+		}
+		else if(modifyJoint2) {
+			Joint2Angle += 5;
+			Joint2Angle = min(Joint2Angle,170);
+		}
+		else if(modifyJoint3) {
+			Joint3Depth += .05;
+			Joint3Depth = fMin(0.0f,Joint3Depth);
+		}
 		break;
 	case 'r':
+		if(modifyJoint1) {
 		Joint1Angle -= 5;
-		printf("Decrementing Joint 1 angle to: %f\n");
-
+		if(debug) { printf("Decrementing Joint 1 angle to: %f\n",Joint1Angle); }
+		}
+		else if(modifyJoint2) {
+			Joint2Angle -= 5;
+			Joint2Angle = max(Joint2Angle,-170);
+		}
+		else if(modifyJoint3) {
+			Joint3Depth -= .05;
+			Joint3Depth = fMax(-1.9f,Joint3Depth);
+		}
 		break;
+
     case 'z':
     	setDefaultViewParams();
     	break;
 
     }
-
 
 	glutPostRedisplay();
 
@@ -598,12 +619,18 @@ main( int argc, char **argv )
 	// Second arm connects at second joint
 	draw(arm2Vertices);
 
-	std::cout << "Press: t - To increment joint 1 angle" << std::endl;
-	std::cout << "Press: r - To decrement joint 1 angle" << std::endl;
+	// Second arm connects at third joint
+	draw(arm3Vertices);
 
-	std::cout << "Press: t - To increment joint 1 angle" << std::endl;
-	std::cout << "Press: r - To decrement joint 1 angle" << std::endl;
+	glutCreateMenu(menu_chooser_mainwindow);
+	glutAddMenuEntry("Modify Joint 1",1);
+	glutAddMenuEntry("Modify Joint 2",2);
+	glutAddMenuEntry("Modify Joint 3",3);
+	glutAttachMenu(GLUT_RIGHT_BUTTON);
 
+	std::cout << "Access right-click menu to select the joint to modify" << std::endl;
+	std::cout << "Press: t - To increment joint angle" << std::endl;
+	std::cout << "Press: r - To decrement joint angle" << std::endl;
 	std::cout << "Press: 1 - To increase camera height" << std::endl;
 	std::cout << "Press: 2 - To decrease camera height" << std::endl;
 	std::cout << "Press: 3 - To increase orbit radius" << std::endl;
