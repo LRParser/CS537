@@ -1,10 +1,14 @@
 This program should be run on MacOS with make run
-It places a 3D procedurally generated color map texture as the diffuse color
-on the spherical SMF model and contains a bright specular highlight.
-A light source is attached to the camera and a specular highlight is visible
+Via right-clicking you can select a joint to modify. You must first select a joint before pressing t and r.
+Contrains are enforced on joints 2 and 3.
+The hierarchy at https://www.cs.drexel.edu/~david/Classes/ICG/Assignments_new/extraCredit.html is reproduced
+
 
 Supported controls:
 
+Access right-click menu to select the joint to modify
+Press: t - To increment joint angle
+Press: r - To decrement joint angle
 Press: 1 - To increase camera height
 Press: 2 - To decrease camera height
 Press: 3 - To increase orbit radius
@@ -15,4 +19,5 @@ Press: 7 - To enable perspective projection mode
 Press: 8 - To enable parallel projection mode (default)
 Press: z - To reset the view
 Press: x - To exit the program
+
 
